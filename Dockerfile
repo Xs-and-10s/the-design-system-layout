@@ -11,4 +11,5 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # We do a runtime substitution via the entrypoint below.
 CMD ["/bin/sh", "-c", \
   "envsubst '$PORT' < /etc/nginx/conf.d/default.conf > /tmp/nginx.conf \
-   && nginx -c /tmp/nginx.conf -g 'daemon off;'"]
+   && cp /tmp/nginx.conf /etc/nginx/conf.d/default.conf \
+   && nginx -g 'daemon off;'"]

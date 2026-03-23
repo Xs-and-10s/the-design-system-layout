@@ -1,6 +1,23 @@
+# ── Build stage ───────────────────────────────────────────────────────────────
+FROM oven/bun:1 AS builder
+
+WORKDIR /app
+
+# Install dependencies first (layer-cached unless lockfile changes)
+COPY package.json package-lock.json ./
+RUN bun install
+
+# Copy source and build
+COPY . .
+RUN bun run build
+
+# ── Runtime stage ──────────────────────────────────────────────────────────────
 FROM nginx:1.27-alpine
 
-# Copy the static site files into nginx's default serve directory
+# Copy the compiled dist/ output from the build stage
+COPY --from=builder /app/dist/ /usr/share/nginx/html/
+
+# Copy the static gallery pages
 COPY pages/ /usr/share/nginx/html/
 
 # Copy our custom nginx config

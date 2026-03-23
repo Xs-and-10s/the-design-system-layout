@@ -1,0 +1,170 @@
+@layer ds.layout {
+
+    /* ── masonry-layout ──────────────────────────────────────
+       A masonry layout: variable-height items flow into columns
+       without the uniform row constraint of a standard grid.
+       Items in later rows "float up" to fill the shortest column,
+       eliminating the vertical gaps that occur in CSS grid when
+       items have different heights.
+
+       ── PROGRESSIVE ENHANCEMENT STRATEGY ─────────────────────
+
+       BASELINE (all browsers): CSS multicol layout.
+         display: block with column-count / column-width and
+         break-inside: avoid on children. Items flow top-to-bottom
+         within each column. This is not true masonry — items fill
+         from left-to-right in columns (column 1 fills, then column 2,
+         etc.) rather than always filling the shortest column. The
+         visual result is masonry-like but items flow in column-major
+         order, which may differ from source order in ways that could
+         affect meaning or accessibility.
+
+       ENHANCEMENT (where supported): CSS grid masonry.
+         @supports (grid-template-rows: masonry) detects browsers with
+         native masonry support. These get display: grid with
+         grid-template-rows: masonry — true masonry layout where items
+         always fill the shortest column, in source order.
+
+       ── BROWSER SUPPORT STATUS (as of early 2026) ─────────────
+         Firefox: Available (shipped without flag ~Firefox 126+)
+         Chrome: Behind "Experimental Web Platform features" flag
+         Safari: Partial experimental implementation
+       Check caniuse.com/css-masonry for current status.
+
+       ── COLUMN SIZING STRATEGY ────────────────────────────────
+
+       The `min` attribute controls the minimum column width:
+         - In multicol: sets column-width (browser auto-computes count)
+         - In CSS masonry: sets the minmax() floor in grid-template-columns
+
+       The `columns` attribute sets an explicit column count:
+         - In multicol: sets column-count (overrides width-based auto)
+         - In CSS masonry: switches from auto-fill to the explicit count
+
+       When both `min` and `columns` are set:
+         - Multicol: column-count acts as a maximum; column-width
+           computes the actual count (whichever gives MORE columns wins)
+         - CSS masonry: columns takes precedence (explicit count used)
+
+       Attributes:
+         gap="<token | length>"
+           Gap between items (column-gap in multicol, gap in grid).
+           Default: --ds-gap.
+
+         gap-block="<token | length>"
+           Row gap. Overrides gap on the block axis.
+           Note: in multicol, row gaps between items are controlled
+           by margin-block-end on children — this attribute sets a
+           custom property that the child margin rule reads.
+
+         gap-inline="<token | length>"
+           Column gap. Overrides gap on the inline axis.
+
+         min="<token | length>"
+           Minimum column width. Default: 16rem.
+           The browser creates as many columns of at least this width
+           as will fit.
+
+         columns="<integer>"
+           Explicit column count. Overrides auto-sizing from `min`.
+           In CSS masonry mode, switches grid-template-columns from
+           auto-fill to repeat(N, ...).
+    ──────────────────────────────────────────────────────────── */
+
+
+    /* ── BASELINE: multicol fallback ─────────────────────────
+       Works everywhere. Not true masonry — items fill columns in
+       column-major order. This is the correct tradeoff for a pure-CSS
+       baseline that doesn't require JS.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(masonry-layout) {
+        display: block;
+
+        column-width: var(--ds-masonry-min, 16rem);
+        column-count: var(--ds-masonry-columns, auto);
+        column-gap:   var(--ds-masonry-gap-inline, var(--ds-masonry-gap, var(--ds-gap, 1rem)));
+    }
+
+    :where(masonry-layout > *) {
+        display: inline-block;
+        inline-size: 100%;
+
+        /*
+            break-inside: avoid prevents an item from being split
+            across two columns by the multicol algorithm.
+        */
+        break-inside: avoid;
+
+        /*
+            In multicol, row gaps between items must be set as
+            margin on children (there is no row-gap equivalent).
+            The bottom margin equals the gap value.
+        */
+        margin-block:     0;
+        margin-block-end: var(--ds-masonry-gap-block, var(--ds-masonry-gap, var(--ds-gap, 1rem)));
+    }
+
+
+    /* ── ENHANCEMENT: CSS grid masonry ───────────────────────
+       True masonry: items always fill the shortest column, in source
+       (DOM) order. Available in browsers that support
+       grid-template-rows: masonry.
+
+       The @supports block overrides ONLY the properties relevant to
+       display/grid. The gap custom properties (--ds-masonry-gap-*)
+       are defined in the base rule and shared between both paths.
+    ──────────────────────────────────────────────────────────── */
+
+    @supports (grid-template-rows: masonry) {
+
+        :where(masonry-layout) {
+            display: grid;
+            grid-template-rows: masonry;
+
+            /*
+                Column tracks: use the same --_m-repeat trick as fluid-grid.
+                --ds-masonry-columns (when set) overrides the auto-fill default.
+                Custom property substitution happens before value parsing, so
+                repeat(var(--_m-repeat), ...) works for both keywords and integers.
+            */
+            --_ms-repeat: var(--ds-masonry-columns, auto-fill);
+
+            grid-template-columns: repeat(
+                var(--_ms-repeat),
+                minmax(
+                    min(100%, var(--ds-masonry-min, 16rem)),
+                    1fr
+                )
+            );
+
+            /*
+                Full gap shorthand applies in grid mode.
+                In multicol, column-gap handles columns and margin handles rows.
+                In grid, gap handles both — the child margin-block-end rule
+                below is overridden so there's no double spacing.
+            */
+            row-gap:    var(--ds-masonry-gap-block,  var(--ds-masonry-gap, var(--ds-gap, 1rem)));
+            column-gap: var(--ds-masonry-gap-inline, var(--ds-masonry-gap, var(--ds-gap, 1rem)));
+
+            /*
+                Reset multicol-specific properties so they don't interfere
+                with the grid layout.
+            */
+            column-width: auto;
+            column-count: auto;
+        }
+
+        :where(masonry-layout > *) {
+            /*
+                Reset multicol child rules for grid mode.
+                In grid, items are block-level and gap handles spacing.
+            */
+            display:       block;
+            inline-size:   auto;
+            margin-block:  0;
+            break-inside:  auto;
+        }
+    }
+
+}

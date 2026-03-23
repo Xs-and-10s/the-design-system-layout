@@ -1,0 +1,91 @@
+@layer ds.layout {
+
+    /* ── rows-layout ─────────────────────────────────────────
+       A CSS grid with an explicit row track definition. The
+       transposition of columns-layout: row height is fixed;
+       column width is typically auto or 1fr.
+
+       Common use cases:
+         - Fixed header / flexible content / fixed footer in a
+           bounded container (without the full-viewport assumption
+           of sandwich-layout — use rows-layout when the container
+           has a known fixed height, e.g. a card, panel, or dialog)
+         - Vertical form layouts with controlled row heights
+         - Timeline or schedule grids where row height = time unit
+         - Any grid that is logically "rows-first" rather than
+           "columns-first"
+
+       Subgrid:
+       When [subgrid] is present, this element participates in its
+       parent grid's ROW tracks instead of defining its own. Must be
+       a direct child of a grid container with explicit row tracks.
+
+       Attributes:
+         rows="<integer | track list>"
+           Row track definitions. Two forms:
+             Integer: "4" → repeat(4, auto) — N auto-height rows
+             Track list: "64px 1fr 48px" — explicit per-row heights
+           Default: repeat(3, auto)
+
+         cols="<integer | track list>"
+           Column track definitions.
+             Integer: "2" → repeat(2, 1fr)
+             Track list: "1fr 2fr" — explicit widths
+           Default: 1fr (single full-width column)
+
+         gap="<token | length>"  Default: --ds-gap
+         gap-block="<token | length>"   Row gap override
+         gap-inline="<token | length>"  Column gap override
+         align="<align-items value>"    Default: stretch
+         justify="<justify-items value>" Default: stretch
+
+       BOOLEAN ATTRIBUTES (CSS-only):
+         [dense]     grid-auto-flow: dense (column dense for row-first grids)
+         [subgrid]   grid-template-rows: subgrid
+         [cols]      When combined with [subgrid]: also subgrid columns
+    ──────────────────────────────────────────────────────────── */
+
+    :where(rows-layout) {
+        display: grid;
+
+        grid-template-rows:    var(--ds-rows-rows, repeat(3, auto));
+        grid-template-columns: var(--ds-rows-cols, 1fr);
+
+        row-gap:    var(--ds-rows-gap-block,  var(--ds-rows-gap, var(--ds-gap, 1rem)));
+        column-gap: var(--ds-rows-gap-inline, var(--ds-rows-gap, var(--ds-gap, 1rem)));
+
+        align-items:   var(--ds-rows-align,   stretch);
+        justify-items: var(--ds-rows-justify, stretch);
+    }
+
+    :where(rows-layout > *) {
+        min-inline-size: 0;
+        min-block-size:  0;
+    }
+
+
+    /* ── [dense] ─────────────────────────────────────────────
+       grid-auto-flow: column dense — fills holes in the column
+       direction for row-first grids with spanning items.
+       Visual order may differ from DOM order.
+    ──────────────────────────────────────────────────────────── */
+    :where(rows-layout[dense]) {
+        grid-auto-flow: column dense;
+    }
+
+
+    /* ── [subgrid] ───────────────────────────────────────────
+       Participates in the parent grid's ROW tracks.
+       Element must be a direct child of a grid container with
+       explicit row tracks (auto rows do not subgrid usefully).
+    ──────────────────────────────────────────────────────────── */
+    :where(rows-layout[subgrid]) {
+        grid-template-rows: subgrid;
+    }
+
+    /* [subgrid][cols]: also subgrid the column axis */
+    :where(rows-layout[subgrid][cols]) {
+        grid-template-columns: subgrid;
+    }
+
+}

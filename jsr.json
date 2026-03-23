@@ -1,0 +1,32 @@
+{
+    /*
+        jsr.json — @design-system/layout on JSR (jsr.io)
+
+        JSR compiles TypeScript source itself, so this config points at
+        src/ rather than dist/. Consumers on JSR get full type information
+        from the source without a separate build step on our end.
+
+        Publish with:  npx jsr publish
+        (JSR reads this file automatically.)
+
+        Note on CSS: JSR's exports map only handles JS/TS entry points.
+        CSS files are accessible to JSR consumers via direct URL import:
+          import "jsr:@design-system/layout/stacked/stacked.css" won't work.
+        For CSS, npm + a CDN (jsDelivr, unpkg) remains the primary path.
+        JSR is primarily useful for TypeScript consumers who want the factory
+        utilities and define() functions with full types.
+    */
+    "name":    "@design-system/layout",
+    "version": "0.1.0",
+
+    "exports": {
+        ".":               "./src/core.ts",
+        "./register-all":  "./src/register-all.ts",
+        "./stacked":       "./src/stacked/stacked.ts"
+
+        /*
+            Add further module entries here as you implement them.
+            Pattern: "./<slug>": "./src/<slug>/<slug>.ts"
+        */
+    }
+}

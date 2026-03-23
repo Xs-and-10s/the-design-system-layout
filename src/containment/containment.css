@@ -1,0 +1,152 @@
+@layer ds.layout {
+
+    /* ── containment-layout ──────────────────────────────────
+       A performance and isolation primitive. Establishes a CSS
+       containment context, an optional container query scope,
+       and optional content-visibility optimization for off-screen
+       content.
+
+       This element provides three related but distinct CSS features:
+
+       ── FEATURE 1: CSS CONTAINER QUERIES (container-type) ──────
+
+       container-type: inline-size (default) establishes this element
+       as a "measurement point" for container queries. Descendant CSS
+       can then use @container rules that respond to THIS element's
+       inline size rather than the viewport:
+
+         @container (min-inline-size: 400px) {
+           .card { flex-direction: row; }
+         }
+
+       Setting the `name` attribute gives the container a name, allowing
+       descendant CSS to target this specific container by name:
+
+         @container sidebar (min-inline-size: 200px) { … }
+                    ↑ matches a containment-layout with name="sidebar"
+
+       The `type` attribute sets container-type directly:
+         "inline-size"  — queries on inline axis (default, most useful)
+         "size"         — queries on both axes (element must have explicit height)
+         "normal"       — named container, no query axis
+
+       ── FEATURE 2: CSS CONTAINMENT (contain) ──────────────────
+
+       CSS containment tells the browser that changes inside this element
+       cannot affect the outside, enabling layout/paint optimizations:
+
+         layout  — layout is fully contained (no layout side-effects outside)
+         paint   — painting is clipped to the border box; descendant z-index
+                   stacking contexts cannot appear outside this element
+         style   — CSS counters and quotes are scoped to this element
+         size    — the element's size is independent of its content
+         inline-size — size containment on the inline axis only
+         content — shorthand for layout + paint (most common useful combo)
+         strict  — shorthand for layout + paint + size
+
+       Note: container-type: inline-size already implies layout and style
+       containment. Adding `contain="paint"` on top of it adds paint clipping.
+
+       ── FEATURE 3: CONTENT VISIBILITY (content-visibility) ───────
+
+       content-visibility: auto tells the browser to skip rendering of
+       off-screen content entirely. For long pages with many sections,
+       this can reduce initial render time dramatically.
+
+       IMPORTANT: content-visibility: auto REQUIRES `contain-intrinsic-size`
+       to be set. Without it, the browser cannot reserve space for the
+       off-screen element — all off-screen elements collapse to 0 height,
+       causing the scrollbar to jump as the user scrolls (because elements
+       suddenly "appear" and take up space).
+
+         content-visibility="auto"
+         contain-intrinsic-size="0 500px"   ← width: auto, height: ~500px
+
+       The intrinsic size is an ESTIMATE — it only matters when the element
+       is off-screen. When on-screen, the browser measures the actual content.
+
+       ── WHY NOT JUST CSS? ─────────────────────────────────────
+
+       Three of the properties set by this element are NOT settable via
+       CSS custom properties:
+         - container-name  (custom props not accepted in this value)
+         - container-type  (custom props not accepted)
+         - contain         (custom props not accepted)
+
+       These must be set as actual CSS property values. The custom element
+       sets them as inline styles, which is the only mechanism that lets
+       HTML attributes control these properties dynamically.
+
+       contain-intrinsic-size IS settable via custom property (the var is
+       also exported so CSS can override it), but it's also set directly
+       as an inline style for correctness.
+
+       ── ATTRIBUTES ────────────────────────────────────────────
+
+         name="<ident>"
+           container-name. Makes this container targetable by name in
+           @container rules. Optional — unnamed containers are still
+           queryable by their nearest ancestor containers.
+
+         type="inline-size | size | normal"
+           container-type. Default: inline-size.
+           - "inline-size": query on inline width (most common)
+           - "size": query on both width and height
+           - "normal": named container only, no axis for queries
+
+         contain="<containment-value>"
+           CSS contain property. Any valid CSS containment keyword or
+           combination: layout, paint, style, size, inline-size, content,
+           strict, none.
+           Multiple values space-separated: "layout paint".
+           Note: container-type: inline-size already implies layout + style.
+
+         content-visibility="auto | hidden | visible"
+           Skip rendering of off-screen content. "auto" is the useful value.
+           "hidden" always skips rendering (like display:none but preserves
+           space). "visible" is the CSS default — no effect.
+           IMPORTANT: pair with contain-intrinsic-size when using "auto".
+
+         contain-intrinsic-size="<length> | <width> <height>"
+           Estimated size for the element when off-screen.
+           Required with content-visibility="auto" to prevent scroll jumping.
+           Examples:
+             "500px"           — both axes estimated at 500px
+             "0 500px"         — width auto, height ~500px (common for sections)
+             "auto 500px"      — use last-known size, fallback 500px
+             "auto 300px 200px" — (inline-size, block-size) with auto fallback
+
+       CSS TOKEN:
+         --ds-containment-intrinsic-size
+           Also exported as a custom property for CSS overrides.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(containment-layout) {
+        display: block;
+
+        /*
+            Default: inline-size container query scope.
+            This is the most useful default — it establishes a measurement
+            point for @container rules on the inline axis without requiring
+            an explicit height on the element.
+
+            When the JS element's `type` attribute is set, it overrides
+            this via inline style. When `type` is absent, this default applies.
+            When `type=""` (empty), the inline style is removed and this default
+            re-applies — correct behavior.
+
+            Note: inline-size containment implies layout and style containment
+            automatically. No explicit `contain` attribute is needed for those.
+        */
+        container-type: inline-size;
+
+        /*
+            contain-intrinsic-size: reads the custom property set by JS.
+            Only meaningful when content-visibility: auto is also set.
+            The JS element also sets this as a direct property, so the
+            var() here is primarily for CSS-cascade overrides and inheritance.
+        */
+        contain-intrinsic-size: var(--ds-containment-intrinsic-size);
+    }
+
+}

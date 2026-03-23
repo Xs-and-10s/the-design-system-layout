@@ -1,0 +1,16 @@
+{
+    /*
+        tsconfig.scripts.json — type-checking for scripts/ only.
+        Not used for emit; Bun runs scripts/*.ts directly.
+        Referenced by tsconfig.json so the IDE checks scripts/ too.
+    */
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "rootDir":  "./scripts",
+        "outDir":   "./scripts/.tsbuildinfo-scripts",
+        "noEmit":   true,
+        "composite": true
+    },
+    "include": ["scripts/**/*.ts"],
+    "references": []
+}

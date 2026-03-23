@@ -1,0 +1,141 @@
+@layer ds.layout {
+
+    /* ── sticky-layout ───────────────────────────────────────
+       A position: sticky wrapper. Sticks to one or more edges
+       of its nearest scrolling ancestor when the user scrolls
+       past its natural position in the document flow.
+
+       IMPORTANT — common reasons sticky "doesn't work":
+
+       1. The CSS file isn't loaded.
+          position: sticky on an inline element is silently ignored
+          by all browsers. Before this CSS is applied, the element
+          renders as display: inline (UA default for unknown custom
+          elements). Always load both the CSS and the JS module.
+
+       2. An ancestor has overflow: hidden, overflow: auto, or
+          overflow: scroll on an axis you're sticking on.
+          position: sticky is relative to the nearest scrolling
+          ancestor on that axis — if that container doesn't actually
+          scroll (e.g. it's overflow: hidden), the element won't stick.
+          The fix is almost always to remove overflow from the ancestor,
+          or to restructure so the sticky element is a direct child of
+          the scrolling container.
+
+       3. The containing block isn't tall enough.
+          The containing block must be taller than the sticky element
+          for there to be a scrolling range. If the element fills its
+          parent, sticky has nowhere to move.
+
+       4. No sticky edge is set.
+          At least one edge (bs, be, is, or ie) must be set with a
+          non-auto value. Without a defined edge, the browser doesn't
+          know where to stick the element and treats it as static.
+          The most common usage — stick to the top — is: bs="0".
+
+       5. CSS containment on an ancestor.
+          contain: layout or contain: strict on an ancestor cuts the
+          sticky context boundary. The element will stick within the
+          contained subtree, not the scrolling ancestor.
+
+       Attributes:
+         bs="<length>"      stick to block-start (top in horizontal LTR)
+         be="<length>"      stick to block-end (bottom in horizontal LTR)
+         is="<length>"      stick to inline-start (left in LTR)
+         ie="<length>"      stick to inline-end (right in LTR)
+
+         Corners: set two perpendicular edges.
+           top-right:    bs="0" ie="0"
+           bottom-right: be="0" ie="0"
+           bottom-left:  be="0" is="0"
+           top-left:     bs="0" is="0"
+
+         All edge attributes accept space tokens (s, m, xl, s-m, etc.)
+         or any CSS length value (0, 1rem, 4px, etc.).
+
+         z="<integer>"
+           z-index. Defaults to --ds-z-sticky (20).
+           Override per-instance for local stacking contexts.
+
+         safe
+           Boolean. Adds the device's safe-area-inset to each active
+           edge offset, compensating for notches, home indicators, and
+           status bars on mobile devices.
+
+           With safe, each set edge becomes:
+             calc(<your-value> + env(safe-area-inset-<direction>))
+
+           Example: bs="0" safe → sticks below the notch on iPhone.
+           Only affects edges that are explicitly set — unset edges
+           remain auto and are unaffected.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(sticky-layout) {
+        /*
+            display: block is structural, not decorative.
+            position: sticky is silently ignored on inline boxes in
+            all browsers — the element scrolls with the page as if
+            it were static.
+
+            This rule must be loaded for the element to work at all.
+            If you see sticky behavior missing, check that this CSS
+            file is loaded before diagnosing anything else.
+        */
+        display: block;
+        position: sticky;
+
+        /*
+            All edges default to auto — no sticky constraint.
+            At least one must be set (via attribute) to activate
+            sticky behavior on that axis.
+
+            Using auto (not 0) is intentional: defaulting to
+            inset-block-start: 0 would silently make EVERY
+            sticky-layout element stick to the top even when
+            a consumer intended it to stick to the bottom or
+            inline edge.
+        */
+        inset-block-start:  var(--ds-sticky-bs, auto);
+        inset-block-end:    var(--ds-sticky-be, auto);
+        inset-inline-start: var(--ds-sticky-is, auto);
+        inset-inline-end:   var(--ds-sticky-ie, auto);
+
+        z-index: var(--ds-sticky-z, var(--ds-z-sticky, 20));
+    }
+
+
+    /* ── [safe] — safe-area-inset compensation ───────────────
+       On notched/rounded-corner devices (iPhone, some Android),
+       the safe-area-inset-* env() variables report the space
+       consumed by device UI (notch, home indicator, rounded corners).
+
+       Without [safe], a bs="0" sticky header will slide under the
+       notch on scroll. With [safe], the offset becomes the sum of
+       your layout value and the safe-area inset, keeping content
+       in the visible region.
+
+       The rules only override edges that have been set via attribute
+       (i.e. where the --ds-sticky-* custom property is defined on the
+       element's inline style). If an edge is not set, its inset remains
+       auto, and there is no safe-area adjustment to apply.
+
+       env() fallbacks (the second argument to env()) are set to 0px
+       so the rules degrade gracefully on devices/browsers that don't
+       support safe-area insets.
+    ──────────────────────────────────────────────────────────── */
+    :where(sticky-layout[safe]) {
+        inset-block-start: calc(
+            var(--ds-sticky-bs, 0px) + env(safe-area-inset-top, 0px)
+        );
+        inset-block-end: calc(
+            var(--ds-sticky-be, 0px) + env(safe-area-inset-bottom, 0px)
+        );
+        inset-inline-start: calc(
+            var(--ds-sticky-is, 0px) + env(safe-area-inset-left, 0px)
+        );
+        inset-inline-end: calc(
+            var(--ds-sticky-ie, 0px) + env(safe-area-inset-right, 0px)
+        );
+    }
+
+}

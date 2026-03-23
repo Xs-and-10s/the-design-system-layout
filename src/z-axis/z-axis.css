@@ -1,0 +1,142 @@
+@layer ds.layout {
+
+    /* ── z-axis-layout ───────────────────────────────────────
+       An in-flow grid container where all children occupy the
+       same cell, overlapping in z-order (DOM order: last child
+       on top). The container sizes to the tallest child.
+
+       IN-FLOW vs POSITIONED STACKING:
+
+       z-axis-layout (this element):
+         IN FLOW — takes space, displaces surrounding content,
+         sizes to its tallest child. Use when the stacked
+         composition is part of the document structure.
+         Examples: image + caption, avatar + badge, card + state,
+         hero with layered text and visuals.
+
+       overlay-layout[stack]:
+         POSITIONED — position absolute/fixed, floats above content,
+         takes no space. Use when the stacked composition should
+         cover content without affecting layout.
+         Examples: dialogs, drawers, spinners over a region.
+
+       ── Z-INDEX: LIMITED BUT USEFUL ───────────────────────────
+
+       z-axis-layout is in-flow with no position set. CSS z-index
+       has no effect on non-positioned elements in normal block flow.
+
+       The one exception: when z-axis-layout is a flex or grid item
+       (a child of a flex or grid container), z-index DOES apply —
+       even without position. This covers the most common composition
+       pattern, since z-axis-layout is almost always a child of one
+       of the other layout primitives.
+
+       When z is set and z-axis-layout IS a flex/grid item: the
+       element is layered relative to its siblings in the same
+       flex/grid formatting context.
+
+       When z is set and z-axis-layout is NOT a flex/grid item: the
+       attribute is silently inert. No error, no visual effect.
+
+       ── [isolate]: THE MORE UNIVERSALLY USEFUL FEATURE ────────
+
+       [isolate] sets isolation: isolate, which creates a new
+       stacking context WITHOUT requiring position or z-index.
+
+       Effect: children's z-index values are scoped to the
+       z-axis-layout element. A child with z-index: 999 will NOT
+       escape to stack above the page header or a modal outside
+       this element.
+
+       This is almost always what you want when layering children.
+       Without it, a high z-index on one layer of a card image
+       could accidentally stack above a dropdown elsewhere on the page.
+
+       [isolate] works in ALL contexts — it doesn't require the
+       element to be a flex/grid item, unlike z.
+
+       ── ATTRIBUTES ────────────────────────────────────────────
+
+         align="<align-items value>"
+           Block-axis (vertical) alignment of children within
+           the shared cell.
+           center (default), start, end, stretch.
+
+         justify="<justify-items value>"
+           Inline-axis (horizontal) alignment of children.
+           center (default), start, end, stretch.
+
+         z="<token | integer>"
+           z-index of this element relative to siblings.
+           Accepts semantic token names:
+             base, raised, dropdown, sticky, overlay, modal, toast
+           Or any integer: 0, 1, 10, 25, 30, etc.
+           ONLY takes effect when this element is a flex or grid item.
+           Has NO effect in normal block flow.
+           Default: auto (browser default stacking)
+
+       BOOLEAN ATTRIBUTES (CSS-only):
+         [isolate]
+           isolation: isolate — creates a new stacking context.
+           Scopes children's z-index values to this element,
+           preventing them from stacking against external content.
+           Works in ALL contexts, regardless of flex/grid item status.
+           Recommended whenever children use z-index explicitly.
+
+    ──────────────────────────────────────────────────────────── */
+
+    :where(z-axis-layout) {
+        display: grid;
+
+        /* Single cell. Container sizes to the largest child. */
+        grid-template: 1fr / 1fr;
+
+        align-items:   var(--ds-z-axis-align,   center);
+        justify-items: var(--ds-z-axis-justify, center);
+
+        /*
+            z-index applied via custom property.
+            Inert in normal block flow; active when this element
+            is a flex or grid item. The `auto` initial value means
+            "participate in the stacking context normally" — no
+            explicit stacking unless a value is set.
+        */
+        z-index: var(--ds-z-axis-z, auto);
+    }
+
+    /*
+        All children share the single grid cell and overlap.
+        min-inline-size: 0 and min-block-size: 0 prevent children
+        from expanding the cell beyond the container's intrinsic size.
+    */
+    :where(z-axis-layout > *) {
+        grid-area: 1 / 1;
+        min-inline-size: 0;
+        min-block-size:  0;
+    }
+
+
+    /* ── [isolate] ───────────────────────────────────────────
+       Creates a new stacking context for this element's subtree.
+
+       isolation: isolate is the cleanest way to create a stacking
+       context without the side effects of opacity, transform, or
+       will-change. It does not affect rendering, compositing, or
+       scroll performance — it only affects stacking order.
+
+       The practical result: children that set z-index to a high
+       value (e.g. a tooltip or a hover state inside the stacked
+       composition) will stack relative to each other within this
+       element, but will never accidentally appear above content
+       outside this element.
+
+       Complement to z: if you use `z` to place this element above
+       a sibling, you almost certainly also want [isolate] to prevent
+       the element's children from escaping into the parent stacking
+       context and affecting other siblings.
+    ──────────────────────────────────────────────────────────── */
+    :where(z-axis-layout[isolate]) {
+        isolation: isolate;
+    }
+
+}

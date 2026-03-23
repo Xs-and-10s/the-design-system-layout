@@ -1,0 +1,633 @@
+/* ============================================================
+   @design-system/layout — core.css
+   ============================================================
+   Layer declarations · Design tokens · Minimal reset · Base styles
+
+   This file contains no layout module styles. Import each module
+   separately, e.g.:
+     @import "@design-system/layout/stacked/stacked.css";
+   or via the JS barrel:
+     import '@design-system/layout/register-all';
+   ============================================================ */
+
+
+/* ── 1. Layer declaration ────────────────────────────────────
+   Establish the full cascade order up front, even for layers
+   whose contents live in separate module files. This ensures
+   module styles always land in the right layer regardless of
+   import order.
+──────────────────────────────────────────────────────────── */
+@layer ds.reset, ds.tokens, ds.base, ds.presence,
+    ds.layout, ds.prose, ds.motion, ds.components, ds.compat;
+
+
+/* ── 2. Reset ────────────────────────────────────────────────
+   Minimal, opinionated-only-where-it-matters reset.
+   All rules are wrapped in :where() to carry zero specificity,
+   so any consumer style wins without needing !important.
+──────────────────────────────────────────────────────────── */
+@layer ds.reset {
+
+    :where(*, *::before, *::after) {
+        box-sizing: border-box;
+    }
+
+    :where([hidden]) {
+        display: none !important;
+    }
+
+    :where(html) {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    :where(body) {
+        margin: 0;
+        /* Progressively use the most dynamic viewport unit available. */
+        min-block-size: 100vh;
+        min-block-size: 100svh;
+        min-block-size: 100dvh;
+    }
+
+    :where(img, picture, video, canvas, svg) {
+        display: block;
+        max-inline-size: 100%;
+        block-size: auto;
+    }
+
+    :where(input, button, textarea, select) {
+        margin: 0;
+        font: inherit;
+        color: inherit;
+    }
+
+    :where(textarea) {
+        resize: vertical;
+    }
+
+    :where(button) {
+        cursor: pointer;
+    }
+
+    /*
+        Safe long-word wrapping — prevents text from escaping constrained
+        layout containers (e.g. a narrow grid cell) without resorting
+        to overflow:hidden or a fixed width.
+    */
+    :where(p, h1, h2, h3, h4, h5, h6, li, dt, dd, figcaption, blockquote) {
+        overflow-wrap: break-word;
+    }
+
+    /*
+        text-wrap: balance — prevents awkward single-word orphans on the
+        last line of headings by distributing line lengths more evenly.
+        Browsers limit this to short runs (typically ≤ 4 lines) to keep
+        the algorithm fast.
+
+        Baseline 2024 — Chrome 114+, Firefox 121+, Safari 17.4+.
+        Degrades gracefully: unsupporting browsers use normal wrapping.
+    */
+    :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+    }
+
+    /*
+        text-wrap: pretty — a smarter line-breaking algorithm for body text
+        that avoids single-word last lines ("orphans") by looking ahead
+        multiple lines during layout. Unlike balance, it doesn't cap at
+        4 lines, making it suitable for paragraphs of any length.
+
+        Baseline 2024 (newly available) — Chrome 117+, Firefox 127+, Safari 18+.
+        Degrades gracefully to normal wrapping.
+    */
+    :where(p) {
+        text-wrap: pretty;
+    }
+
+    :where(:focus-visible) {
+        outline: var(--ds-focus-width, 2px) solid var(--ds-focus-color, Highlight);
+        outline-offset: var(--ds-focus-offset, 2px);
+    }
+
+    :where(:focus:not(:focus-visible)) {
+        outline: none;
+    }
+}
+
+
+/* ── 3. Tokens ───────────────────────────────────────────────
+──────────────────────────────────────────────────────────── */
+@layer ds.tokens {
+
+    :root {
+
+        /* ── 3a. Platform integration ── */
+        --ds-color-scheme: light dark;
+        --ds-accent:       Highlight;
+
+
+        /* ── 3b. Focus ring ── */
+        --ds-focus-width:  2px;
+        --ds-focus-offset: 2px;
+        --ds-focus-color:  Highlight;
+
+
+        /* ── 3c. Layout defaults ── */
+        --ds-measure:   65ch;   /* comfortable max prose line length   */
+        --ds-threshold: 45rem;  /* default layout breakpoint for modules */
+
+
+        /* ── 3d. Safe-area insets ──────────────────────────────
+           Ready-made for notched-device–aware sticky UI, drawers,
+           toasts, and bottom nav bars.
+        ─────────────────────────────────────────────────────── */
+        --ds-safe-top:    env(safe-area-inset-top,    0px);
+        --ds-safe-right:  env(safe-area-inset-right,  0px);
+        --ds-safe-bottom: env(safe-area-inset-bottom, 0px);
+        --ds-safe-left:   env(safe-area-inset-left,   0px);
+
+
+        /* ── 3e. Z-index scale ─────────────────────────────────
+           Semantic slots. Override per-project; reference these tokens
+           in module code rather than using raw integers.
+        ─────────────────────────────────────────────────────── */
+        --ds-z-base:     0;
+        --ds-z-raised:   1;
+        --ds-z-dropdown: 10;
+        --ds-z-sticky:   20;
+        --ds-z-overlay:  30;
+        --ds-z-modal:    40;
+        --ds-z-toast:    50;
+
+
+        /* ── 3f. Ratio system ──────────────────────────────────
+           The ratio drives both the space and text scales, making
+           them coherent by default (and independently tuneable via
+           --ds-text-ratio if needed).
+
+           FLUID RATIO: By default, --ds-ratio interpolates between
+           --ds-ratio-min (small viewports) and --ds-ratio-max
+           (large viewports). This means the scale is more compact
+           on mobile and more generous on desktop — automatically,
+           without extra media queries in any module.
+
+           Ratio preset classes (e.g. .perfect-fifth, .golden) set
+           min = max, producing a fixed ratio for that subtree.
+           Setting them to different values creates a custom fluid
+           range for a subtree:
+             .my-hero { --ds-ratio-min: 1.25; --ds-ratio-max: 1.618; }
+
+           KEY INHERITANCE PROPERTY:
+           Because CSS custom properties inherit their *definition*
+           (not their computed value), changing --ds-ratio in a subtree
+           automatically re-resolves every downstream calc() that
+           references it — the ratio powers and every space/text step
+           update without any re-declaration. Ratio presets therefore
+           only need to set min and max; nothing else.
+
+           Browser requirement for fluid ratio interpolation:
+           length/length division in calc() — Chrome 80+, Firefox 75+,
+           Safari 14.1+ (well within the baseline of other features used).
+        ─────────────────────────────────────────────────────── */
+
+        /* Viewport range for ratio interpolation */
+        --ds-ratio-fluid-from: 20rem;   /* 320px  — ratio-min applies */
+        --ds-ratio-fluid-to:   80rem;   /* 1280px — ratio-max applies */
+
+        /* Default range: perfect-fourth → perfect-fifth */
+        --ds-ratio-min: 1.3333;
+        --ds-ratio-max: 1.5;
+
+        /*
+          Fluid ratio: unitless value, derived from length/length division.
+          clamp() clamps to [min, max], preventing overshoot.
+        */
+        --ds-ratio: clamp(
+            var(--ds-ratio-min),
+            calc(
+                var(--ds-ratio-min) +
+                (var(--ds-ratio-max) - var(--ds-ratio-min)) *
+                (100vw - var(--ds-ratio-fluid-from)) /
+                (var(--ds-ratio-fluid-to) - var(--ds-ratio-fluid-from))
+            ),
+            var(--ds-ratio-max)
+        );
+
+        /*
+          Ratio powers — private, derived from --ds-ratio.
+          Updating --ds-ratio anywhere re-resolves these automatically.
+        */
+        --_ds-r2: calc(var(--ds-ratio) * var(--ds-ratio));
+        --_ds-r3: calc(var(--_ds-r2)   * var(--ds-ratio));
+        --_ds-r4: calc(var(--_ds-r3)   * var(--ds-ratio));
+        --_ds-r5: calc(var(--_ds-r4)   * var(--ds-ratio));
+
+        --_ds-r-1: calc(1 / var(--ds-ratio));
+        --_ds-r-2: calc(1 / var(--_ds-r2));
+        --_ds-r-3: calc(1 / var(--_ds-r3));
+        --_ds-r-4: calc(1 / var(--_ds-r4));
+        --_ds-r-5: calc(1 / var(--_ds-r5));
+
+
+        /* ── 3g. Space base ────────────────────────────────────
+           Fluid by default: clamps between 1rem and 1.5rem across
+           the viewport. Apply .fixed-base to freeze it at a constant
+           value. Apply .container-scale (ds.layout) to scale with a
+           container rather than the viewport.
+        ─────────────────────────────────────────────────────── */
+        --ds-space-base-min: 1rem;
+        --ds-space-base-max: 1.5rem;
+        --ds-space-base: clamp(
+            var(--ds-space-base-min),
+            0.85rem + 0.6vw,
+            var(--ds-space-base-max)
+        );
+
+        /*
+          Sum-trick for the inverse scale:
+            base + base-inv = base-min + base-max  (constant)
+          As base grows, base-inv shrinks — and vice versa.
+          This is what makes the inverse scale useful for touch targets:
+          when spacing contracts on small screens, touch targets grow.
+        */
+        --ds-space-base-sum: calc(var(--ds-space-base-min) + var(--ds-space-base-max));
+
+
+        /* ── 3h. Space scale (11 steps) ────────────────────────
+           Symmetric: 5 steps below m, 5 steps above m.
+           All derived from --ds-space-base × ratio powers.
+
+           Approximate px values at base=1rem (16px), ratio=1.5:
+             tiny  ≈ 2px    xxxs  ≈ 3px    xxs  ≈ 5px
+             xs    ≈ 7px    s    ≈ 11px    m    ≈ 16px
+             l    ≈ 24px    xl   ≈ 36px    xxl  ≈ 54px
+             xxxl ≈ 81px    huge ≈ 122px
+        ─────────────────────────────────────────────────────── */
+        --ds-space-0:    0px;
+        --ds-space-tiny: calc(var(--ds-space-base) * var(--_ds-r-5));
+        --ds-space-xxxs: calc(var(--ds-space-base) * var(--_ds-r-4));
+        --ds-space-xxs:  calc(var(--ds-space-base) * var(--_ds-r-3));
+        --ds-space-xs:   calc(var(--ds-space-base) * var(--_ds-r-2));
+        --ds-space-s:    calc(var(--ds-space-base) * var(--_ds-r-1));
+        --ds-space-m:    var(--ds-space-base);
+        --ds-space-l:    calc(var(--ds-space-base) * var(--ds-ratio));
+        --ds-space-xl:   calc(var(--ds-space-base) * var(--_ds-r2));
+        --ds-space-xxl:  calc(var(--ds-space-base) * var(--_ds-r3));
+        --ds-space-xxxl: calc(var(--ds-space-base) * var(--_ds-r4));
+        --ds-space-huge: calc(var(--ds-space-base) * var(--_ds-r5));
+
+
+        /* ── 3i. Adjacent half-step pairs ──────────────────────
+           Midpoints between consecutive scale steps.
+           Named "smaller-larger" to read naturally:
+             s-m = "between s and m", a touch above s.
+        ─────────────────────────────────────────────────────── */
+        --ds-space-tiny-xxxs: calc((var(--ds-space-tiny) + var(--ds-space-xxxs)) / 2);
+        --ds-space-xxxs-xxs:  calc((var(--ds-space-xxxs) + var(--ds-space-xxs))  / 2);
+        --ds-space-xxs-xs:    calc((var(--ds-space-xxs)  + var(--ds-space-xs))   / 2);
+        --ds-space-xs-s:      calc((var(--ds-space-xs)   + var(--ds-space-s))    / 2);
+        --ds-space-s-m:       calc((var(--ds-space-s)    + var(--ds-space-m))    / 2);
+        --ds-space-m-l:       calc((var(--ds-space-m)    + var(--ds-space-l))    / 2);
+        --ds-space-l-xl:      calc((var(--ds-space-l)    + var(--ds-space-xl))   / 2);
+        --ds-space-xl-xxl:    calc((var(--ds-space-xl)   + var(--ds-space-xxl))  / 2);
+        --ds-space-xxl-xxxl:  calc((var(--ds-space-xxl)  + var(--ds-space-xxxl)) / 2);
+        --ds-space-xxxl-huge: calc((var(--ds-space-xxxl) + var(--ds-space-huge)) / 2);
+
+
+        /* ── 3j. Inverse base & scale ──────────────────────────
+           The inverse base counter-scales: largest when the forward
+           base is smallest (narrow viewport), smallest when the forward
+           base is largest (wide viewport).
+
+           Ideal for pointer-density–aware spacing: touch UIs get more
+           room automatically via the (pointer: coarse) override below,
+           with no manual breakpoints in module code.
+        ─────────────────────────────────────────────────────── */
+        --ds-space-base-inv: calc(var(--ds-space-base-sum) - var(--ds-space-base));
+
+        --ds-space-tiny-inv: calc(var(--ds-space-base-inv) * var(--_ds-r-5));
+        --ds-space-xxxs-inv: calc(var(--ds-space-base-inv) * var(--_ds-r-4));
+        --ds-space-xxs-inv:  calc(var(--ds-space-base-inv) * var(--_ds-r-3));
+        --ds-space-xs-inv:   calc(var(--ds-space-base-inv) * var(--_ds-r-2));
+        --ds-space-s-inv:    calc(var(--ds-space-base-inv) * var(--_ds-r-1));
+        --ds-space-m-inv:    var(--ds-space-base-inv);
+        --ds-space-l-inv:    calc(var(--ds-space-base-inv) * var(--ds-ratio));
+        --ds-space-xl-inv:   calc(var(--ds-space-base-inv) * var(--_ds-r2));
+        --ds-space-xxl-inv:  calc(var(--ds-space-base-inv) * var(--_ds-r3));
+        --ds-space-xxxl-inv: calc(var(--ds-space-base-inv) * var(--_ds-r4));
+        --ds-space-huge-inv: calc(var(--ds-space-base-inv) * var(--_ds-r5));
+
+
+        /* ── 3k. Inverse adjacent pairs ────────────────────────
+           Named "larger-smaller" (reverse of forward pairs) as a
+           visual signal that these are inverse-scale values.
+           --ds-space-m-s is between m-inv and s-inv — it is NOT
+           a smaller value than --ds-space-s-m.
+        ─────────────────────────────────────────────────────── */
+        --ds-space-xxxs-tiny: calc((var(--ds-space-xxxs-inv) + var(--ds-space-tiny-inv)) / 2);
+        --ds-space-xxs-xxxs:  calc((var(--ds-space-xxs-inv)  + var(--ds-space-xxxs-inv)) / 2);
+        --ds-space-xs-xxs:    calc((var(--ds-space-xs-inv)   + var(--ds-space-xxs-inv))  / 2);
+        --ds-space-s-xs:      calc((var(--ds-space-s-inv)    + var(--ds-space-xs-inv))   / 2);
+        --ds-space-m-s:       calc((var(--ds-space-m-inv)    + var(--ds-space-s-inv))    / 2);
+        --ds-space-l-m:       calc((var(--ds-space-l-inv)    + var(--ds-space-m-inv))    / 2);
+        --ds-space-xl-l:      calc((var(--ds-space-xl-inv)   + var(--ds-space-l-inv))    / 2);
+        --ds-space-xxl-xl:    calc((var(--ds-space-xxl-inv)  + var(--ds-space-xl-inv))   / 2);
+        --ds-space-xxxl-xxl:  calc((var(--ds-space-xxxl-inv) + var(--ds-space-xxl-inv))  / 2);
+        --ds-space-huge-xxxl: calc((var(--ds-space-huge-inv) + var(--ds-space-xxxl-inv)) / 2);
+
+
+        /* ── 3l. Semantic spacing defaults ─────────────────────
+           --ds-gap:     default gap for all layout modules
+           --ds-gap-ui:  interactive chrome — flips to inverse on touch
+           --ds-pad-ui:  interactive padding — flips to inverse on touch
+
+           Override --ds-gap-ui / --ds-pad-ui on a subtree to escape
+           the automatic pointer-awareness for that subtree.
+        ─────────────────────────────────────────────────────── */
+        --ds-gap:    var(--ds-space-s-m);
+        --ds-gap-ui: var(--ds-space-s-m);
+        --ds-pad-ui: var(--ds-space-s-m);
+
+
+        /* ── 3m. Typographic scale ─────────────────────────────
+           Driven by --ds-text-ratio, which defaults to --ds-ratio
+           (keeping both scales coherent). Override --ds-text-ratio
+           on :root or any subtree to decouple the type scale from
+           the space scale:
+             :root { --ds-text-ratio: 1.25; }  /* tighter type scale */
+
+           --ds-text-base is fixed (not fluid) because browsers already
+           handle text scaling for accessibility via zoom — don't
+           fluid-ize it and fight the browser.
+
+           Approximate px values at base=16px, ratio=1.5:
+             xxs ≈ 7px   xs ≈ 11px   s ≈ 11px   m = 16px
+             l ≈ 24px    xl ≈ 36px   xxl ≈ 54px
+             xxxl ≈ 81px  huge ≈ 122px
+        ─────────────────────────────────────────────────────── */
+        --ds-text-ratio: var(--ds-ratio);
+
+        --_ds-tr2:  calc(var(--ds-text-ratio) * var(--ds-text-ratio));
+        --_ds-tr3:  calc(var(--_ds-tr2)       * var(--ds-text-ratio));
+        --_ds-tr4:  calc(var(--_ds-tr3)       * var(--ds-text-ratio));
+        --_ds-tr5:  calc(var(--_ds-tr4)       * var(--ds-text-ratio));
+        --_ds-tr-1: calc(1 / var(--ds-text-ratio));
+        --_ds-tr-2: calc(1 / var(--_ds-tr2));
+        --_ds-tr-3: calc(1 / var(--_ds-tr3));
+
+        --ds-text-base: 1rem;
+
+        --ds-text-xxs:  calc(var(--ds-text-base) * var(--_ds-tr-3));
+        --ds-text-xs:   calc(var(--ds-text-base) * var(--_ds-tr-2));
+        --ds-text-s:    calc(var(--ds-text-base) * var(--_ds-tr-1));
+        --ds-text-m:    var(--ds-text-base);
+        --ds-text-l:    calc(var(--ds-text-base) * var(--ds-text-ratio));
+        --ds-text-xl:   calc(var(--ds-text-base) * var(--_ds-tr2));
+        --ds-text-xxl:  calc(var(--ds-text-base) * var(--_ds-tr3));
+        --ds-text-xxxl: calc(var(--ds-text-base) * var(--_ds-tr4));
+        --ds-text-huge: calc(var(--ds-text-base) * var(--_ds-tr5));
+
+        /* Line-height tokens */
+        --ds-leading-tight:  1.2;
+        --ds-leading-snug:   1.35;
+        --ds-leading-normal: 1.5;
+        --ds-leading-loose:  1.75;
+        --ds-leading-prose:  1.65;   /* tuned for long-form reading */
+
+
+        /* ── 3n. Semantic color slots ───────────────────────────
+           These default to CSS system colors, which adapt to light/dark
+           mode automatically without any JS or media query. Override from
+           a theme package (e.g. @design-system/ui) or local CSS.
+
+           Using system color defaults rather than empty declarations is
+           important: an empty custom property is "defined but empty" in
+           CSS, which causes var(--ds-color-border, fallback) to resolve
+           to an empty value, not the fallback. System color defaults
+           avoid this footgun.
+        ─────────────────────────────────────────────────────── */
+        --ds-color-surface:    Canvas;
+        --ds-color-on-surface: CanvasText;
+        --ds-color-border:     currentColor;   /* modules add opacity as needed */
+        --ds-color-accent:     Highlight;
+        --ds-color-muted:      GrayText;
+
+    } /* end :root */
+
+
+    /* ── Pointer-aware UI spacing ──────────────────────────────
+       Coarse pointers (fingers) need larger touch targets.
+       Switching to inverse-scale tokens achieves this without any
+       module needing its own @media (pointer: coarse) rule.
+    ──────────────────────────────────────────────────────────── */
+    @media (pointer: coarse) {
+        :root {
+            --ds-gap-ui: var(--ds-space-m-s);
+            --ds-pad-ui: var(--ds-space-l-m);
+        }
+    }
+
+
+    /* ── Ratio presets ─────────────────────────────────────────
+       Each preset sets min = max = the named ratio, producing a fixed
+       (non-fluid) scale for that subtree. Because CSS custom properties
+       inherit their definition (not their computed value), only min and
+       max need to change — every downstream variable re-resolves.
+
+       Apply to any element to change the scale for that subtree:
+         <section class="golden"> … </section>
+
+       For a custom fluid range, set min ≠ max directly:
+         .hero { --ds-ratio-min: 1.25; --ds-ratio-max: 1.618; }
+
+       ── Musical interval ratios (just intonation) ─────────────
+       Frequency ratios of the named intervals. The perfect-fourth
+       (4/3 ≈ 1.333) and perfect-fifth (3/2 = 1.5) form the default
+       fluid range.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(.minor-second)   { --ds-ratio-min: 1.0667; --ds-ratio-max: 1.0667; }  /* 16/15  */
+    :where(.major-second)   { --ds-ratio-min: 1.125;  --ds-ratio-max: 1.125;  }  /* 9/8    */
+    :where(.minor-third)    { --ds-ratio-min: 1.2;    --ds-ratio-max: 1.2;    }  /* 6/5    */
+    :where(.major-third)    { --ds-ratio-min: 1.25;   --ds-ratio-max: 1.25;   }  /* 5/4    */
+    :where(.perfect-fourth) { --ds-ratio-min: 1.3333; --ds-ratio-max: 1.3333; }  /* 4/3    */
+    :where(.tritone)        { --ds-ratio-min: 1.4142; --ds-ratio-max: 1.4142; }  /* √2     */
+    :where(.perfect-fifth)  { --ds-ratio-min: 1.5;    --ds-ratio-max: 1.5;    }  /* 3/2    */
+    :where(.minor-sixth)    { --ds-ratio-min: 1.6;    --ds-ratio-max: 1.6;    }  /* 8/5    */
+    :where(.major-sixth)    { --ds-ratio-min: 1.6667; --ds-ratio-max: 1.6667; }  /* 5/3    */
+    :where(.minor-seventh)  { --ds-ratio-min: 1.7778; --ds-ratio-max: 1.7778; }  /* 16/9   */
+    :where(.major-seventh)  { --ds-ratio-min: 1.875;  --ds-ratio-max: 1.875;  }  /* 15/8   */
+    :where(.octave)         { --ds-ratio-min: 2;      --ds-ratio-max: 2;      }  /* 2/1    */
+
+    /* ── Metallic ratios ─────────────────────────────────────
+       The true metallic means, corrected from the original Starwind:
+         .golden = (1 + √5) / 2 ≈ 1.618    (same as before)
+         .silver = 1 + √2       ≈ 2.414    (was incorrectly 1.414 = tritone)
+         .bronze = (3 + √13) / 2 ≈ 3.303
+
+       Warning: silver and bronze produce very wide scales. They are most
+       useful for display typographic hierarchies, not spacing. Consider
+       setting --ds-text-ratio independently if using these for type.
+    ──────────────────────────────────────────────────────────── */
+    :where(.golden) { --ds-ratio-min: 1.618;  --ds-ratio-max: 1.618;  }
+    :where(.silver) { --ds-ratio-min: 2.4142; --ds-ratio-max: 2.4142; }
+    :where(.bronze) { --ds-ratio-min: 3.3028; --ds-ratio-max: 3.3028; }
+
+
+    /* ── Base presets ──────────────────────────────────────────
+       .fluid-base: explicit opt-in / reset to fluid space base.
+       .fixed-base: freezes the space base at a constant value.
+                    Override --ds-space-base-fixed to change the
+                    freeze point for a specific subtree:
+                      .sidebar { --ds-space-base-fixed: 0.875rem; }
+    ──────────────────────────────────────────────────────────── */
+    :where(.fluid-base) {
+        --ds-space-base-min: 1rem;
+        --ds-space-base-max: 1.5rem;
+        --ds-space-base: clamp(
+            var(--ds-space-base-min),
+            0.85rem + 0.6vw,
+            var(--ds-space-base-max)
+        );
+        --ds-space-base-sum: calc(var(--ds-space-base-min) + var(--ds-space-base-max));
+    }
+
+    :where(.fixed-base) {
+        --ds-space-base-fixed: 1rem;
+
+        --ds-space-base-min: var(--ds-space-base-fixed);
+        --ds-space-base-max: var(--ds-space-base-fixed);
+        --ds-space-base:     var(--ds-space-base-fixed);
+        --ds-space-base-sum: calc(
+            var(--ds-space-base-min) + var(--ds-space-base-max)
+        );
+    }
+
+} /* end @layer ds.tokens */
+
+
+/* ── 4. Layout utilities ─────────────────────────────────────
+   General-purpose layout helpers. Individual module styles also
+   target this layer, in their own @import'd stylesheet.
+──────────────────────────────────────────────────────────── */
+@layer ds.layout {
+
+    /*
+      .container-scale
+
+      Switches space base and ratio interpolation from viewport units
+      to container-query units (cqi). Apply to any element that hosts
+      layout modules and should scale to its own width rather than the
+      viewport — e.g. a widget inside a sidebar.
+
+      Requires container query support (baseline 2023):
+      Chrome 105+, Firefox 110+, Safari 16+.
+    */
+    :where(.container-scale) {
+        container-type: inline-size;
+    }
+
+    @supports (width: 1cqi) {
+        :where(.container-scale) {
+            --ds-space-base: clamp(
+                var(--ds-space-base-min),
+                0.85rem + 0.6cqi,
+                var(--ds-space-base-max)
+            );
+
+            --ds-ratio: clamp(
+                var(--ds-ratio-min),
+                calc(
+                    var(--ds-ratio-min) +
+                    (var(--ds-ratio-max) - var(--ds-ratio-min)) *
+                    (100cqi - var(--ds-ratio-fluid-from)) /
+                    (var(--ds-ratio-fluid-to) - var(--ds-ratio-fluid-from))
+                ),
+                var(--ds-ratio-max)
+            );
+        }
+    }
+
+
+    /*
+      Universal View Transitions opt-in.
+
+      Any layout primitive can carry vt-name="my-unique-id" to participate
+      in a View Transitions sequence. The JS factory observes this attribute
+      on every layout element and sets --ds-vt-name as an inline custom
+      property. This rule applies view-transition-name via CSS custom
+      property substitution.
+
+      REQUIREMENTS:
+      1. vt-name must be a unique CSS custom-ident across the document.
+         Duplicate names are silently ignored by the browser.
+      2. The DOM change must be wrapped in document.startViewTransition()
+         by application code. The library only prepares the CSS name —
+         it never calls startViewTransition() itself.
+      3. Elements with display: contents (e.g. presence-layout without [box])
+         cannot receive view-transition-name. Add [box] when using vt-name
+         on presence-layout.
+
+      How to author view transition animations for a named element:
+        /* In your own CSS (not the library): */
+        ::view-transition-old(my-hero) {
+            animation: ds-presence-fade-out 220ms var(--ds-presence-ease-out) forwards;
+        }
+        ::view-transition-new(my-hero) {
+            animation: ds-presence-fade-in 220ms var(--ds-presence-ease-in) forwards;
+        }
+
+      The ds-presence-fade-in and ds-presence-fade-out keyframes are
+      defined in presence.css. The library cannot pre-author
+      ::view-transition-old(name) rules for developer-supplied names
+      because CSS selectors are static — they cannot use var().
+    */
+    :where([vt-name]) {
+        view-transition-name: var(--ds-vt-name);
+    }
+
+}
+
+
+/* ── 5. Base ─────────────────────────────────────────────────
+   Minimal element base styles. Typography defaults belong in
+   @design-system/prose. Component defaults in @design-system/ui.
+──────────────────────────────────────────────────────────── */
+@layer ds.base {
+
+    :where(html) {
+        color:        CanvasText;
+        background:   Canvas;
+        color-scheme: var(--ds-color-scheme, light dark);
+        accent-color: var(--ds-accent, Highlight);
+    }
+
+    :where(a) {
+        color: inherit;
+    }
+
+    :where(input, textarea, [contenteditable="true"]) {
+        caret-color: var(--ds-accent, Highlight);
+    }
+
+}
+
+
+/* ── 6. Motion ───────────────────────────────────────────────
+   Global reduced-motion override. Modules and components that
+   include animations should use @media (prefers-reduced-motion:
+   no-preference) { … } to make animations opt-in rather than
+   relying solely on this override to suppress them.
+──────────────────────────────────────────────────────────── */
+@layer ds.motion {
+
+    @media (prefers-reduced-motion: reduce) {
+        :where(*) {
+            animation-duration:        0.01ms !important;
+            animation-iteration-count: 1      !important;
+            transition-duration:       0.01ms !important;
+            scroll-behavior:           auto   !important;
+        }
+    }
+
+}

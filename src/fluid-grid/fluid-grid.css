@@ -1,0 +1,203 @@
+@layer ds.layout {
+
+    /* ── fluid-grid-layout ───────────────────────────────────
+       A CSS grid whose columns are derived purely from a minimum
+       width — no media queries, no explicit breakpoints. The browser
+       creates as many columns as fit at the given minimum width,
+       and stretches all items equally to fill the row.
+
+       THE CORE TECHNIQUE:
+         grid-template-columns: repeat(
+             <count>,
+             minmax(min(100%, <min>), <max>)
+         )
+
+       The nested min(100%, <min>) is critical: it prevents a single
+       item from becoming wider than the container when the container
+       is narrower than <min>. Without it, a 16rem minimum column in
+       a 12rem container produces horizontal overflow.
+
+       auto-fit vs auto-fill (the [fill] attribute):
+         auto-fit (default): empty tracks collapse to 0. When there
+           are fewer items than columns would allow, items stretch
+           to fill the full row width. 1 item → full width. Good
+           for content grids where sparse rows should fill space.
+
+         auto-fill ([fill] attribute): phantom tracks are retained.
+           Items never grow beyond the computed max column width.
+           1 item → one column width. Good for UI grids where item
+           size should be consistent regardless of item count, and
+           for left-aligned card grids where partial rows should NOT
+           stretch to fill the row.
+
+       explicit columns (columns="N" attribute):
+         Switches from repeat(auto-fit/auto-fill) to repeat(N, ...).
+         When set, the [fill] attribute has no effect (auto-fit vs
+         auto-fill is irrelevant with an explicit column count).
+
+       THE --_fg-repeat TRICK:
+       CSS custom properties are substituted before the surrounding
+       value is parsed. This means repeat(var(--_fg-repeat), ...) works
+       whether --_fg-repeat is "auto-fit", "auto-fill", or "3".
+       This allows the [fill] attribute and the columns attribute to
+       compose naturally without separate CSS rules for each combination.
+
+       Attributes:
+         min="<token | length>"
+           Minimum column width. The grid creates as many columns of
+           at least this width as will fit in the container.
+           Accepts space tokens or any CSS length/dimension.
+           Default: 16rem (~256px)
+
+         max="<token | length | fr>"
+           Maximum column width. How wide a column can grow beyond min.
+           Accepts space tokens, CSS lengths, or fr units.
+           Default: 1fr (columns grow equally to fill the row)
+           Set to a fixed length to cap growth:
+             max="320px" → columns never grow beyond 320px
+             max="1fr"   → columns grow equally (default behavior)
+
+         gap="<token | length>"
+           Gap on both axes (row and column). Default: --ds-gap.
+           Overridden per-axis by gap-block or gap-inline.
+
+         gap-block="<token | length>"
+           Row gap (block-axis). Overrides gap on the row axis.
+           Use for grids where row spacing differs from column spacing.
+
+         gap-inline="<token | length>"
+           Column gap (inline-axis). Overrides gap on the column axis.
+
+         columns="<integer>"
+           Explicit column count. Overrides auto-fit/auto-fill.
+           The min attribute still applies as the minmax lower bound,
+           keeping columns from becoming too narrow.
+           [fill] has no effect when columns is set.
+
+         align="<align-items value>"
+           Vertical alignment of items within each row.
+           Any valid align-items keyword: start, end, center,
+           stretch (default), baseline.
+
+         justify="<justify-items value>"
+           Horizontal alignment of items within each column.
+           Any valid justify-items keyword: start, end, center,
+           stretch (default).
+
+       BOOLEAN ATTRIBUTES (CSS-only):
+         [fill]
+           Switches from auto-fit to auto-fill. Items do not expand
+           to fill sparse rows — they keep their column width.
+           Has no effect when columns is set.
+
+         [dense]
+           Sets grid-auto-flow: dense. The grid backfills gaps left
+           by variable-height or variable-width items with later items,
+           reducing visual gaps at the cost of visual order.
+           Use for masonry-like grids where DOM order is not important.
+           Do NOT use when DOM order matters for accessibility.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(fluid-grid-layout) {
+        display: grid;
+
+        /*
+            Three-level gap resolution per axis:
+              axis-specific → unified gap → system default → hardcoded fallback
+        */
+        row-gap:    var(--ds-fluid-grid-gap-block,  var(--ds-fluid-grid-gap, var(--ds-gap, 1rem)));
+        column-gap: var(--ds-fluid-grid-gap-inline, var(--ds-fluid-grid-gap, var(--ds-gap, 1rem)));
+
+        /*
+            --_fg-repeat: private property that selects the repeat mode.
+
+            Default: auto-fit
+              → empty tracks collapse; sparse rows fill available space.
+
+            When --ds-fluid-grid-columns is set (columns attribute):
+              → resolves to the integer; auto-fit/auto-fill is irrelevant.
+
+            The [fill] rule below overrides the auto-fit default to
+            auto-fill, but only takes effect when --ds-fluid-grid-columns
+            is NOT set (because var(--ds-fluid-grid-columns, auto-fill)
+            resolves to the column count when the property is defined).
+
+            Custom property substitution in CSS occurs before the
+            surrounding value is parsed, making this work correctly for
+            both keyword values ("auto-fit", "auto-fill") and integers.
+        */
+        --_fg-repeat: var(--ds-fluid-grid-columns, auto-fit);
+
+        grid-template-columns: repeat(
+            var(--_fg-repeat),
+            minmax(
+                /*
+                    min(100%, <min>) prevents a single column from
+                    overflowing its container when the container is
+                    narrower than the minimum column width.
+                    Without this inner min(), a 16rem minimum in a 300px
+                    container would force the column to 16rem, causing
+                    horizontal overflow.
+                */
+                min(100%, var(--ds-fluid-grid-min, 16rem)),
+                /*
+                    max: how wide a column may grow.
+                    Default: 1fr (distribute remaining space equally).
+                    Set to a fixed value to cap column growth.
+                */
+                var(--ds-fluid-grid-max, 1fr)
+            )
+        );
+    }
+
+    /*
+        min-inline-size: 0 on children prevents grid blowout.
+        Grid items, like flex items, do not shrink below their
+        min-content size by default. Without this, an item with a
+        wide unbreakable word or fixed-width element expands its
+        column beyond the computed track size, causing other columns
+        to shrink or the grid to overflow.
+    */
+    :where(fluid-grid-layout > *) {
+        min-inline-size: 0;
+    }
+
+
+    /* ── align / justify ─────────────────────────────────────
+       Controlled via CSS custom properties set by the JS element.
+       Both default to stretch (items fill their grid area).
+    ──────────────────────────────────────────────────────────── */
+
+    :where(fluid-grid-layout) {
+        align-items:   var(--ds-fluid-grid-align,   stretch);
+        justify-items: var(--ds-fluid-grid-justify, stretch);
+    }
+
+
+    /* ── [fill] — auto-fill mode ─────────────────────────────
+       Switches --_fg-repeat from auto-fit to auto-fill.
+       When --ds-fluid-grid-columns is set (columns attribute),
+       this rule has no visible effect — the column count overrides
+       both auto-fit and auto-fill.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(fluid-grid-layout[fill]) {
+        --_fg-repeat: var(--ds-fluid-grid-columns, auto-fill);
+    }
+
+
+    /* ── [dense] — dense grid packing ────────────────────────
+       grid-auto-flow: dense causes the grid algorithm to backfill
+       gaps left by variable-size items with later items in the source.
+
+       Visual order may differ from DOM order when dense is active.
+       Only use when items are visually equivalent and DOM order is
+       not meaningful for accessibility (e.g. a photo gallery where
+       tab order does not need to match visual position).
+    ──────────────────────────────────────────────────────────── */
+
+    :where(fluid-grid-layout[dense]) {
+        grid-auto-flow: dense;
+    }
+
+}

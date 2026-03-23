@@ -1,0 +1,134 @@
+@layer ds.layout {
+
+    /* ── sandwich-layout ─────────────────────────────────────
+       A three-child vertical grid. Places one item at the block-start
+       (top), one in the middle, and one at the block-end (bottom).
+       The middle takes remaining space (1fr) by default; the top and
+       bottom shrink to their content height (auto).
+
+       Extracted from the original `header-main-footer` primitive and
+       generalized. Unlike the original, sandwich-layout:
+         - Has NO padding (padding belongs on the children — region-layout,
+           a stacked-layout, or quadrilateral-layout are good choices)
+         - Has NO gap (wrap children in stacked-layout if gap is needed)
+         - Uses clean CSS grid, not the fragile first-child/last-child
+           CSS selectors for header/footer detection
+
+       Minimum block size:
+       Defaults to 100dvh (dynamic viewport height), with progressive
+       fallbacks to 100svh and 100vh for older browsers. Use the `min`
+       attribute to override (e.g., min="0" for non-full-height layouts,
+       min="200px" for a compact shell).
+
+       Common use cases:
+         - Full-page app shell with header and footer
+             <sandwich-layout>
+               <header>…</header>
+               <main>…</main>
+               <footer>…</footer>
+             </sandwich-layout>
+
+         - Section with a label header and action footer
+             <sandwich-layout min="0">
+               <h2>Section Title</h2>
+               <region-layout>…content…</region-layout>
+               <div>…actions…</div>
+             </sandwich-layout>
+
+         - Content with empty header/footer (effectively just min-height)
+             <sandwich-layout min="50vh">
+               <div></div>   ← empty header slot
+               <centered-layout>…</centered-layout>
+               <div></div>   ← empty footer slot
+             </sandwich-layout>
+
+       Expects exactly 3 direct children:
+         1. Block-start child (header)
+         2. Middle child
+         3. Block-end child (footer)
+
+       Empty <div></div> elements work fine as placeholder children when
+       a header or footer slot is not needed.
+
+       Attributes:
+         size-bs="<token | css track size>"
+           Height of the block-start (top) row.
+           Accepts space tokens → fixed row height.
+           Accepts any CSS grid track size: auto, 1fr, 4rem, etc.
+           Default: auto (shrinks to content height)
+
+         size-ml="<token | css track size>"
+           Height of the middle row.
+           Accepts space tokens → fixed row height.
+           Accepts any CSS track size.
+           Default: 1fr (takes all remaining vertical space)
+
+         size-be="<token | css track size>"
+           Height of the block-end (bottom) row.
+           Accepts space tokens → fixed row height.
+           Accepts any CSS track size.
+           Default: auto (shrinks to content height)
+
+         min="<length>"
+           min-block-size of the entire sandwich.
+           Default: 100dvh (full dynamic viewport height).
+           Set to "0" for non-full-height layouts.
+           Accepts any CSS length or viewport unit.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(sandwich-layout) {
+        display: grid;
+
+        grid-template-rows:
+            var(--ds-sandwich-size-bs, auto)
+            var(--ds-sandwich-size-ml, 1fr)
+            var(--ds-sandwich-size-be, auto);
+
+        /*
+            Progressive min-block-size enhancement.
+
+            The --_ds-sandwich-min-fallback custom property is updated
+            by @supports blocks below as the browser gains support for
+            newer viewport units. This pattern avoids the var()-with-
+            fallback issue where an invalid unit value causes the entire
+            declaration to fail silently to initial rather than trying
+            the previous declaration.
+
+            Consumer overrides via --ds-sandwich-min always win because
+            the inline style has higher cascade priority than these rules.
+        */
+        --_ds-sandwich-min-fallback: 100vh;
+        min-block-size: var(--ds-sandwich-min, var(--_ds-sandwich-min-fallback));
+    }
+
+    @supports (min-block-size: 100svh) {
+        :where(sandwich-layout) {
+            --_ds-sandwich-min-fallback: 100svh;
+        }
+    }
+
+    @supports (min-block-size: 100dvh) {
+        :where(sandwich-layout) {
+            --_ds-sandwich-min-fallback: 100dvh;
+        }
+    }
+
+    /*
+        min-inline-size: 0 and min-block-size: 0 on children:
+        Grid children respect their intrinsic minimum sizes. Without
+        these overrides, a child with large content can force its grid
+        row/column to be larger than the specified track size.
+
+        min-block-size: 0 is especially important for the middle child
+        when it has a 1fr row: if its content exceeds the 1fr-computed
+        height, it will overflow. Setting min-block-size: 0 allows the
+        child to respect overflow rather than expanding the grid track.
+        (The content then clips or scrolls within the child — handle
+        overflow on the child element as needed.)
+    */
+    :where(sandwich-layout > *) {
+        min-inline-size: 0;
+        min-block-size:  0;
+    }
+
+}

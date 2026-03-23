@@ -1,0 +1,143 @@
+@layer ds.layout {
+
+    /* ── quadrilateral-layout ────────────────────────────────
+       A box model primitive. Controls padding, border, border-radius,
+       background, foreground color, and box-shadow declaratively via
+       HTML attributes. Has no layout algorithm of its own — it is
+       purely a surface and spacing control.
+
+       All padding and border attributes use CSS logical property names,
+       not physical ones. In horizontal LTR writing:
+         block-start = top    block-end  = bottom
+         inline-start = left  inline-end  = right
+
+       Default behavior: display block, zero padding, no border,
+       no border-radius, transparent background, inherited color.
+       Every property is opt-in — unset attributes have no effect.
+
+       Attributes:
+         Padding (space tokens or CSS lengths):
+           pad              → all four sides
+           pad-block        → block-start + block-end
+           pad-inline       → inline-start + inline-end
+           pbs              → padding-block-start   (block-start = top in LTR)
+           pbe              → padding-block-end     (block-end   = bottom in LTR)
+           pis              → padding-inline-start  (inline-start = left in LTR)
+           pie              → padding-inline-end    (inline-end   = right in LTR)
+
+         Border (full CSS border shorthand, e.g. "1px solid red"):
+           border           → all four sides
+           border-block     → block-start + block-end
+           border-inline    → inline-start + inline-end
+           border-bs        → border-block-start
+           border-be        → border-block-end
+           border-is        → border-inline-start
+           border-ie        → border-inline-end
+
+         Border radius (space tokens or CSS lengths):
+           radius           → all four corners
+           radius-ss        → border-start-start-radius
+           radius-se        → border-start-end-radius
+           radius-es        → border-end-start-radius
+           radius-ee        → border-end-end-radius
+
+         Color:
+           bg               → background (any CSS background value)
+           fg               → color      (any CSS color value)
+
+         Shadow:
+           shadow           → box-shadow (any CSS box-shadow value)
+    ──────────────────────────────────────────────────────────── */
+
+    :where(quadrilateral-layout) {
+        display: block;
+
+        /* ── Padding ─────────────────────────────────────────
+           Resolution order (most → least specific):
+             individual side → axis shorthand → global shorthand → 0
+
+           When pad="m" and pbs="xl":
+             padding-block-start resolves to --ds-quad-pbs (xl)
+             padding-block-end   resolves to --ds-quad-pad-block → --ds-quad-pad (m)
+             padding-inline-*    resolve to --ds-quad-pad (m)
+
+           Default of 0 (not unset) is intentional: ensures the element
+           starts with no padding regardless of any inherited values.
+        ──────────────────────────────────────────────────────── */
+        padding-block-start: var(
+            --ds-quad-pbs,
+            var(--ds-quad-pad-block, var(--ds-quad-pad, 0))
+        );
+        padding-block-end: var(
+            --ds-quad-pbe,
+            var(--ds-quad-pad-block, var(--ds-quad-pad, 0))
+        );
+        padding-inline-start: var(
+            --ds-quad-pis,
+            var(--ds-quad-pad-inline, var(--ds-quad-pad, 0))
+        );
+        padding-inline-end: var(
+            --ds-quad-pie,
+            var(--ds-quad-pad-inline, var(--ds-quad-pad, 0))
+        );
+
+        /* ── Border ──────────────────────────────────────────
+           Same three-level resolution as padding.
+
+           Accepts a full CSS border shorthand: "1px solid currentColor",
+           "2px dashed var(--ds-color-accent)", etc.
+
+           Default of 0 is intentional: resets UA-default borders on
+           elements like <fieldset>, <table>, <details> summary. If you
+           want to preserve a UA border, don't use quadrilateral-layout
+           for that element, or override the property in your own CSS.
+        ──────────────────────────────────────────────────────── */
+        border-block-start: var(
+            --ds-quad-border-bs,
+            var(--ds-quad-border-block, var(--ds-quad-border, 0))
+        );
+        border-block-end: var(
+            --ds-quad-border-be,
+            var(--ds-quad-border-block, var(--ds-quad-border, 0))
+        );
+        border-inline-start: var(
+            --ds-quad-border-is,
+            var(--ds-quad-border-inline, var(--ds-quad-border, 0))
+        );
+        border-inline-end: var(
+            --ds-quad-border-ie,
+            var(--ds-quad-border-inline, var(--ds-quad-border, 0))
+        );
+
+        /* ── Border radius ───────────────────────────────────
+           Logical corner names match CSS:
+             ss = start-start  se = start-end
+             es = end-start    ee = end-end
+
+           In horizontal LTR writing:
+             ss = top-left   se = top-right
+             es = bottom-left  ee = bottom-right
+
+           Accepts space tokens (for consistent rounding with the
+           design system scale) or arbitrary CSS lengths.
+        ──────────────────────────────────────────────────────── */
+        border-start-start-radius: var(--ds-quad-radius-ss, var(--ds-quad-radius, 0));
+        border-start-end-radius:   var(--ds-quad-radius-se, var(--ds-quad-radius, 0));
+        border-end-start-radius:   var(--ds-quad-radius-es, var(--ds-quad-radius, 0));
+        border-end-end-radius:     var(--ds-quad-radius-ee, var(--ds-quad-radius, 0));
+
+        /* ── Surface ─────────────────────────────────────────
+           bg: any CSS background value — color, gradient, image, etc.
+           fg: any CSS color value — sets the text color for the subtree.
+           shadow: any CSS box-shadow value.
+
+           All three default to transparent/inherit/none so that
+           quadrilateral-layout is invisible when no surface attributes
+           are set, and composed elements can layer it freely.
+        ──────────────────────────────────────────────────────── */
+        background: var(--ds-quad-bg,     transparent);
+        color:      var(--ds-quad-fg,     inherit);
+        box-shadow: var(--ds-quad-shadow, none);
+    }
+
+}

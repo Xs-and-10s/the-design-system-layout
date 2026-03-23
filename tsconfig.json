@@ -1,0 +1,121 @@
+{
+    /*
+        tsconfig.json — @design-system/layout
+
+        Two purposes:
+          1. IDE: full type checking across src/ AND scripts/
+          2. Build: `tsc` emits readable JS + .d.ts files into dist/
+
+        The build script (scripts/build.ts) calls `tsc` to do both at once,
+        then calls Bun.build() separately to produce the minified bundles.
+
+        scripts/ is included in the IDE check so build scripts get full
+        type-checking too. They are excluded from the emit via a separate
+        tsconfig reference — see tsconfig.scripts.json.
+    */
+    "compilerOptions": {
+
+        /* ── Output ──────────────────────────────────────────── */
+        "outDir":    "./dist",
+        "rootDir":   "./src",
+
+        /*
+            declaration + declarationMap: emit .d.ts and the source
+            map that points type definitions back to the .ts source.
+            Consumers using "Go to Definition" in their IDE land in
+            the TypeScript source rather than the generated declaration.
+        */
+        "declaration":    true,
+        "declarationMap": true,
+
+        /*
+            sourceMap: emit .js.map files alongside the readable JS output.
+            Minified bundles get their own source maps via Bun.build().
+        */
+        "sourceMap": true,
+
+        /* ── Target & module ─────────────────────────────────── */
+        /*
+            ES2022 is required for native private class fields (#field).
+            Container queries (baseline 2023) and text-wrap (2024) imply
+            browser support that ships with ES2022 JS support.
+        */
+        "target": "ES2022",
+
+        /*
+            ESNext module format: tsc emits import/export as-is.
+            Bundlers (Bun, Vite, esbuild, Rollup) handle resolution.
+            CDN consumers use native ESM in the browser (type="module").
+        */
+        "module": "ESNext",
+
+        /*
+            "Bundler" resolution mirrors how Bun and Vite resolve modules:
+            - allows extensionless imports in .ts source
+              (write `from './core.js'` → tsc emits `from './core.js'`)
+            - allows package.json "exports" map resolution
+        */
+        "moduleResolution": "Bundler",
+
+        /* Include DOM and ES2022 standard lib types. */
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+        /* ── Strict mode ─────────────────────────────────────── */
+        "strict": true,
+
+        /*
+            noUncheckedIndexedAccess: accessing arr[n] or obj[key]
+            yields T | undefined, not T. Prevents a common source of
+            runtime errors in typed code.
+        */
+        "noUncheckedIndexedAccess": true,
+
+        /*
+            exactOptionalPropertyTypes: { a?: string } means the property
+            may be absent, but if present it must be string — not string|undefined.
+            Matches the intention of optional properties more precisely.
+        */
+        "exactOptionalPropertyTypes": true,
+
+        /*
+            isolatedModules: each file must be independently compilable.
+            Required for tools that transpile file-by-file (esbuild, Bun).
+            Prevents `const enum` and namespace-only exports.
+        */
+        "isolatedModules": true,
+
+        /*
+            verbatimModuleSyntax: type-only imports must use `import type`.
+            Ensures esbuild/Bun can safely strip type imports without a
+            full type-checker pass.
+        */
+        "verbatimModuleSyntax": true,
+
+        /* skipLibCheck: don't type-check .d.ts files in node_modules. */
+        "skipLibCheck": true,
+
+        /* ── Extra checks ────────────────────────────────────── */
+        "noImplicitReturns":         true,
+        "noFallthroughCasesInSwitch": true,
+        "noPropertyAccessFromIndexSignature": true
+    },
+
+    /*
+        Include src/ for the build emit.
+        Include scripts/ for IDE type-checking of build scripts,
+        but scripts are excluded from the emit via "exclude" below.
+
+        tsc (invoked by build.ts) uses --project tsconfig.json but
+        only emits src/ because rootDir is ./src. Any .ts file outside
+        ./src would cause a rootDir error — scripts are handled separately.
+    */
+    "include": ["src/**/*.ts"],
+
+    /*
+        References let the IDE type-check scripts/ without including
+        them in the src/ build emit.
+    */
+    "references": [
+        { "path": "./tsconfig.scripts.json" }
+    ]
+}

@@ -1,0 +1,129 @@
+@layer ds.layout {
+
+    /* ── subgrid-layout ──────────────────────────────────────
+       A transparent grid item that participates in its parent
+       grid's track definitions and aligns its OWN children to
+       those same parent tracks.
+
+       THE SUBGRID PROBLEM IT SOLVES:
+       Without subgrid, nested grids are independent — a card's
+       internal layout cannot align to the outer page grid. With
+       subgrid, a child can "inherit" the parent grid's track sizes,
+       letting deeply nested content align to a common grid.
+
+       Example: three cards in a 3-column grid, each with a header,
+       body, and footer. Without subgrid, each card's header/body/
+       footer heights are independent. With subgrid, all three headers
+       align at the same row, all bodies at the same row, etc.
+
+       REQUIREMENTS:
+       1. subgrid-layout MUST be a direct child of a grid container.
+          (columns-layout, rows-layout, split-pane-layout, or any
+           CSS grid.) Subgrid only works one grid level up.
+       2. The parent grid must have explicit tracks on the subgridded
+          axis. Auto-placed row tracks (grid-auto-rows: auto) can be
+          subgridded, but the alignment benefit requires explicit tracks.
+       3. col-span and/or row-span must be set so the element covers
+          multiple tracks — a span-1 subgrid is rarely useful.
+
+       Browser support: Baseline 2023
+         Chrome 117+, Firefox 71+, Safari 16+
+
+       Default behavior:
+         - Subgrids column tracks (not rows) by default
+         - Spans 1 column (set col-span for multi-column spanning)
+         - No gap (inherits parent gap via subgrid)
+
+       Attributes:
+         col-span="<integer>"
+           Number of parent grid columns this element spans.
+           Default: 1 (single column, subgrid is rarely useful)
+           Always set this when using subgrid-layout in a column grid.
+
+         row-span="<integer>"
+           Number of parent grid rows this element spans.
+           Default: 1 (single row)
+
+         gap="<token | length>"
+           Gap for subgrid-layout's OWN internal grid.
+           In subgrid mode, gap is typically not set — the parent
+           grid's gap is inherited. Only set this to create a
+           DIFFERENT gap between subgrid children than the parent uses.
+
+         gap-block="<token | length>"
+           Row gap inside subgrid-layout. Overrides gap on block axis.
+
+         gap-inline="<token | length>"
+           Column gap inside subgrid-layout. Overrides gap on inline axis.
+
+         align="<align-items value>"
+           Block-axis alignment of children within each cell.
+           Default: stretch.
+
+         justify="<justify-items value>"
+           Inline-axis alignment of children within each cell.
+           Default: stretch.
+
+       BOOLEAN ATTRIBUTES (CSS-only):
+         [rows]
+           Also subgrids the row axis: grid-template-rows: subgrid.
+           Use when the parent has explicit row tracks and you want
+           vertical alignment across siblings.
+
+       CASCADE NOTE on gap:
+       When grid-template-columns is subgrid, the column gap of the
+       subgrid tracks is inherited from the parent grid (CSS spec).
+       Setting column-gap on subgrid-layout overrides this inheritance.
+       If you want the parent's column gap inside subgrid-layout, do
+       NOT set gap or gap-inline — let it inherit.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(subgrid-layout) {
+        display: grid;
+
+        /*
+            Subgrid the column axis by default.
+            grid-template-columns: subgrid means: use the parent grid's
+            column tracks for this element's internal column layout.
+        */
+        grid-template-columns: subgrid;
+
+        /*
+            span the configured number of parent columns.
+
+            grid-column: span var(--ds-subgrid-col-span, 1)
+            works because CSS custom property substitution occurs before
+            value parsing: var() is replaced with its value (e.g. "3"),
+            yielding `grid-column: span 3` — a valid grid placement.
+        */
+        grid-column: span var(--ds-subgrid-col-span, 1);
+        grid-row:    span var(--ds-subgrid-row-span,  1);
+
+        /*
+            Gap: do NOT set a default. Unset gap on a subgrid inherits
+            the parent's gap for the subgridded axis (CSS spec behavior).
+            Only apply if --ds-subgrid-gap-* is explicitly set.
+        */
+        row-gap:    var(--ds-subgrid-gap-block,  var(--ds-subgrid-gap));
+        column-gap: var(--ds-subgrid-gap-inline, var(--ds-subgrid-gap));
+
+        align-items:   var(--ds-subgrid-align,   stretch);
+        justify-items: var(--ds-subgrid-justify, stretch);
+    }
+
+    :where(subgrid-layout > *) {
+        min-inline-size: 0;
+        min-block-size:  0;
+    }
+
+
+    /* ── [rows] — also subgrid the row axis ──────────────────
+       grid-template-rows: subgrid uses the parent grid's row tracks.
+       Useful when you want BOTH horizontal and vertical alignment
+       of nested content to the parent grid's tracks.
+    ──────────────────────────────────────────────────────────── */
+    :where(subgrid-layout[rows]) {
+        grid-template-rows: subgrid;
+    }
+
+}

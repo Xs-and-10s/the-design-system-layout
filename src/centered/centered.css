@@ -1,0 +1,80 @@
+@layer ds.layout {
+
+    /* ── centered-layout ─────────────────────────────────────
+       An intrinsic centering container. Constrains its content to
+       a maximum inline width, centers it with margin-inline: auto,
+       and adds optional gutter padding for minimum breathing room.
+
+       The primary use is to keep text content at a readable line
+       length (65ch by default) while remaining centered in wider
+       viewports.
+
+       box-sizing: content-box vs. border-box:
+       This element uses content-box. This is intentional.
+
+       With content-box, max-inline-size applies to the CONTENT WIDTH,
+       and gutter padding is added on top. So with max="65ch" and
+       gutter="m":
+         - Content is at most 65ch wide
+         - Total element width is 65ch + 2 × (space-m)
+         - The readable content width is always at most 65ch
+
+       With border-box, the gutter padding would consume part of the
+       65ch budget, making the readable column narrower as gutters grow.
+       That is the wrong behavior for a readable prose column.
+
+       For layout containers that should shrink with gutters, use
+       bookend-layout or region-layout instead.
+
+       Interaction with region-layout:
+       When nested inside region-layout, the region's pad-inline
+       already provides gutter. You may want gutter="0" on centered-
+       layout to avoid double gutters, or omit the gutter attribute
+       entirely if the region provides sufficient inset.
+
+       Attributes:
+         max="<token | length>"
+           max-inline-size of the content. Accepts space tokens
+           (for consistent scale use) or any CSS length.
+           Default: --ds-measure (65ch from core tokens).
+
+         gutter="<token | length>"
+           padding-inline for minimum breathing room when the
+           container is narrower than max. Prevents the element
+           from touching the viewport edges on small screens.
+           Default: 0px (no gutter — typical when already inside
+           a region-layout that provides its own inline padding).
+    ──────────────────────────────────────────────────────────── */
+
+    :where(centered-layout) {
+        display: block;
+
+        /*
+            content-box: gutter padding is OUTSIDE the max-width budget.
+            See comment above for the reasoning.
+        */
+        box-sizing: content-box;
+
+        max-inline-size: var(--ds-centered-max, var(--ds-measure, 65ch));
+
+        /*
+            margin-inline: auto centers the element within its parent.
+            When the parent is wider than max-inline-size, this distributes
+            remaining space equally on both sides.
+            When the parent is narrower (or exactly the max), both margins
+            resolve to 0 — no negative margins, no overflow.
+        */
+        margin-inline: auto;
+
+        padding-inline: var(--ds-centered-gutter, 0px);
+
+        /*
+            min-inline-size: 0 prevents the element from exceeding its
+            container width when box-sizing is content-box and gutter
+            padding is applied (padding can push content-box elements
+            wider than their containing block without this).
+        */
+        min-inline-size: 0;
+    }
+
+}

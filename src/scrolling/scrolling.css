@@ -1,0 +1,389 @@
+@layer ds.layout {
+
+    /* ── scrolling-layout ────────────────────────────────────
+       A scroll container. Wraps content that should scroll on
+       one or both axes, with optional snap, scrollbar control,
+       and peek behavior.
+
+       ── MODE SYSTEM ──────────────────────────────────────────
+
+       No attributes (default): vertical scroll
+         overflow-x: hidden | overflow-y: auto | display: block
+         Children flow as normal block elements.
+
+       [horizontally] only: horizontal scroll ("side-scrolling")
+         overflow-x: auto | overflow-y: hidden | display: flex
+         Children are flex items; gap and item-size apply.
+
+       [vertically] only: explicit vertical scroll
+         Same as default. Use when you want to be explicit, or
+         when combining with other attributes (snap, no-bar, etc.)
+         that should be scoped to the vertical axis.
+
+       [horizontally][vertically]: 2D scroll
+         overflow-x: auto | overflow-y: auto | display: block
+         Note: gap does not apply (display: block). Use a child
+         layout element for spacing.
+
+       ── CASCADE ORDER IS LOAD-BEARING ────────────────────────
+       All rules use :where() (zero specificity). Source order
+       is the only cascade signal. Rules MUST appear in this order:
+         1. Base (default)
+         2. [horizontally] overrides
+         3. [vertically] overrides
+         4. [horizontally][vertically] overrides    ← MUST BE LAST
+       The [horizontally][vertically] rule must override the
+       [horizontally] rule's display: flex and overflow-y: hidden.
+       Moving [horizontally] after [horizontally][vertically] would
+       silently break 2D scroll mode.
+
+       ── OVERFLOW AXIS INTERACTION ────────────────────────────
+       Per the CSS spec, setting overflow on one axis to any value
+       other than `visible` forces the other axis to at minimum
+       `hidden` (it cannot remain `visible`). This means:
+         - Shadow/overflow visibility on the cross-axis is clipped
+         - pad-block in horizontal mode gives breathing room for
+           shadows within the padding area, but does not make
+           overflow-y: visible
+       If you need cross-axis overflow visibility (for tooltips,
+       dropdowns inside a horizontal scroll area), restructure
+       the layout so the scroll container does not contain them.
+
+       ── COMMON MISUSE ────────────────────────────────────────
+       overflow: auto creates a new stacking context and a containing
+       block for position: fixed descendants. A position: fixed child
+       of scrolling-layout will be fixed to the scroll container, not
+       the viewport. Use sticky-layout inside scrolling-layout for
+       scroll-relative sticking.
+
+       ── ATTRIBUTES ───────────────────────────────────────────
+
+       JS-driven (accept space tokens or CSS values):
+         gap           Gap between children. Applies in flex modes
+                       ([horizontally], or [horizontally][vertically]
+                       when display: flex). Has no effect in block
+                       (default / [vertically]) mode — use stacked-layout
+                       for gap in vertical scroll containers.
+
+         pad-block     Block-axis (top/bottom) padding on the scroll
+                       container. Provides breathing room for box shadows
+                       in horizontal scroll mode. Subject to the overflow
+                       axis clipping limitation described above.
+
+         pad-inline    Inline-axis (left/right) padding.
+
+         item          Flex-basis of direct children in [horizontally]
+                       mode. Sets the width of each scrolling item.
+                       Accepts space tokens or any CSS dimension.
+                       Default: auto (children size to their content).
+
+         peek          Inset peek: padding on the scroll axis that shows
+                       a partial glimpse of the next/previous item,
+                       signaling to users that more content is available.
+                       Combined with scroll-padding to keep snap aligned.
+                       In horizontal mode: padding-inline.
+                       In vertical mode:   padding-block.
+                       In 2D mode:         both axes.
+
+         overscroll    overscroll-behavior value. Controls scroll
+                       chaining — what happens when scrolling past
+                       the end of the container.
+                       Default: contain (prevents scroll chaining to
+                       parent; almost always correct for nested scroll
+                       containers).
+
+         align         align-items value for [horizontally] mode.
+                       Controls vertical alignment of items in the
+                       flex row. Ignored in block (default/vertical)
+                       mode.
+                       Default: start (items align to top).
+
+       CSS-only booleans (no JS; handled by attribute selectors):
+         [horizontally]          Enable horizontal scrolling.
+         [vertically]            Enable vertical scrolling (explicit).
+         [snap-horizontally]     x-axis scroll snap (mandatory).
+         [snap-vertically]       y-axis scroll snap (mandatory).
+         [snap-stop]             Force stop at every snap point
+                                 (scroll-snap-stop: always on children).
+         [no-bar]                Hide all scrollbars.
+         [no-bar-horizontally]   Hide scrollbar (horizontal-only mode).
+                                 Same effect as [no-bar] — there is no
+                                 CSS mechanism to hide only the x-axis
+                                 scrollbar while keeping the y-axis bar.
+         [no-bar-vertically]     Hide scrollbar (vertical-only mode).
+                                 Same limitation as above.
+         [stable-gutter]         Reserve scrollbar gutter space always
+                                 (scrollbar-gutter: stable). Prevents
+                                 layout shifts when scrollbar appears/
+                                 disappears. Only affects block-axis
+                                 (vertical) scrollbars.
+         [smooth]                Smooth programmatic scrolling
+                                 (scroll-behavior: smooth). Affects
+                                 element.scrollTo(), anchor navigation,
+                                 and focus scrolling within the container.
+    ──────────────────────────────────────────────────────────── */
+
+
+    /* ── 1. Base — default vertical scroll ──────────────────
+       Rules here apply to ALL modes (inherited by all attribute
+       combinations). Mode-specific rules below override as needed.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(scrolling-layout) {
+        display: block;
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        /*
+            overscroll-behavior: contain prevents scroll chaining.
+            When scrolling reaches the end of this container, the
+            parent does not begin scrolling. This is almost always
+            the correct behavior for nested scroll containers.
+            Override with overscroll="auto" for the outermost scroll
+            container (e.g. to allow pull-to-refresh on the page body).
+        */
+        overscroll-behavior: var(--ds-scrolling-overscroll, contain);
+
+        /*
+            Padding. In default/vertical mode:
+            - pad-block: breathing room / shadow visibility
+            - pad-inline: side padding inside the scroll container
+            - peek: inset on the block axis (vertical peek)
+            These are separate so pad-inline doesn't override peek
+            and vice versa. The peek rule in [vertically] below
+            overrides pad-block with the peek value when set.
+        */
+        padding-block:  var(--ds-scrolling-pad-block,  0px);
+        padding-inline: var(--ds-scrolling-pad-inline, 0px);
+    }
+
+
+    /* ── 2. [horizontally] — horizontal scroll ───────────────
+       WARNING: this rule MUST appear BEFORE [horizontally][vertically].
+       The 2D rule (section 4) overrides display: flex and overflow-y:
+       hidden set here. Reversing the order silently breaks 2D mode.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(scrolling-layout[horizontally]) {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: var(--ds-scrolling-align, start);
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: var(--ds-scrolling-gap, var(--ds-gap, 1rem));
+
+        /*
+            Inline padding in horizontal mode.
+            When --ds-scrolling-peek is set, it is used as the inline
+            padding (creating the peek inset). When not set, falls back
+            to the explicit pad-inline value, then to 0px.
+        */
+        padding-inline: var(
+            --ds-scrolling-peek,
+            var(--ds-scrolling-pad-inline, 0px)
+        );
+        padding-block: var(--ds-scrolling-pad-block, 0px);
+
+        /*
+            scroll-padding-inline: matches the peek inset so that when
+            snap is active, snap points align to the visible content
+            edge (not the padded container edge).
+            Has no effect when snap is not active.
+        */
+        scroll-padding-inline: var(--ds-scrolling-peek, 0px);
+    }
+
+    /*
+        Children in horizontal mode: flex items, non-wrapping.
+        flex: 0 0 auto prevents items from growing or shrinking —
+        each item is exactly its content width (or --ds-scrolling-item
+        if specified).
+    */
+    :where(scrolling-layout[horizontally] > *) {
+        flex: 0 0 var(--ds-scrolling-item, auto);
+        min-inline-size: 0;
+    }
+
+
+    /* ── 3. [vertically] — explicit vertical scroll ──────────
+       In most cases this produces the same behavior as the default.
+       The distinction: when [vertically] is present alone, peek and
+       scroll-padding apply to the block axis.
+       Must appear AFTER [horizontally] so that [vertically]:not([horizontally])
+       doesn't need to fight the [horizontally] rule.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(scrolling-layout[vertically]:not([horizontally])) {
+        /*
+            Block-axis peek overrides pad-block when set.
+            Same logic as inline peek in horizontal mode.
+        */
+        padding-block: var(
+            --ds-scrolling-peek,
+            var(--ds-scrolling-pad-block, 0px)
+        );
+        scroll-padding-block: var(--ds-scrolling-peek, 0px);
+    }
+
+
+    /* ── 4. [horizontally][vertically] — 2D scroll ───────────
+       WARNING: this rule MUST appear AFTER [horizontally].
+       It overrides display: flex → display: block and
+       overflow-y: hidden → overflow-y: auto.
+
+       2D scroll is unusual. Most scroll containers scroll on one axis.
+       Common use cases:
+         - Spreadsheet-like grids
+         - Image lightboxes with zoom + pan
+         - Map canvases
+       For typical page layouts, use separate scrolling-layout elements
+       for each scrollable region rather than one 2D container.
+
+       gap does not apply in 2D mode (display: block). Use child
+       layout elements (stacked-layout, clustered-layout, etc.) to
+       manage spacing within the 2D content area.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(scrolling-layout[horizontally][vertically]) {
+        /*
+            Override display: flex from rule 2.
+            In 2D mode, children are block-level — not flex items.
+            The flex properties set by [horizontally] (flex-wrap,
+            align-items, gap) have no effect on block children.
+        */
+        display: block;
+
+        /*
+            Override overflow-y: hidden from rule 2.
+            overflow-x: auto is already set by [horizontally].
+        */
+        overflow-y: auto;
+
+        /*
+            Peek on both axes in 2D mode.
+        */
+        padding-inline: var(
+            --ds-scrolling-peek,
+            var(--ds-scrolling-pad-inline, 0px)
+        );
+        padding-block: var(
+            --ds-scrolling-peek,
+            var(--ds-scrolling-pad-block, 0px)
+        );
+        scroll-padding-inline: var(--ds-scrolling-peek, 0px);
+        scroll-padding-block:  var(--ds-scrolling-peek, 0px);
+    }
+
+
+    /* ── Snap ────────────────────────────────────────────────
+       Snap rules are independent of mode rules — they layer on top
+       of whichever mode is active. Both can coexist with any mode.
+
+       scroll-snap-type is set on the scroll container.
+       scroll-snap-align is set on the children.
+
+       Mandatory vs proximity:
+       - mandatory: browser MUST land on a snap point. Works well for
+         single-axis snap where every item is clearly a snap target.
+       - proximity: browser snaps only when "close enough". Used for
+         both-axis snap to avoid the jarring behavior of mandatory snap
+         in 2D, where the browser must find a valid 2D snap point.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(scrolling-layout[snap-horizontally]) {
+        scroll-snap-type: x mandatory;
+    }
+
+    :where(scrolling-layout[snap-horizontally] > *) {
+        scroll-snap-align: start;
+    }
+
+    :where(scrolling-layout[snap-vertically]) {
+        scroll-snap-type: y mandatory;
+    }
+
+    :where(scrolling-layout[snap-vertically] > *) {
+        scroll-snap-align: start;
+    }
+
+    /*
+        Both-axis snap uses proximity to avoid the rigid feel of
+        mandatory snap when the browser must find a valid 2D snap point.
+    */
+    :where(scrolling-layout[snap-horizontally][snap-vertically]) {
+        scroll-snap-type: both proximity;
+    }
+
+    /*
+        [snap-stop]: forces the container to stop at every snap point,
+        even when the user flings quickly. Without this, a fast swipe
+        can skip multiple snap points.
+        Applied to children (scroll-snap-stop is a child property).
+    */
+    :where(scrolling-layout[snap-stop] > *) {
+        scroll-snap-stop: always;
+    }
+
+
+    /* ── Scrollbar hiding ────────────────────────────────────
+       [no-bar] hides ALL scrollbars on the container.
+       [no-bar-horizontally] and [no-bar-vertically] are semantic
+       aliases for single-axis modes — they produce the same result
+       as [no-bar] because there is no CSS mechanism to independently
+       show the y scrollbar and hide the x scrollbar (or vice versa).
+
+       Standard property (Firefox, Chrome 121+, Safari 18.2+):
+         scrollbar-width: none
+
+       WebKit legacy (Chrome <121, Safari <18.2, Edge):
+         ::-webkit-scrollbar { display: none }
+
+       NOTE: ::-webkit-scrollbar rules CANNOT be wrapped in :where().
+       Pseudo-elements are not valid inside :where() / :is().
+       These rules carry specificity (0, 1, 1) — the only intentional
+       specificity deviation in this module. This is harmless because
+       scrollbar pseudo-elements are only ever targeted by vendor-
+       prefixed scrollbar rules.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(scrolling-layout[no-bar]),
+    :where(scrolling-layout[no-bar-horizontally]),
+    :where(scrolling-layout[no-bar-vertically]) {
+        scrollbar-width: none;
+    }
+
+    /* Specificity (0, 1, 1) — intentional, see note above. */
+    scrolling-layout[no-bar]::-webkit-scrollbar,
+    scrolling-layout[no-bar-horizontally]::-webkit-scrollbar,
+    scrolling-layout[no-bar-vertically]::-webkit-scrollbar {
+        display: none;
+    }
+
+
+    /* ── Scrollbar gutter ────────────────────────────────────
+       Reserves space for the scrollbar gutter even when the
+       scrollbar is not shown. Prevents layout shifts when the
+       scrollbar appears or disappears (e.g. when content height
+       changes from shorter-than-container to taller).
+
+       scrollbar-gutter: stable — Chrome 94+, Firefox 97+, Safari 15.4+
+       Only affects the block (vertical) scrollbar gutter.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(scrolling-layout[stable-gutter]) {
+        scrollbar-gutter: stable;
+    }
+
+
+    /* ── Smooth scrolling ────────────────────────────────────
+       Applies to programmatic scrolling (element.scrollTo(),
+       scrollIntoView()) and anchor navigation within the container.
+       Does NOT affect touch/wheel scroll momentum — that is
+       controlled by the platform, not CSS.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(scrolling-layout[smooth]) {
+        scroll-behavior: smooth;
+    }
+
+}

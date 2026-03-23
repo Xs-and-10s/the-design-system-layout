@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — Analytics Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+@layer ds.reset,ds.tokens,ds.base,ds.layout,ds.motion,ds.app;
+
+@layer ds.reset{:where(*,*::before,*::after){box-sizing:border-box;}:where(body){margin:0;}:where(button,input,select){font:inherit;color:inherit;margin:0;}:where(button){cursor:pointer;}:where(h1,h2,h3,h4,h5,h6){text-wrap:balance;margin:0;}:where(p){margin:0;text-wrap:pretty;}:where(:focus-visible){outline:2px solid #00d4b4;outline-offset:2px;}:where(:focus:not(:focus-visible)){outline:none;}}
+
+@layer ds.tokens{
+  :root{
+    --ds-gap:var(--ds-space-s-m);
+    --ds-space-base:clamp(0.875rem,0.8rem + 0.375vw,1.125rem);
+    --ds-ratio:1.3333;
+    --_r2:calc(var(--ds-ratio)*var(--ds-ratio));--_r3:calc(var(--_r2)*var(--ds-ratio));
+    --_r-1:calc(1/var(--ds-ratio));--_r-2:calc(1/var(--_r2));--_r-3:calc(1/var(--_r3));
+    --ds-space-xxs:calc(var(--ds-space-base)*var(--_r-3));
+    --ds-space-xs:calc(var(--ds-space-base)*var(--_r-2));
+    --ds-space-s:calc(var(--ds-space-base)*var(--_r-1));
+    --ds-space-m:var(--ds-space-base);
+    --ds-space-l:calc(var(--ds-space-base)*var(--ds-ratio));
+    --ds-space-xl:calc(var(--ds-space-base)*var(--_r2));
+    --ds-space-xxl:calc(var(--ds-space-base)*var(--_r3));
+    --ds-space-s-m:calc((var(--ds-space-s)+var(--ds-space-m))/2);
+    --ds-space-xs-s:calc((var(--ds-space-xs)+var(--ds-space-s))/2);
+    --ds-space-m-l:calc((var(--ds-space-m)+var(--ds-space-l))/2);
+    --ds-space-l-xl:calc((var(--ds-space-l)+var(--ds-space-xl))/2);
+    --ds-space-tiny:calc(var(--ds-space-base)*0.3);
+    /* Brand tokens */
+    --c-bg:#080e1a;
+    --c-surface:#0d1829;
+    --c-surface-2:#111f33;
+    --c-border:#1a2e4a;
+    --c-border-accent:#1e3a5f;
+    --c-teal:#00c4a4;
+    --c-teal-dim:rgba(0,196,164,.15);
+    --c-teal-glow:rgba(0,196,164,.08);
+    --c-text:#c8daf0;
+    --c-text-dim:#6e8daa;
+    --c-text-faint:#304560;
+    --c-danger:#e05060;
+    --c-warn:#e0a040;
+    --c-ok:#40c090;
+  }
+}
+
+@layer ds.base{
+  html{color-scheme:dark;background:var(--c-bg);color:var(--c-text);font-family:'Barlow',system-ui,sans-serif;font-size:var(--ds-space-m);line-height:1.5;}
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--c-border-accent);border-radius:2px;}
+}
+
+@layer ds.layout{
+  :where(stacked-layout){display:flex;flex-direction:column;gap:var(--ds-stacked-gap,var(--ds-gap,1rem));align-items:var(--ds-stacked-align,stretch);}
+  :where(stacked-layout>*){min-inline-size:0;}
+  :where(cluster-layout){display:flex;flex-wrap:wrap;gap:var(--ds-cluster-gap,var(--ds-gap,1rem));align-items:var(--ds-cluster-align,center);justify-content:var(--ds-cluster-justify,flex-start);}
+  :where(cluster-layout[no-wrap]){flex-wrap:nowrap;}
+  :where(repel-layout){display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:var(--ds-repel-align,center);gap:var(--ds-repel-gap,var(--ds-gap,1rem));}
+  :where(repel-layout>*){min-inline-size:0;}
+  :where(split-layout){display:flex;flex-wrap:wrap;gap:var(--ds-split-gap,var(--ds-gap,1rem));}
+  :where(split-layout>*){flex-grow:1;flex-basis:calc((var(--ds-split-threshold,45rem)-100%)*999);min-inline-size:0;}
+  :where(columns-layout){display:grid;grid-template-columns:var(--ds-columns-cols,repeat(3,1fr));grid-template-rows:var(--ds-columns-rows,auto);row-gap:var(--ds-columns-gap-block,var(--ds-columns-gap,var(--ds-gap)));column-gap:var(--ds-columns-gap-inline,var(--ds-columns-gap,var(--ds-gap)));align-items:var(--ds-columns-align,stretch);}
+  :where(columns-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(fluid-grid-layout){display:grid;row-gap:var(--ds-fluid-grid-gap-block,var(--ds-fluid-grid-gap,var(--ds-gap)));column-gap:var(--ds-fluid-grid-gap-inline,var(--ds-fluid-grid-gap,var(--ds-gap)));--_fg:var(--ds-fluid-grid-columns,auto-fit);grid-template-columns:repeat(var(--_fg),minmax(min(100%,var(--ds-fluid-grid-min,16rem)),var(--ds-fluid-grid-max,1fr)));align-items:var(--ds-fluid-grid-align,stretch);}
+  :where(fluid-grid-layout>*){min-inline-size:0;}
+  :where(sandwich-layout){display:grid;grid-template-rows:auto 1fr auto;block-size:100dvh;overflow:hidden;}
+  :where(sandwich-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(region-layout){display:block;--ds-region-pad-inline:var(--ds-space-l);padding-block:var(--ds-region-pad-block,var(--ds-space-l));padding-inline:var(--ds-region-pad-inline);background:var(--ds-region-bg,transparent);}
+  :where(scrolling-layout){display:block;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;}
+  :where(sticky-layout){display:block;position:sticky;inset-block-start:var(--ds-sticky-bs,auto);z-index:var(--ds-sticky-z,20);}
+  :where(split-pane-layout){display:grid;row-gap:var(--ds-split-pane-gap-block,var(--ds-split-pane-gap,var(--ds-gap)));column-gap:var(--ds-split-pane-gap-inline,var(--ds-split-pane-gap,var(--ds-gap)));}
+  :where(split-pane-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(pane-layout){display:block;grid-area:var(--ds-pane-area);min-inline-size:0;min-block-size:0;}
+  :where(icon-text-layout){display:inline-flex;align-items:var(--ds-icon-text-align,center);gap:var(--ds-icon-text-gap,var(--ds-space-xs-s,.5rem));}
+  :where(icon-text-layout>:first-child){display:block;inline-size:var(--ds-icon-size,1em);block-size:var(--ds-icon-size,1em);flex:0 0 auto;pointer-events:none;}
+  :where(icon-text-layout>:last-child){flex:1 1 auto;min-inline-size:0;}
+  :where(quadrilateral-layout){display:block;padding-block-start:var(--ds-quad-pbs,var(--ds-quad-pad-block,var(--ds-quad-pad,0)));padding-block-end:var(--ds-quad-pbe,var(--ds-quad-pad-block,var(--ds-quad-pad,0)));padding-inline-start:var(--ds-quad-pis,var(--ds-quad-pad-inline,var(--ds-quad-pad,0)));padding-inline-end:var(--ds-quad-pie,var(--ds-quad-pad-inline,var(--ds-quad-pad,0)));border-block-start:var(--ds-quad-border-bs,var(--ds-quad-border-block,var(--ds-quad-border,0)));border-block-end:var(--ds-quad-border-be,var(--ds-quad-border-block,var(--ds-quad-border,0)));border-inline-start:var(--ds-quad-border-is,var(--ds-quad-border-inline,var(--ds-quad-border,0)));border-inline-end:var(--ds-quad-border-ie,var(--ds-quad-border-inline,var(--ds-quad-border,0)));border-start-start-radius:var(--ds-quad-radius-ss,var(--ds-quad-radius,0));border-start-end-radius:var(--ds-quad-radius-se,var(--ds-quad-radius,0));border-end-start-radius:var(--ds-quad-radius-es,var(--ds-quad-radius,0));border-end-end-radius:var(--ds-quad-radius-ee,var(--ds-quad-radius,0));background:var(--ds-quad-bg,transparent);color:var(--ds-quad-fg,inherit);box-shadow:var(--ds-quad-shadow,none);}
+  :where(quadrilateral-layout){transform-origin:var(--ds-quad-origin,50% 50%);}
+  :where(quadrilateral-layout[skew-x],:where(quadrilateral-layout[skew-y])){transform:skewX(var(--ds-quad-skew-x,0deg)) skewY(var(--ds-quad-skew-y,0deg));}
+  :where(quadrilateral-layout[rotate]){rotate:var(--ds-quad-rotate);}
+  :where(quadrilateral-layout[scale]){scale:var(--ds-quad-scale);}
+  :where(quadrilateral-layout[translate]){translate:var(--ds-quad-translate);}
+  :where(repel-layout[wrap]){flex-wrap:wrap;}
+}
+
+@layer ds.motion{
+  @media(prefers-reduced-motion:reduce){:where(*){transition-duration:.01ms!important;animation-duration:.01ms!important;}}
+}
+
+@layer ds.app {
+  /* App shell */
+  .app-shell { block-size: 100dvh; display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 48px 1fr; overflow: hidden; }
+  .topbar { grid-column: 1 / -1; background: var(--c-surface); border-block-end: 1px solid var(--c-border); display: flex; align-items: center; padding-inline: var(--ds-space-m); gap: var(--ds-space-m); position: relative; z-index: 20; }
+  .sidebar { grid-column: 1; grid-row: 2; background: var(--c-surface); border-inline-end: 1px solid var(--c-border); display: flex; flex-direction: column; overflow-y: auto; }
+  .main-area { grid-column: 2; grid-row: 2; overflow-y: auto; background: var(--c-bg); }
+
+  /* Topbar */
+  .logo-mark { width: 24px; height: 24px; background: linear-gradient(135deg, #00c4a4, #0070d4); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .75rem; color: #fff; flex-shrink: 0; }
+  .logo-name { font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; font-weight: 600; color: #d8eef8; letter-spacing: .04em; }
+  .topbar-divider { width: 1px; height: 20px; background: var(--c-border); margin-inline: 4px; }
+  .topbar-breadcrumb { font-size: .75rem; color: var(--c-text-dim); font-family: 'Space Mono', monospace; }
+  .topbar-time { font-size: .7rem; color: var(--c-text-faint); font-family: 'Space Mono', monospace; margin-inline-start: auto; }
+  .topbar-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #1a3870, #0a2050); border: 1px solid var(--c-border-accent); display: flex; align-items: center; justify-content: center; font-size: .65rem; font-weight: 700; color: var(--c-teal); flex-shrink: 0; cursor: pointer; }
+
+  /* Sidebar nav */
+  .sidebar-section { padding: var(--ds-space-m) var(--ds-space-s) var(--ds-space-xs); font-family: 'Space Mono', monospace; font-size: .55rem; letter-spacing: .18em; text-transform: uppercase; color: var(--c-text-faint); }
+  .nav-link { display: flex; align-items: center; gap: var(--ds-space-s); padding: var(--ds-space-xs) var(--ds-space-m); font-size: .82rem; color: var(--c-text-dim); cursor: pointer; transition: color .12s, background .12s; border-inline-start: 2px solid transparent; text-decoration: none; }
+  .nav-link:hover { color: var(--c-text); background: rgba(0,196,164,.05); }
+  .nav-link.active { color: var(--c-teal); background: var(--c-teal-glow); border-inline-start-color: var(--c-teal); }
+  .nav-icon { width: 14px; height: 14px; opacity: .6; flex-shrink: 0; }
+  .nav-link.active .nav-icon { opacity: 1; }
+  .sidebar-footer { margin-block-start: auto; padding: var(--ds-space-m); border-block-start: 1px solid var(--c-border); }
+  .user-row { display: flex; align-items: center; gap: var(--ds-space-s); }
+  .user-name { font-size: .78rem; color: var(--c-text-dim); }
+  .user-role { font-size: .65rem; color: var(--c-text-faint); font-family: 'Space Mono', monospace; }
+
+  /* Main content */
+  .content-header { padding: var(--ds-space-l) var(--ds-space-xl) var(--ds-space-m); border-block-end: 1px solid var(--c-border); background: var(--c-surface); }
+  .page-title { font-family: 'Barlow Condensed', sans-serif; font-size: 1.5rem; font-weight: 600; color: #d8eef8; }
+  .page-subtitle { font-size: .8rem; color: var(--c-text-dim); }
+  .content-body { padding: var(--ds-space-l) var(--ds-space-xl); }
+
+  /* KPI cards */
+  .kpi-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 4px; padding: var(--ds-space-m) var(--ds-space-l); transition: border-color .15s, box-shadow .15s; }
+  .kpi-card:hover { border-color: var(--c-border-accent); box-shadow: 0 0 0 1px rgba(0,196,164,.08), 0 4px 20px rgba(0,0,0,.3); }
+  .kpi-label { font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--c-text-faint); margin-block-end: var(--ds-space-xs); }
+  .kpi-value { font-family: 'Barlow Condensed', sans-serif; font-size: 2rem; font-weight: 700; color: var(--c-text); line-height: 1; }
+  .kpi-delta { font-size: .72rem; font-family: 'Space Mono', monospace; margin-block-start: var(--ds-space-xxs); }
+  .kpi-delta.up { color: var(--c-ok); }
+  .kpi-delta.down { color: var(--c-danger); }
+
+  /* Chart section */
+  .chart-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 4px; padding: var(--ds-space-m); }
+  .chart-title { font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 500; color: #a8c8e8; margin-block-end: var(--ds-space-m); display: flex; align-items: center; justify-content: space-between; }
+  .chart-legend { display: flex; gap: var(--ds-space-m); }
+  .legend-item { display: flex; align-items: center; gap: var(--ds-space-xxs); font-size: .65rem; color: var(--c-text-faint); font-family: 'Space Mono', monospace; }
+  .legend-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* Table */
+  .data-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+  .data-table th { font-family: 'Space Mono', monospace; font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: var(--c-text-faint); text-align: left; padding: var(--ds-space-xs) var(--ds-space-m); border-block-end: 1px solid var(--c-border); background: var(--c-surface); position: sticky; top: 0; }
+  .data-table td { padding: var(--ds-space-s) var(--ds-space-m); border-block-end: 1px solid rgba(26,46,74,.5); color: var(--c-text-dim); }
+  .data-table tr:hover td { background: rgba(0,196,164,.03); }
+  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-inline-end: 6px; }
+  .st-ok  { background: var(--c-ok); box-shadow: 0 0 4px var(--c-ok); }
+  .st-warn{ background: var(--c-warn); box-shadow: 0 0 4px var(--c-warn); }
+  .st-err { background: var(--c-danger); box-shadow: 0 0 4px var(--c-danger); }
+  .mono { font-family: 'Space Mono', monospace; font-size: .72rem; color: var(--c-teal); }
+
+  /* Badge */
+  .badge { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 2px; font-size: .62rem; font-family: 'Space Mono', monospace; letter-spacing: .05em; }
+  .badge-ok   { background: rgba(64,192,144,.15); color: var(--c-ok); border: 1px solid rgba(64,192,144,.25); }
+  .badge-warn { background: rgba(224,160,64,.15); color: var(--c-warn); border: 1px solid rgba(224,160,64,.25); }
+  .badge-err  { background: rgba(224,80,96,.15); color: var(--c-danger); border: 1px solid rgba(224,80,96,.25); }
+
+  /* Section heading */
+  .section-head { font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 500; color: #a8c8e8; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── Top bar ── -->
+  <header class="topbar">
+    <div class="logo-mark">M</div>
+    <span class="logo-name">Meridian</span>
+    <div class="topbar-divider"></div>
+    <span class="topbar-breadcrumb">workspace / prod / overview</span>
+    <span class="topbar-time">UTC 14:32:07</span>
+    <div class="topbar-avatar">AR</div>
+  </header>
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-section">Observability</div>
+
+    <a class="nav-link active" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Overview
+    </a>
+    <a class="nav-link" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><polyline points="1 11 5 6 8 9 12 4 15 7"/></svg>
+      Metrics
+    </a>
+    <a class="nav-link" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 1v14M1 8h14"/></svg>
+      Pipelines
+    </a>
+    <a class="nav-link" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 5v4l2 2"/></svg>
+      Streams
+    </a>
+
+    <div class="sidebar-section" style="margin-block-start:var(--ds-space-m)">Alerting</div>
+
+    <a class="nav-link" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.6 3.5L8 9l-3.1 1.5.6-3.5L3 4.5 6.5 4z"/></svg>
+      Active Alerts
+      <span style="margin-inline-start:auto;background:rgba(224,80,96,.2);color:var(--c-danger);font-size:.6rem;padding:1px 6px;border-radius:2px;font-family:'Space Mono'">3</span>
+    </a>
+    <a class="nav-link" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+      Alert Rules
+    </a>
+
+    <div class="sidebar-section" style="margin-block-start:var(--ds-space-m)">System</div>
+
+    <a class="nav-link" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4"/></svg>
+      Settings
+    </a>
+
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="topbar-avatar" style="font-size:.7rem">AR</div>
+        <div>
+          <div class="user-name">Aria Rahman</div>
+          <div class="user-role">Admin</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main area ── -->
+  <main class="main-area">
+
+    <!-- Content header -->
+    <div class="content-header">
+      <repel-layout data-layout="repel-layout" gap="m" style="--ds-repel-align:flex-end">
+        <stacked-layout data-layout="stacked-layout" gap="xxs" style="--ds-space-xxs:var(--ds-space-xxs)">
+          <div class="page-title">Overview</div>
+          <div class="page-subtitle">Production workspace · Last updated 43s ago</div>
+        </stacked-layout>
+        <cluster-layout data-layout="cluster-layout" gap="s" style="--ds-cluster-align:center">
+          <select style="background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:2px;padding:4px 8px;font-size:.75rem;font-family:'Space Mono';color:var(--c-text-dim);cursor:pointer">
+            <option>Last 30 days</option>
+            <option>Last 7 days</option>
+            <option>Last 24h</option>
+          </select>
+          <button style="background:rgba(0,196,164,.12);border:1px solid rgba(0,196,164,.3);border-radius:2px;padding:4px 12px;font-size:.75rem;font-family:'Barlow Condensed';color:var(--c-teal);letter-spacing:.06em;text-transform:uppercase">Refresh</button>
+        </cluster-layout>
+      </repel-layout>
+    </div>
+
+    <div class="content-body">
+      <stacked-layout data-layout="stacked-layout" gap="l" style="--ds-space-l:var(--ds-space-l)">
+
+        <!-- KPI Row -->
+        <columns-layout data-layout="columns-layout" style="--ds-columns-cols:repeat(4,1fr);--ds-columns-gap:var(--ds-space-m)">
+
+          <quadrilateral-layout data-layout="quadrilateral-layout" class="kpi-card"
+            translate="0 0" style="transition:translate .2s var(--ds-presence-ease-in,.3s)">
+            <div class="kpi-label">Events / 30d</div>
+            <div class="kpi-value">12.4<span style="font-size:1.2rem;color:var(--c-text-dim)">B</span></div>
+            <div class="kpi-delta up">↑ 8.4% vs prev period</div>
+          </quadrilateral-layout>
+
+          <quadrilateral-layout data-layout="quadrilateral-layout" class="kpi-card">
+            <div class="kpi-label">Avg Latency</div>
+            <div class="kpi-value">4.2<span style="font-size:1.2rem;color:var(--c-text-dim)">ms</span></div>
+            <div class="kpi-delta up">↓ 12% improvement</div>
+          </quadrilateral-layout>
+
+          <quadrilateral-layout data-layout="quadrilateral-layout" class="kpi-card">
+            <div class="kpi-label">Error Rate</div>
+            <div class="kpi-value">0.04<span style="font-size:1.2rem;color:var(--c-text-dim)">%</span></div>
+            <div class="kpi-delta up">↓ 0.01% vs target</div>
+          </quadrilateral-layout>
+
+          <quadrilateral-layout data-layout="quadrilateral-layout" class="kpi-card">
+            <div class="kpi-label">Active Nodes</div>
+            <div class="kpi-value">247</div>
+            <div class="kpi-delta" style="color:var(--c-text-faint)">→ Steady (auto-scaled)</div>
+          </quadrilateral-layout>
+
+        </columns-layout>
+
+        <!-- Chart + Alerts grid -->
+        <split-layout data-layout="split-layout" threshold="500px" gap="m">
+
+          <!-- Area chart -->
+          <div class="chart-card" style="min-inline-size:0;flex:2">
+            <div class="chart-title">
+              Event Volume
+              <div class="chart-legend">
+                <span class="legend-item"><span class="legend-dot" style="background:var(--c-teal)"></span>Ingested</span>
+                <span class="legend-item"><span class="legend-dot" style="background:rgba(0,196,164,.3)"></span>Processed</span>
+              </div>
+            </div>
+            <svg width="100%" height="140" viewBox="0 0 500 140" preserveAspectRatio="none" aria-label="Event volume chart — 30 days">
+              <defs>
+                <linearGradient id="grad-teal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#00c4a4" stop-opacity=".35"/>
+                  <stop offset="100%" stop-color="#00c4a4" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="grad-teal2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#00c4a4" stop-opacity=".15"/>
+                  <stop offset="100%" stop-color="#00c4a4" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <!-- Y-axis grid lines -->
+              <line x1="0" y1="35" x2="500" y2="35" stroke="rgba(26,46,74,.6)" stroke-width="1" stroke-dasharray="4 4"/>
+              <line x1="0" y1="70" x2="500" y2="70" stroke="rgba(26,46,74,.6)" stroke-width="1" stroke-dasharray="4 4"/>
+              <line x1="0" y1="105" x2="500" y2="105" stroke="rgba(26,46,74,.6)" stroke-width="1" stroke-dasharray="4 4"/>
+              <!-- Processed area (behind) -->
+              <path d="M0,100 C30,98 50,95 80,90 C110,85 120,80 150,78 C180,76 200,82 230,80 C260,78 280,72 310,68 C340,64 360,70 390,65 C420,60 450,55 500,52 L500,140 L0,140 Z" fill="url(#grad-teal2)"/>
+              <path d="M0,100 C30,98 50,95 80,90 C110,85 120,80 150,78 C180,76 200,82 230,80 C260,78 280,72 310,68 C340,64 360,70 390,65 C420,60 450,55 500,52" fill="none" stroke="rgba(0,196,164,.35)" stroke-width="1.5"/>
+              <!-- Ingested area (front) -->
+              <path d="M0,88 C30,84 50,78 80,72 C110,66 120,58 150,52 C180,46 200,54 230,50 C260,46 280,38 310,34 C340,30 360,38 390,32 C420,26 450,20 500,16 L500,140 L0,140 Z" fill="url(#grad-teal)"/>
+              <path d="M0,88 C30,84 50,78 80,72 C110,66 120,58 150,52 C180,46 200,54 230,50 C260,46 280,38 310,34 C340,30 360,38 390,32 C420,26 450,20 500,16" fill="none" stroke="var(--c-teal)" stroke-width="2"/>
+              <!-- Hover marker -->
+              <circle cx="390" cy="32" r="4" fill="var(--c-teal)" stroke="var(--c-surface)" stroke-width="2"/>
+              <!-- X-axis labels -->
+              <text x="0" y="138" font-size="9" fill="rgba(48,69,96,.8)" font-family="Space Mono">Mar 1</text>
+              <text x="120" y="138" font-size="9" fill="rgba(48,69,96,.8)" font-family="Space Mono">Mar 8</text>
+              <text x="240" y="138" font-size="9" fill="rgba(48,69,96,.8)" font-family="Space Mono">Mar 15</text>
+              <text x="360" y="138" font-size="9" fill="rgba(48,69,96,.8)" font-family="Space Mono">Mar 22</text>
+            </svg>
+          </div>
+
+          <!-- Active alerts panel -->
+          <div class="chart-card" style="min-inline-size:0;flex:1">
+            <div class="chart-title" style="margin-block-end:var(--ds-space-s)">
+              Active Alerts
+              <span class="badge badge-err">3 critical</span>
+            </div>
+            <stacked-layout data-layout="stacked-layout" gap="s" style="--ds-space-s:var(--ds-space-s)">
+
+              <quadrilateral-layout data-layout="quadrilateral-layout"
+                border-is="2px solid var(--c-danger)"
+                bg="rgba(224,80,96,.06)"
+                pad="s" radius="xxs" style="--ds-quad-radius:2px">
+                <div style="font-size:.78rem;color:#e8a0a8;font-family:'Barlow Condensed';margin-block-end:2px">High CPU: stream-worker-4</div>
+                <div style="font-size:.65rem;color:var(--c-text-faint);font-family:'Space Mono'">cpu 94% · 4m ago</div>
+              </quadrilateral-layout>
+
+              <quadrilateral-layout data-layout="quadrilateral-layout"
+                border-is="2px solid var(--c-warn)"
+                bg="rgba(224,160,64,.06)"
+                pad="s" radius="xxs" style="--ds-quad-radius:2px">
+                <div style="font-size:.78rem;color:#e8d080;font-family:'Barlow Condensed';margin-block-end:2px">Latency spike: eu-west-2</div>
+                <div style="font-size:.65rem;color:var(--c-text-faint);font-family:'Space Mono'">p99 340ms · 12m ago</div>
+              </quadrilateral-layout>
+
+              <quadrilateral-layout data-layout="quadrilateral-layout"
+                border-is="2px solid var(--c-warn)"
+                bg="rgba(224,160,64,.06)"
+                pad="s" radius="xxs" style="--ds-quad-radius:2px">
+                <div style="font-size:.78rem;color:#e8d080;font-family:'Barlow Condensed';margin-block-end:2px">Memory pressure: ingest-3</div>
+                <div style="font-size:.65rem;color:var(--c-text-faint);font-family:'Space Mono'">mem 87% · 31m ago</div>
+              </quadrilateral-layout>
+
+              <quadrilateral-layout data-layout="quadrilateral-layout"
+                border-is="2px solid rgba(64,192,144,.5)"
+                bg="rgba(64,192,144,.04)"
+                pad="s" radius="xxs" style="--ds-quad-radius:2px">
+                <div style="font-size:.78rem;color:#80c8a8;font-family:'Barlow Condensed';margin-block-end:2px">Auto-scale complete: us-east-1</div>
+                <div style="font-size:.65rem;color:var(--c-text-faint);font-family:'Space Mono'">+4 nodes · 1h ago · resolved</div>
+              </quadrilateral-layout>
+
+            </stacked-layout>
+          </div>
+        </split-layout>
+
+        <!-- Stream table -->
+        <div>
+          <div class="section-head" style="margin-block-end:var(--ds-space-m)">Active Streams</div>
+          <div class="chart-card" style="overflow:auto">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Stream ID</th>
+                  <th>Status</th>
+                  <th>Throughput</th>
+                  <th>Latency p99</th>
+                  <th>Errors / hr</th>
+                  <th>Region</th>
+                  <th>Uptime</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="mono">stm-prod-a1f2</span></td>
+                  <td><span class="status-dot st-ok"></span>Running</td>
+                  <td>4.2M evt/s</td>
+                  <td>3.8 ms</td>
+                  <td>0</td>
+                  <td>us-east-1</td>
+                  <td><span class="badge badge-ok">99.99%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="mono">stm-prod-b3e7</span></td>
+                  <td><span class="status-dot st-ok"></span>Running</td>
+                  <td>2.1M evt/s</td>
+                  <td>4.1 ms</td>
+                  <td>2</td>
+                  <td>eu-west-2</td>
+                  <td><span class="badge badge-ok">99.97%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="mono">stm-prod-c9d4</span></td>
+                  <td><span class="status-dot st-warn"></span>Degraded</td>
+                  <td>1.4M evt/s</td>
+                  <td>340 ms</td>
+                  <td>14</td>
+                  <td>eu-west-2</td>
+                  <td><span class="badge badge-warn">98.2%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="mono">stm-prod-d2f9</span></td>
+                  <td><span class="status-dot st-ok"></span>Running</td>
+                  <td>890K evt/s</td>
+                  <td>5.2 ms</td>
+                  <td>0</td>
+                  <td>ap-south-1</td>
+                  <td><span class="badge badge-ok">100%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="mono">stm-staging-e6</span></td>
+                  <td><span class="status-dot st-ok"></span>Running</td>
+                  <td>120K evt/s</td>
+                  <td>6.8 ms</td>
+                  <td>0</td>
+                  <td>us-east-1</td>
+                  <td><span class="badge badge-ok">99.9%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="mono">stm-dev-f11a</span></td>
+                  <td><span class="status-dot" style="background:#304560"></span>Idle</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>us-east-1</td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </stacked-layout>
+    </div>
+  </main>
+</div>
+
+<script>
+function aV(e,n,v){v===''||v==null?e.style.removeProperty(n):e.style.setProperty(n,v);}
+function aP(e,n,v){v===''||v==null?e.style.removeProperty(n):e.style.setProperty(n,v);}
+const ST=new Set(['tiny','xxxs','xxs','xs','s','m','l','xl','xxl','xxxl','huge','xs-s','s-m','m-l','l-xl','xxs-xs','xxxs-xxs']);
+const ZT=new Set(['base','raised','dropdown','sticky','overlay','modal','toast']);
+function ns(v){const s=String(v||'').trim();if(!s)return'';if(s==='0')return'0';if(ST.has(s))return`var(--ds-space-${s})`;return s;}
+function nz(v){const s=String(v||'').trim();if(!s)return'';if(ZT.has(s))return`var(--ds-z-${s})`;if(s==='auto'||/^-?\d+$/.test(s))return s;return'';}
+function nr(v){return String(v||'').trim();}
+function el(map){
+  const e=Object.entries(map);
+  return class extends HTMLElement{
+    static get observedAttributes(){return Object.keys(map);}
+    connectedCallback(){this._a();}attributeChangedCallback(){this._a();}
+    _a(){for(const[attr,spec]of e){const raw=this.getAttribute(attr)??'';let val=spec.type==='space'?ns(raw):spec.type==='z-index'?nz(raw):nr(raw);if(spec.var)aV(this,spec.var,val);if(spec.prop)aP(this,spec.prop,val);}aV(this,'--ds-vt-name',(this.getAttribute('vt-name')||'').trim());}
+  };
+}
+function def(t,c){if(!customElements.get(t))customElements.define(t,c);}
+def('stacked-layout',el({gap:{type:'space',var:'--ds-stacked-gap'},align:{type:'raw',var:'--ds-stacked-align'}}));
+def('cluster-layout',el({gap:{type:'space',var:'--ds-cluster-gap'},align:{type:'raw',var:'--ds-cluster-align'},justify:{type:'raw',var:'--ds-cluster-justify'}}));
+def('repel-layout',el({gap:{type:'space',var:'--ds-repel-gap'},align:{type:'raw',var:'--ds-repel-align'}}));
+def('split-layout',el({gap:{type:'space',var:'--ds-split-gap'},threshold:{type:'space',var:'--ds-split-threshold'}}));
+def('columns-layout',el({cols:{type:'raw',var:'--ds-columns-cols'},rows:{type:'raw',var:'--ds-columns-rows'},gap:{type:'space',var:'--ds-columns-gap'},'gap-block':{type:'space',var:'--ds-columns-gap-block'},'gap-inline':{type:'space',var:'--ds-columns-gap-inline'},align:{type:'raw',var:'--ds-columns-align'}}));
+def('fluid-grid-layout',el({min:{type:'space',var:'--ds-fluid-grid-min'},max:{type:'space',var:'--ds-fluid-grid-max'},gap:{type:'space',var:'--ds-fluid-grid-gap'},columns:{type:'raw',var:'--ds-fluid-grid-columns'},align:{type:'raw',var:'--ds-fluid-grid-align'}}));
+def('region-layout',el({'pad-block':{type:'space',var:'--ds-region-pad-block'},'pad-inline':{type:'space',var:'--ds-region-pad-inline'},bg:{type:'raw',var:'--ds-region-bg'}}));
+def('icon-text-layout',el({gap:{type:'space',var:'--ds-icon-text-gap'},size:{type:'space',var:'--ds-icon-size'},align:{type:'raw',var:'--ds-icon-text-align'}}));
+const _QB=el({'pad':{type:'space',var:'--ds-quad-pad'},'pad-block':{type:'space',var:'--ds-quad-pad-block'},'pad-inline':{type:'space',var:'--ds-quad-pad-inline'},pbs:{type:'space',var:'--ds-quad-pbs'},pbe:{type:'space',var:'--ds-quad-pbe'},pis:{type:'space',var:'--ds-quad-pis'},pie:{type:'space',var:'--ds-quad-pie'},border:{type:'raw',var:'--ds-quad-border'},'border-block':{type:'raw',var:'--ds-quad-border-block'},'border-inline':{type:'raw',var:'--ds-quad-border-inline'},'border-bs':{type:'raw',var:'--ds-quad-border-bs'},'border-be':{type:'raw',var:'--ds-quad-border-be'},'border-is':{type:'raw',var:'--ds-quad-border-is'},'border-ie':{type:'raw',var:'--ds-quad-border-ie'},radius:{type:'space',var:'--ds-quad-radius'},'radius-ss':{type:'space',var:'--ds-quad-radius-ss'},'radius-se':{type:'space',var:'--ds-quad-radius-se'},'radius-es':{type:'space',var:'--ds-quad-radius-es'},'radius-ee':{type:'space',var:'--ds-quad-radius-ee'},bg:{type:'raw',var:'--ds-quad-bg'},fg:{type:'raw',var:'--ds-quad-fg'},shadow:{type:'raw',var:'--ds-quad-shadow'},'skew-x':{type:'raw',var:'--ds-quad-skew-x'},'skew-y':{type:'raw',var:'--ds-quad-skew-y'},rotate:{type:'raw',var:'--ds-quad-rotate'},scale:{type:'raw',var:'--ds-quad-scale'},translate:{type:'raw',var:'--ds-quad-translate'},origin:{type:'raw',var:'--ds-quad-origin'},perspective:{type:'raw',prop:'perspective'}});
+class _QE extends _QB{static get observedAttributes(){return[...super.observedAttributes,'preserve-3d','backface','flip-x','flip-y'];}connectedCallback(){super.connectedCallback();this._qt();}attributeChangedCallback(n,o,v){super.attributeChangedCallback(n,o,v);this._qt();}_qt(){const p3d=this.hasAttribute('preserve-3d'),bf=this.hasAttribute('backface'),fx=this.hasAttribute('flip-x'),fy=this.hasAttribute('flip-y');p3d?this.style.setProperty('transform-style','preserve-3d'):this.style.removeProperty('transform-style');bf?this.style.setProperty('backface-visibility','hidden'):this.style.removeProperty('backface-visibility');if(fx||fy)this.style.setProperty('scale',`${fx?-1:1} ${fy?-1:1}`);}}
+def('quadrilateral-layout',_QE);
+</script>
+</body>
+</html>

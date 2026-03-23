@@ -1,0 +1,96 @@
+@layer ds.layout {
+
+    /* ── stacked-layout ──────────────────────────────────────
+       A vertical flex stack. All children are laid out in a column
+       with a consistent gap driven by the --ds-stacked-gap token,
+       falling back to the module-level --ds-gap default.
+
+       Attributes (all optional):
+         gap="<token|css-value>"
+           Sets --ds-stacked-gap. Accepts any named space token
+           (tiny, xxxs, xxs, xs, s, m, l, xl, xxl, xxxl, huge,
+           or any adjacent pair like s-m) or an arbitrary CSS length.
+           Handled by the JS element; the CSS reads the result.
+
+         align="<align-items-value>"
+           Sets the cross-axis alignment of children.
+           Accepts any valid align-items keyword: start, end, center,
+           stretch, baseline. Default: stretch.
+
+         deep
+           Boolean. Switches from flex layout to block layout and
+           applies the "owl selector" (adjacent sibling) spacing
+           pattern recursively through the entire subtree.
+           All descendant margins are reset to zero first, so
+           --ds-stacked-gap is the *only* source of vertical rhythm —
+           no additive interaction with browser default margins.
+           Use for rich HTML subtrees (prose, CMS content) where
+           you don't control the direct children.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(stacked-layout) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ds-stacked-gap, var(--ds-gap, 1rem));
+        align-items: var(--ds-stacked-align, stretch);
+    }
+
+    /*
+        Defensive flex child rule.
+        Flex items do not shrink below their min-content width by
+        default. Without this, a wide child (e.g. a pre, a wide image,
+        a table) can overflow a narrow stacked-layout container
+        horizontally rather than being constrained by it.
+    */
+    :where(stacked-layout > *) {
+        min-inline-size: 0;
+    }
+
+
+    /* ── [deep] variant ──────────────────────────────────────
+       Switches to block layout + owl selector rhythm:
+         * + * { margin-block-start: <gap> }
+
+       Why block instead of keeping flex:
+       A flex container only affects direct children. [deep] is
+       specifically for cases where you need spacing throughout an
+       arbitrary subtree (e.g. a block of CMS-authored HTML, a
+       <article>, a <details>). Block layout allows the margin
+       to cascade to all descendants via the adjacent sibling selector.
+
+       Why reset all margins first:
+       Browser default stylesheets assign top/bottom margins to
+       headings, paragraphs, lists, blockquotes, etc. If we only
+       apply margin-block-start to * + *, those browser margins
+       add to the rhythm spacing rather than replacing it.
+       Resetting to zero first makes --ds-stacked-gap the sole
+       source of vertical spacing, which is always the intent when
+       using [deep].
+
+       If you need to preserve existing child margins, use the
+       default (non-deep) stacked-layout and structure your markup
+       so direct children are the units of spacing.
+    ──────────────────────────────────────────────────────────── */
+    :where(stacked-layout[deep]) {
+        display: block;
+    }
+
+    /*
+        Step 1: zero out all descendant margins.
+        :where() keeps specificity at zero so a consumer's own
+        margin rules still win without needing !important.
+    */
+    :where(stacked-layout[deep] *) {
+        margin: 0;
+    }
+
+    /*
+        Step 2: apply the rhythm gap between adjacent siblings.
+        Applied after the reset above, so the gap is the only source
+        of vertical spacing throughout the subtree.
+    */
+    :where(stacked-layout[deep] * + *) {
+        margin-block-start: var(--ds-stacked-gap, var(--ds-gap, 1rem));
+    }
+
+}

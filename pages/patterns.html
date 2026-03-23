@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patterns — @the-design-system/layout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+@layer ds.reset, ds.tokens, ds.base, ds.layout, ds.motion, ds.components;
+
+@layer ds.reset {
+  :where(*,*::before,*::after){box-sizing:border-box;}
+  :where(body){margin:0;}
+  :where(img,picture,video,canvas,svg){display:block;max-inline-size:100%;block-size:auto;}
+  :where(input,button,textarea,select){margin:0;font:inherit;color:inherit;}
+  :where(button){cursor:pointer;}
+  :where(h1,h2,h3,h4,h5,h6){text-wrap:balance;}
+  :where(p){text-wrap:pretty;overflow-wrap:break-word;}
+  :where(:focus-visible){outline:2px solid Highlight;outline-offset:2px;}
+  :where(:focus:not(:focus-visible)){outline:none;}
+}
+
+@layer ds.tokens {
+  :root {
+    --ds-color-scheme:dark;
+    --ds-z-sticky:20;--ds-z-overlay:30;--ds-z-modal:40;--ds-z-toast:50;
+    --ds-ratio-min:1.3333;--ds-ratio-max:1.5;
+    --ds-ratio-fluid-from:20rem;--ds-ratio-fluid-to:80rem;
+    --ds-ratio:clamp(var(--ds-ratio-min),calc(var(--ds-ratio-min)+(var(--ds-ratio-max)-var(--ds-ratio-min))*(100vw - var(--ds-ratio-fluid-from))/(var(--ds-ratio-fluid-to)-var(--ds-ratio-fluid-from))),var(--ds-ratio-max));
+    --_r2:calc(var(--ds-ratio)*var(--ds-ratio));--_r3:calc(var(--_r2)*var(--ds-ratio));
+    --_r4:calc(var(--_r3)*var(--ds-ratio));--_r5:calc(var(--_r4)*var(--ds-ratio));
+    --_r-1:calc(1/var(--ds-ratio));--_r-2:calc(1/var(--_r2));--_r-3:calc(1/var(--_r3));
+    --_r-4:calc(1/var(--_r4));--_r-5:calc(1/var(--_r5));
+    --ds-space-base-min:1rem;--ds-space-base-max:1.5rem;
+    --ds-space-base:clamp(var(--ds-space-base-min),0.85rem + 0.6vw,var(--ds-space-base-max));
+    --ds-space-tiny:calc(var(--ds-space-base)*var(--_r-5));
+    --ds-space-xxxs:calc(var(--ds-space-base)*var(--_r-4));
+    --ds-space-xxs:calc(var(--ds-space-base)*var(--_r-3));
+    --ds-space-xs:calc(var(--ds-space-base)*var(--_r-2));
+    --ds-space-s:calc(var(--ds-space-base)*var(--_r-1));
+    --ds-space-m:var(--ds-space-base);
+    --ds-space-l:calc(var(--ds-space-base)*var(--ds-ratio));
+    --ds-space-xl:calc(var(--ds-space-base)*var(--_r2));
+    --ds-space-xxl:calc(var(--ds-space-base)*var(--_r3));
+    --ds-space-xxxl:calc(var(--ds-space-base)*var(--_r4));
+    --ds-space-huge:calc(var(--ds-space-base)*var(--_r5));
+    --ds-space-xs-s:calc((var(--ds-space-xs)+var(--ds-space-s))/2);
+    --ds-space-s-m:calc((var(--ds-space-s)+var(--ds-space-m))/2);
+    --ds-space-m-l:calc((var(--ds-space-m)+var(--ds-space-l))/2);
+    --ds-space-l-xl:calc((var(--ds-space-l)+var(--ds-space-xl))/2);
+    --ds-gap:var(--ds-space-s-m);
+    --ds-text-base:1rem;
+    --ds-text-ratio:var(--ds-ratio);
+    --_tr2:calc(var(--ds-text-ratio)*var(--ds-text-ratio));
+    --_tr3:calc(var(--_tr2)*var(--ds-text-ratio));
+    --_tr-1:calc(1/var(--ds-text-ratio));--_tr-2:calc(1/var(--_tr2));
+    --ds-text-xs:calc(var(--ds-text-base)*var(--_tr-2));
+    --ds-text-s:calc(var(--ds-text-base)*var(--_tr-1));
+    --ds-text-m:var(--ds-text-base);
+    --ds-text-l:calc(var(--ds-text-base)*var(--ds-text-ratio));
+    --ds-text-xl:calc(var(--ds-text-base)*var(--_tr2));
+    --ds-text-xxl:calc(var(--ds-text-base)*var(--_tr3));
+  }
+  :where(.golden){--ds-ratio-min:1.618;--ds-ratio-max:1.618;}
+  :where(.major-third){--ds-ratio-min:1.25;--ds-ratio-max:1.25;}
+  :where(.minor-third){--ds-ratio-min:1.2;--ds-ratio-max:1.2;}
+}
+
+@layer ds.base {
+  :where(html){color:CanvasText;background:Canvas;color-scheme:dark;}
+  :where(a){color:inherit;}
+}
+
+@layer ds.layout {
+  :where([vt-name]){view-transition-name:var(--ds-vt-name);}
+  :where(stacked-layout){display:flex;flex-direction:column;gap:var(--ds-stacked-gap,var(--ds-gap,1rem));align-items:var(--ds-stacked-align,stretch);}
+  :where(stacked-layout>*){min-inline-size:0;}
+  :where(stacked-layout[deep]){display:block;}
+  :where(stacked-layout[deep]*){margin:0;}
+  :where(stacked-layout[deep]*+*){margin-block-start:var(--ds-stacked-gap,var(--ds-gap,1rem));}
+  :where(cluster-layout){display:flex;flex-wrap:wrap;gap:var(--ds-cluster-gap,var(--ds-gap,1rem));align-items:var(--ds-cluster-align,center);justify-content:var(--ds-cluster-justify,flex-start);}
+  :where(cluster-layout>*){min-inline-size:0;}
+  :where(cluster-layout[no-wrap]){flex-wrap:nowrap;}
+  :where(repel-layout){display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:var(--ds-repel-align,center);gap:var(--ds-repel-gap,var(--ds-gap,1rem));}
+  :where(repel-layout>*){min-inline-size:0;}
+  :where(repel-layout[wrap]){flex-wrap:wrap;}
+  :where(split-layout){display:flex;flex-wrap:wrap;gap:var(--ds-split-gap,var(--ds-gap,1rem));}
+  :where(split-layout>*){flex-grow:1;flex-basis:calc((var(--ds-split-threshold,45rem)-100%)*999);min-inline-size:0;}
+  :where(split-layout[horizontally]){flex-wrap:nowrap;}
+  :where(split-layout[horizontally]>*){flex-basis:auto;flex-shrink:1;}
+  :where(columns-layout){display:grid;grid-template-columns:var(--ds-columns-cols,repeat(3,1fr));grid-template-rows:var(--ds-columns-rows,auto);row-gap:var(--ds-columns-gap-block,var(--ds-columns-gap,var(--ds-gap,1rem)));column-gap:var(--ds-columns-gap-inline,var(--ds-columns-gap,var(--ds-gap,1rem)));align-items:var(--ds-columns-align,stretch);justify-items:var(--ds-columns-justify,stretch);}
+  :where(columns-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(columns-layout[subgrid]){grid-template-columns:subgrid;}
+  :where(columns-layout[subgrid][rows]){grid-template-rows:subgrid;}
+  :where(rows-layout){display:grid;grid-template-rows:var(--ds-rows-rows,repeat(3,auto));grid-template-columns:var(--ds-rows-cols,1fr);row-gap:var(--ds-rows-gap-block,var(--ds-rows-gap,var(--ds-gap,1rem)));column-gap:var(--ds-rows-gap-inline,var(--ds-rows-gap,var(--ds-gap,1rem)));}
+  :where(rows-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(fluid-grid-layout){display:grid;row-gap:var(--ds-fluid-grid-gap-block,var(--ds-fluid-grid-gap,var(--ds-gap,1rem)));column-gap:var(--ds-fluid-grid-gap-inline,var(--ds-fluid-grid-gap,var(--ds-gap,1rem)));--_fg:var(--ds-fluid-grid-columns,auto-fit);grid-template-columns:repeat(var(--_fg),minmax(min(100%,var(--ds-fluid-grid-min,16rem)),var(--ds-fluid-grid-max,1fr)));align-items:var(--ds-fluid-grid-align,stretch);}
+  :where(fluid-grid-layout>*){min-inline-size:0;}
+  :where(fluid-grid-layout[fill]){--_fg:var(--ds-fluid-grid-columns,auto-fill);}
+  :where(sandwich-layout){display:grid;grid-template-rows:var(--ds-sandwich-size-bs,auto) var(--ds-sandwich-size-ml,1fr) var(--ds-sandwich-size-be,auto);--_sm:100vh;min-block-size:var(--ds-sandwich-min,var(--_sm));}
+  @supports(min-block-size:100dvh){:where(sandwich-layout){--_sm:100dvh;}}
+  :where(sandwich-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(bookend-layout){display:grid;grid-template-columns:var(--ds-bookend-size-is,auto) var(--ds-bookend-size-ml,1fr) var(--ds-bookend-size-ie,auto);}
+  :where(bookend-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(region-layout){display:block;--ds-region-pad-inline:var(--ds-gap,1rem);padding-block:var(--ds-region-pad-block,var(--ds-space-l-xl,2rem));padding-inline:var(--ds-region-pad-inline);background:var(--ds-region-bg,transparent);}
+  :where(centered-layout){display:block;box-sizing:content-box;max-inline-size:var(--ds-centered-max,65ch);margin-inline:auto;padding-inline:var(--ds-centered-gutter,0px);min-inline-size:0;}
+  :where(breakout-layout){display:block;margin-inline:calc(-1*var(--ds-breakout-size,var(--ds-region-pad-inline,0px)));padding-inline:var(--ds-breakout-pad,0px);}
+  :where(breakin-layout){display:block;box-sizing:content-box;max-inline-size:var(--ds-breakin-max,65ch);margin-inline:auto;padding-inline:var(--ds-breakin-gutter,0px);min-inline-size:0;}
+  :where(quadrilateral-layout){display:block;padding-block-start:var(--ds-quad-pbs,var(--ds-quad-pad-block,var(--ds-quad-pad,0)));padding-block-end:var(--ds-quad-pbe,var(--ds-quad-pad-block,var(--ds-quad-pad,0)));padding-inline-start:var(--ds-quad-pis,var(--ds-quad-pad-inline,var(--ds-quad-pad,0)));padding-inline-end:var(--ds-quad-pie,var(--ds-quad-pad-inline,var(--ds-quad-pad,0)));border-block-start:var(--ds-quad-border-bs,var(--ds-quad-border-block,var(--ds-quad-border,0)));border-block-end:var(--ds-quad-border-be,var(--ds-quad-border-block,var(--ds-quad-border,0)));border-inline-start:var(--ds-quad-border-is,var(--ds-quad-border-inline,var(--ds-quad-border,0)));border-inline-end:var(--ds-quad-border-ie,var(--ds-quad-border-inline,var(--ds-quad-border,0)));border-start-start-radius:var(--ds-quad-radius-ss,var(--ds-quad-radius,0));border-start-end-radius:var(--ds-quad-radius-se,var(--ds-quad-radius,0));border-end-start-radius:var(--ds-quad-radius-es,var(--ds-quad-radius,0));border-end-end-radius:var(--ds-quad-radius-ee,var(--ds-quad-radius,0));background:var(--ds-quad-bg,transparent);color:var(--ds-quad-fg,inherit);box-shadow:var(--ds-quad-shadow,none);}
+  :where(aspect-ratio-layout){display:block;position:relative;aspect-ratio:var(--ds-aspect-ratio,16/9);overflow:clip;}
+  :where(aspect-ratio-layout>*){position:absolute;inset:0;}
+  :where(aspect-ratio-layout>img),:where(aspect-ratio-layout>video){display:block;inline-size:100%;block-size:100%;object-fit:var(--ds-aspect-fit,cover);}
+  :where(sticky-layout){display:block;position:sticky;inset-block-start:var(--ds-sticky-bs,auto);inset-block-end:var(--ds-sticky-be,auto);z-index:var(--ds-sticky-z,var(--ds-z-sticky,20));}
+  :where(overlay-layout){position:absolute;inset:var(--ds-overlay-inset,0);display:grid;align-items:var(--ds-overlay-align,center);justify-items:var(--ds-overlay-justify,center);z-index:var(--ds-overlay-z,var(--ds-z-overlay,30));}
+  :where(overlay-layout[fixed]){position:fixed;}
+  :where(overlay-layout[stack]){grid-template:1fr/1fr;}
+  :where(overlay-layout[stack]>*){grid-area:1/1;min-inline-size:0;min-block-size:0;}
+  :where(overlay-layout[no-events]){pointer-events:none;}
+  :where(z-axis-layout){display:grid;grid-template:1fr/1fr;align-items:var(--ds-z-axis-align,center);justify-items:var(--ds-z-axis-justify,center);}
+  :where(z-axis-layout>*){grid-area:1/1;min-inline-size:0;min-block-size:0;}
+  :where(icon-text-layout){display:inline-flex;align-items:var(--ds-icon-text-align,center);gap:var(--ds-icon-text-gap,var(--ds-space-xs-s,.5rem));}
+  :where(icon-text-layout>:first-child){display:block;inline-size:var(--ds-icon-size,1em);block-size:var(--ds-icon-size,1em);flex:0 0 auto;pointer-events:none;}
+  :where(icon-text-layout>:last-child){flex:1 1 auto;min-inline-size:0;}
+  :where(icon-text-layout[reverse]){flex-direction:row-reverse;}
+  :where(scrolling-layout){display:block;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;}
+  :where(scrolling-layout[horizontally]){display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;gap:var(--ds-scrolling-gap,var(--ds-gap,1rem));padding-inline:var(--ds-scrolling-peek,var(--ds-scrolling-pad-inline,0px));scroll-padding-inline:var(--ds-scrolling-peek,0px);}
+  :where(scrolling-layout[horizontally]>*){flex:0 0 var(--ds-scrolling-item,auto);min-inline-size:0;}
+  :where(scrolling-layout[snap-horizontally]){scroll-snap-type:x mandatory;}
+  :where(scrolling-layout[snap-horizontally]>*){scroll-snap-align:start;}
+  :where(scrolling-layout[snap-vertically]){scroll-snap-type:y mandatory;}
+  :where(scrolling-layout[snap-vertically]>*){scroll-snap-align:start;}
+  :where(scrolling-layout[no-bar]){scrollbar-width:none;}
+  scrolling-layout[no-bar]::-webkit-scrollbar{display:none;}
+  :where(split-pane-layout){display:grid;row-gap:var(--ds-split-pane-gap-block,var(--ds-split-pane-gap,var(--ds-gap,1rem)));column-gap:var(--ds-split-pane-gap-inline,var(--ds-split-pane-gap,var(--ds-gap,1rem)));}
+  :where(split-pane-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(pane-layout){display:block;grid-area:var(--ds-pane-area);min-inline-size:0;min-block-size:0;}
+  :where(masonry-layout){display:block;column-width:var(--ds-masonry-min,16rem);column-count:var(--ds-masonry-columns,auto);column-gap:var(--ds-masonry-gap-inline,var(--ds-masonry-gap,var(--ds-gap,1rem)));}
+  :where(masonry-layout>*){display:inline-block;inline-size:100%;break-inside:avoid;margin-block:0;margin-block-end:var(--ds-masonry-gap-block,var(--ds-masonry-gap,var(--ds-gap,1rem)));}
+  :where(subgrid-layout){display:grid;grid-template-columns:subgrid;grid-column:span var(--ds-subgrid-col-span,1);grid-row:span var(--ds-subgrid-row-span,1);}
+  :where(subgrid-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(subgrid-layout[rows]){grid-template-rows:subgrid;}
+
+  /* ── quadrilateral-layout transform extensions ── */
+  :where(quadrilateral-layout) {
+    transform-origin: var(--ds-quad-origin, 50% 50%);
+  }
+  :where(quadrilateral-layout[skew-x],:where(quadrilateral-layout[skew-y])) {
+    transform: skewX(var(--ds-quad-skew-x, 0deg)) skewY(var(--ds-quad-skew-y, 0deg));
+  }
+  :where(quadrilateral-layout[rotate]) { rotate: var(--ds-quad-rotate); }
+  :where(quadrilateral-layout[scale])  { scale:  var(--ds-quad-scale);  }
+  :where(quadrilateral-layout[translate]) { translate: var(--ds-quad-translate); }
+  :where(presence-layout){display:contents;}
+  :where(presence-layout[box]){display:block;}
+  :where(presence-layout[data-state="invisible"]){visibility:hidden;}
+  :where(presence-layout[data-state="hidden"],:where(presence-layout[data-state="absent"])){display:none;}
+}
+
+@layer ds.motion {
+  :root{--ds-presence-ease-in:cubic-bezier(.16,1,.3,1);--ds-presence-ease-out:cubic-bezier(.7,0,.84,0);}
+  @media(prefers-reduced-motion:no-preference){
+    :where(presence-layout[box][animate~="entry"]){transition-property:opacity,transform;transition-duration:var(--ds-presence-dur,220ms);}
+    :where(presence-layout[box][animate~="entry"]:not([data-state]),:where(presence-layout[box][animate~="entry"][data-state="visible"])){opacity:1;transform:none;visibility:visible;transition-timing-function:var(--ds-presence-ease-in);}
+    :where(presence-layout[box][animate~="entry"][data-state="invisible"],:where(presence-layout[box][animate~="entry"][data-state="hidden"]),:where(presence-layout[box][animate~="entry"][data-state="absent"])){opacity:0;transform:scale(.92) translateY(.4rem);visibility:hidden;transition-timing-function:var(--ds-presence-ease-out);}
+    @starting-style{:where(presence-layout[box][animate~="entry"]:not([data-state]),:where(presence-layout[box][animate~="entry"][data-state="visible"])){opacity:0;transform:scale(.92) translateY(.4rem);}}
+  }
+  @media(prefers-reduced-motion:reduce){:where(*){animation-duration:.01ms!important;transition-duration:.01ms!important;}}
+}
+
+/* ══════════════════════════════════════
+   BLUEPRINT SKIN
+══════════════════════════════════════ */
+html {
+  color-scheme: dark;
+  background-color: #07111e;
+  background-image:
+    linear-gradient(rgba(40,100,220,.18) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(40,100,220,.18) 1px,transparent 1px),
+    linear-gradient(rgba(40,100,220,.07) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(40,100,220,.07) 1px,transparent 1px);
+  background-size: 80px 80px,80px 80px,16px 16px,16px 16px;
+  background-attachment: fixed;
+}
+
+body { font-family:'Space Mono','Courier New',monospace; color:#a8c8f8; font-size:.9rem; line-height:1.65; }
+
+h1,h2,h3,h4 { font-family:'Barlow Condensed','Arial Narrow',sans-serif; color:#d8eeff; line-height:1.1; letter-spacing:-.01em; }
+h1 { font-size:calc(var(--ds-text-xxl)*1.2); font-weight:700; }
+h2 { font-size:var(--ds-text-xl); font-weight:600; margin:0; }
+h3 { font-size:var(--ds-text-l); font-weight:600; margin:0; }
+h4 { font-size:var(--ds-text-m); font-weight:600; margin:0; }
+p  { color:#7ba4d4; margin:0; }
+a  { text-decoration:none; color:#5090ff; }
+a:hover { color:#80b8ff; }
+code { font-family:'Space Mono',monospace; font-size:.8em; color:#5a90d0; background:rgba(30,70,160,.2); padding:1px 5px; border-radius:2px; }
+
+.site-header { background:rgba(5,14,28,.92); border-block-end:1px solid rgba(48,100,220,.3); backdrop-filter:blur(12px); padding:var(--ds-space-s) var(--ds-space-l); }
+.logo { font-family:'Barlow Condensed',sans-serif; font-size:1.05rem; font-weight:700; color:#d8eeff; letter-spacing:.02em; }
+.logo span { color:#4080ff; }
+nav a { font-family:'Barlow Condensed',sans-serif; font-size:.85rem; letter-spacing:.08em; text-transform:uppercase; color:#6090cc; transition:color .15s; }
+nav a:hover,nav a.active { color:#a8d0ff; }
+
+/* Blueprint borders on layout primitives */
+[data-layout] {
+  outline:1px dashed rgba(48,110,255,.35);
+  outline-offset:0;
+  position:relative;
+}
+[data-layout]:not(presence-layout,sticky-layout,overlay-layout)::before {
+  content:attr(data-layout);
+  position:absolute;top:2px;left:4px;
+  font-family:'Space Mono',monospace;font-size:7px;letter-spacing:.05em;
+  color:rgba(48,110,255,.45);line-height:1;pointer-events:none;z-index:100;
+}
+
+/* Pattern page layout */
+
+.section-label { font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:#2a5090;display:flex;align-items:center;gap:.75rem; }
+.section-label::before { content:'';display:block;width:20px;height:1px;background:rgba(48,100,200,.5); }
+
+
+
+/* Each pattern card */
+.pattern-card {
+  background:rgba(4,10,24,.7);
+  border:1px solid rgba(48,100,220,.2);
+  border-radius:4px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.pattern-meta {
+  padding:var(--ds-space-s) var(--ds-space-m);
+  border-block-end:1px solid rgba(48,100,220,.15);
+  background:rgba(4,12,32,.8);
+  flex-shrink:0;
+}
+.pattern-number { font-family:'Space Mono',monospace;font-size:.55rem;color:#1e3870;letter-spacing:.1em; }
+.pattern-title { font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:600;color:#c0d8f8;margin:2px 0; }
+.pattern-desc { font-size:.65rem;color:#3a6090;line-height:1.5; }
+.primitive-tags { display:flex;flex-wrap:wrap;gap:4px;margin-block-start:6px; }
+.pt { font-family:'Space Mono',monospace;font-size:.55rem;padding:1px 6px;border:1px dashed rgba(48,100,200,.4);border-radius:2px;color:#2a5090; }
+
+.pattern-demo {
+  padding:var(--ds-space-m);
+  flex:1;
+  background:rgba(3,8,20,.6);
+  overflow:hidden;
+  /* Each demo is contained */
+  container-type:inline-size;
+}
+
+/* Demo component helpers */
+.d-card { background:rgba(10,24,50,.8);border:1px solid rgba(48,100,200,.25);border-radius:3px; }
+.d-surface { background:rgba(5,15,40,.9);border-bottom:1px solid rgba(48,100,220,.2); }
+.d-sidebar { background:rgba(4,12,30,.8);border-inline-end:1px solid rgba(48,100,220,.2); }
+.d-title { font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600;color:#a8c8f0; }
+.d-text { font-size:.72rem;color:#4a7090;line-height:1.5; }
+.d-label { font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:#2a5090;font-family:'Space Mono',monospace; }
+.d-meta { font-size:.6rem;color:#2a5090;font-family:'Space Mono',monospace; }
+.d-stat { font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:700;color:#4080ff;line-height:1; }
+.d-btn { font-family:'Barlow Condensed',sans-serif;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border:1px solid rgba(64,128,255,.4);border-radius:2px;background:transparent;color:#6090d0;cursor:pointer;transition:all .12s;display:inline-block; }
+.d-btn-p { background:rgba(30,80,200,.25);border-color:rgba(80,140,255,.6);color:#b0d0f8; }
+.d-badge { background:rgba(20,60,160,.3);color:#4a78c0;padding:1px 6px;border-radius:2px;font-size:.6rem;font-family:'Space Mono',monospace;white-space:nowrap; }
+.d-avatar { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1a3870,#0a2050);border:1px solid rgba(48,100,200,.3);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:600;color:#6090c0;font-size:.7rem;flex-shrink:0; }
+.d-avatar-lg { width:44px;height:44px;font-size:1rem; }
+.d-pill { padding:2px 8px;border-radius:20px;font-size:.65rem;font-family:'Space Mono',monospace;border:1px solid rgba(48,100,200,.35);color:#3a6090; }
+.d-pill.on { background:rgba(48,100,200,.2);color:#80b0f0;border-color:rgba(80,140,255,.7); }
+.d-input { background:rgba(4,12,32,.8);border:1px solid rgba(48,100,220,.3);border-radius:2px;padding:4px 8px;font-family:'Space Mono',monospace;font-size:.7rem;color:#6090b8;width:100%; }
+.d-divider { border:none;border-block-start:1px dashed rgba(48,100,220,.2);margin:0; }
+.d-icon { color:#4080ff;flex-shrink:0; }
+.d-tag { background:rgba(30,70,160,.3);color:#5080c0;padding:1px 6px;border-radius:2px;font-size:.65rem;font-family:'Space Mono',monospace;border:1px solid rgba(48,100,200,.25); }
+.d-nav-item { padding:5px 8px;font-size:.7rem;color:#3a6090;border-radius:2px;cursor:pointer; }
+.d-nav-item.on { background:rgba(48,100,200,.2);color:#80b0f0;border-inline-start:2px solid rgba(80,130,255,.6); }
+.d-sep { color:#1e3870; }
+.d-code { background:rgba(2,6,16,.9);padding:var(--ds-space-s);border-radius:2px;font-family:'Space Mono',monospace;font-size:.65rem;color:#4a7ab0;line-height:1.6;overflow:auto; }
+.d-img { background:linear-gradient(135deg,#081830,#102860);border-radius:2px; }
+.d-yellow { color:#a09030; }
+.d-red { color:#a03030; }
+.d-green { color:#309060; }
+.d-blue { color:#3060a0; }
+
+/* Scrollbar in demos */
+.pattern-demo ::-webkit-scrollbar { width:3px;height:3px; }
+.pattern-demo ::-webkit-scrollbar-track { background:transparent; }
+.pattern-demo ::-webkit-scrollbar-thumb { background:rgba(48,100,220,.3);border-radius:2px; }
+
+/* Footer */
+.site-footer { border-block-start:1px solid rgba(48,100,220,.2);background:rgba(4,10,20,.6); }
+
+/* ── Copy button ── */
+.pattern-card { position: relative; }
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(4,12,32,.9);
+  border: 1px dashed rgba(48,100,200,.35);
+  border-radius: 2px;
+  padding: 0;
+  cursor: pointer;
+  color: #2a5090;
+  transition: border-color .12s, color .12s, background .12s;
+  z-index: 10;
+  flex-shrink: 0;
+}
+.copy-btn:hover {
+  border-color: rgba(80,130,255,.6);
+  color: #80b0f0;
+  background: rgba(20,50,120,.3);
+}
+.copy-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: opacity .12s;
+}
+.copy-btn .copy-ok {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  color: #40a060;
+  border-radius: inherit;
+  background: rgba(10,40,20,.9);
+  transition: opacity .15s;
+  pointer-events: none;
+}
+.copy-btn .copy-ok svg { width: 12px; height: 12px; }
+.copy-btn.copied .copy-ok   { opacity: 1; }
+.copy-btn.copied > svg      { opacity: 0; }
+.copy-btn:focus-visible {
+  outline: 2px solid rgba(80,130,255,.7);
+  outline-offset: 2px;
+}
+
+
+@layer ds.prose {
+
+
+
+
+
+    :where(prose-layout) {
+        display: block;
+        max-inline-size: var(--ds-prose-measure, 65ch);
+        line-height: var(--ds-prose-leading, 1.65);
+        overflow-wrap: break-word;
+        hyphens: auto;
+
+
+        --ds-prose-flow:          var(--ds-space-s-m, 1rem);
+        --ds-prose-flow-heading:  var(--ds-space-m-l, 1.5rem);
+        --ds-prose-li-gap:        var(--ds-space-xs-s, 0.5rem);
+        --ds-prose-list-indent:   1.25em;
+        --ds-prose-rule-gap:      var(--ds-space-m-l, 1.5rem);
+    }
+
+
+    @media (pointer: coarse) {
+        :where(prose-layout) {
+            --ds-prose-li-gap: var(--ds-space-s-m, 1rem);
+        }
+    }
+
+
+
+    :where(prose-layout[compact]) {
+        --ds-prose-flow:         var(--ds-space-xs-s, 0.5rem);
+        --ds-prose-flow-heading: var(--ds-space-s-m, 1rem);
+        --ds-prose-li-gap:       var(--ds-space-xxs, 0.35rem);
+        --ds-prose-rule-gap:     var(--ds-space-s-m, 1rem);
+    }
+
+
+
+    :where(prose-layout) > :where(* + *) {
+        margin-block-start: var(--ds-prose-flow);
+    }
+
+
+    :where(prose-layout) > :where(h1, h2, h3, h4, h5, h6) {
+        margin-block-start: var(--ds-prose-flow-heading);
+    }
+
+
+
+    :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
+        line-height: var(--ds-prose-heading-leading, 1.2);
+        text-wrap: balance;
+    }
+
+
+
+
+    :where(prose-layout) :where(p) {
+        margin: 0;
+    }
+
+
+
+    :where(prose-layout) :where(ul, ol) {
+        padding-inline-start: var(--ds-prose-list-indent);
+    }
+
+    :where(prose-layout) :where(li) {
+        margin: 0;
+    }
+
+    :where(prose-layout) :where(li + li) {
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+
+    :where(prose-layout) :where(li > :where(ul, ol)) {
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+
+
+    :where(prose-layout) :where(dt) {
+        font-weight: var(--ds-prose-dt-weight, 600);
+    }
+
+    :where(prose-layout) :where(dd) {
+        margin-inline-start: 0;
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+    :where(prose-layout) :where(dd + dt) {
+        margin-block-start: var(--ds-prose-flow);
+    }
+
+
+
+    :where(prose-layout) :where(a) {
+        text-decoration-thickness: from-font;
+        text-underline-offset: 0.15em;
+    }
+
+
+
+    :where(prose-layout) :where(code, kbd, samp) {
+        font-family:
+            ui-monospace, sfmono-regular, menlo, consolas, "Liberation Mono",
+            monospace;
+        font-size: 0.95em;
+    }
+
+
+
+    :where(prose-layout) :where(pre) {
+        overflow: auto;
+        padding: var(--ds-prose-pre-pad, var(--ds-space-s-m, 1rem));
+        border: 1px solid currentColor;
+        border-radius: var(--ds-prose-pre-radius, 0.5rem);
+    }
+
+    :where(prose-layout) :where(pre code) {
+        display: block;
+        white-space: pre;
+
+        font-size: 1em;
+    }
+
+
+
+    :where(prose-layout) :where(blockquote) {
+        margin-inline: 0;
+        padding-inline-start: var(--ds-space-s, 0.75rem);
+        border-inline-start: 0.25rem solid currentColor;
+    }
+
+
+
+    :where(prose-layout) :where(img, video, svg, canvas) {
+        max-inline-size: 100%;
+        block-size: auto;
+    }
+
+    :where(prose-layout) :where(figure) {
+        margin-inline: 0;
+    }
+
+    :where(prose-layout) :where(figcaption) {
+        font-size: 0.9em;
+        line-height: 1.4;
+    }
+
+
+
+    :where(prose-layout) :where(table) {
+        inline-size: 100%;
+        border-collapse: collapse;
+    }
+
+    :where(prose-layout) :where(th, td) {
+        padding: var(--ds-space-xs, 0.5rem);
+        border: 1px solid currentColor;
+        text-align: start;
+        vertical-align: top;
+    }
+
+    :where(prose-layout) :where(th) {
+        font-weight: 600;
+    }
+
+
+
+    :where(prose-layout) :where(hr) {
+        border: 0;
+        border-block-start: 1px solid currentColor;
+        margin-block: var(--ds-prose-rule-gap);
+    }
+
+}
+
+@media print {
+    @layer ds.prose {
+
+        :where(prose-layout) {
+            max-inline-size: none;
+            line-height: 1.45;
+            hyphens: auto;
+        }
+
+        :where(prose-layout) :where(pre) {
+            overflow: visible;
+            white-space: pre-wrap;
+            border: 1px solid currentColor;
+        }
+
+        :where(prose-layout) :where(a) {
+            color: inherit;
+            text-decoration: underline;
+        }
+
+
+        :where(prose-layout) :where(a[href]:not([href^="#"]):not([href^="javascript"]))::after {
+            content: " (" attr(href) ")";
+            font-size: 0.88em;
+            word-break: break-all;
+            opacity: 0.6;
+        }
+
+
+        :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
+            break-after: avoid-page;
+        }
+
+
+        :where(prose-layout) :where(blockquote, figure, table, pre) {
+            break-inside: avoid-page;
+        }
+
+
+        :where(prose-layout) :where(p, li) {
+            orphans: 3;
+            widows: 3;
+        }
+
+    }
+}
+</style>
+</head>
+<body>
+
+<sticky-layout bs="0">
+  <header class="site-header">
+    <repel-layout data-layout="repel-layout">
+      <a href="index.html" class="logo">@the-design-system<span>/</span>layout</a>
+      <nav>
+        <cluster-layout data-layout="cluster-layout" gap="m">
+          <a href="/pages/index.html">Home</a>
+          <a href="/pages/layout-primitives.html">Primitives</a>
+          <a href="/pages/patterns.html" class="active">Patterns</a>
+          <a href="/pages/gallery.html">Gallery</a>
+        </cluster-layout>
+      </nav>
+    </repel-layout>
+  </header>
+</sticky-layout>
+
+<!-- Page Hero -->
+<region-layout data-layout="region-layout" pad-block="xxl" pad-inline="xl"
+  style="border-block-end:1px dashed rgba(48,100,220,.2)">
+  <centered-layout data-layout="centered-layout" max="70ch">
+    <stacked-layout data-layout="stacked-layout" gap="m">
+      <div class="section-label">Layout pattern library</div>
+      <h1>25 real-world patterns</h1>
+      <prose-layout data-layout="prose-layout" measure="55ch" style="font-size:1rem;color:#5a88cc">
+        <p>Reusable compositions built exclusively from layout primitives.
+        Each pattern solves a recurring UI problem &mdash; copy the markup, adjust the tokens.</p>
+      </prose-layout>
+    </stacked-layout>
+  </centered-layout>
+</region-layout>
+
+<!-- Patterns Grid -->
+<section style="padding:var(--ds-space-xl)">
+  <fluid-grid-layout data-layout="fluid-grid-layout" min="340px" gap="m">
+
+
+    <!-- ════ 01. APP SHELL ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="01" aria-label="Copy markup for pattern 01" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">01</div>
+        <div class="pattern-title">App Shell</div>
+        <div class="pattern-desc">Header, scrollable main, footer. The universal SPA container.</div>
+        <div class="primitive-tags">
+          <span class="pt">sandwich-layout</span><span class="pt">sticky-layout</span><span class="pt">repel-layout</span><span class="pt">region-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="01">
+        <sandwich-layout data-layout="sandwich-layout" min="0" style="block-size:280px;border:1px solid rgba(48,100,220,.2);border-radius:3px;overflow:hidden;">
+          <!-- Header -->
+          <sticky-layout data-layout="sticky-layout" bs="0">
+            <div class="d-surface" style="padding:8px 12px;">
+              <repel-layout data-layout="repel-layout" gap="s">
+                <span class="d-title" style="font-size:.85rem">Acme App</span>
+                <div class="d-avatar">JD</div>
+              </repel-layout>
+            </div>
+          </sticky-layout>
+          <!-- Main -->
+          <region-layout data-layout="region-layout" pad-block="m" pad-inline="m">
+            <stacked-layout data-layout="stacked-layout" gap="s">
+              <div class="d-card" style="padding:8px;height:40px;display:flex;align-items:center"><span class="d-text">Content block A</span></div>
+              <div class="d-card" style="padding:8px;height:40px;display:flex;align-items:center"><span class="d-text">Content block B</span></div>
+              <div class="d-card" style="padding:8px;height:40px;display:flex;align-items:center"><span class="d-text">Content block C</span></div>
+            </stacked-layout>
+          </region-layout>
+          <!-- Footer -->
+          <div class="d-surface" style="padding:8px 12px;text-align:center">
+            <span class="d-label">© 2026 Acme Corp</span>
+          </div>
+        </sandwich-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 02. SIDEBAR + MAIN ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="02" aria-label="Copy markup for pattern 02" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">02</div>
+        <div class="pattern-title">Sidebar + Main</div>
+        <div class="pattern-desc">Fixed-width nav sidebar beside a flexible main content area.</div>
+        <div class="primitive-tags">
+          <span class="pt">split-pane-layout</span><span class="pt">pane-layout</span><span class="pt">stacked-layout</span><span class="pt">scrolling-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="02">
+        <split-pane-layout data-layout="split-pane-layout" id="p02-spl"
+          gap="0" style="block-size:280px;border:1px solid rgba(48,100,220,.2);border-radius:3px;overflow:hidden;">
+          <pane-layout data-layout="pane-layout" area="S" class="d-sidebar" style="padding:8px 0;overflow-y:auto">
+            <stacked-layout data-layout="stacked-layout" gap="0">
+              <div class="d-label" style="padding:6px 10px 4px">Navigation</div>
+              <div class="d-nav-item on">Dashboard</div>
+              <div class="d-nav-item">Projects</div>
+              <div class="d-nav-item">Analytics</div>
+              <div class="d-nav-item">Settings</div>
+            </stacked-layout>
+          </pane-layout>
+          <pane-layout data-layout="pane-layout" area="M" style="padding:10px;overflow-y:auto;">
+            <stacked-layout data-layout="stacked-layout" gap="s">
+              <div style="margin-block-end:4px"><span class="d-label">Dashboard</span></div>
+              <div class="d-card" style="padding:8px">
+                <div class="d-title" style="font-size:.85rem">Overview</div>
+                <div class="d-text">Main content area. Flexible width, independent scroll.</div>
+              </div>
+              <div class="d-card" style="padding:8px">
+                <div class="d-text" style="color:#2a5090">Additional content block</div>
+              </div>
+            </stacked-layout>
+          </pane-layout>
+        </split-pane-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 03. THREE-PANEL IDE ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="03" aria-label="Copy markup for pattern 03" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">03</div>
+        <div class="pattern-title">Three-Panel IDE</div>
+        <div class="pattern-desc">File tree | editor | output/preview. Named-area grid with header row.</div>
+        <div class="primitive-tags">
+          <span class="pt">split-pane-layout</span><span class="pt">pane-layout</span><span class="pt">scrolling-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="03">
+        <split-pane-layout data-layout="split-pane-layout" id="p03-spl"
+          gap="0" style="block-size:280px;border:1px solid rgba(48,100,220,.2);border-radius:3px;overflow:hidden;">
+          <pane-layout data-layout="pane-layout" area="H" class="d-surface" style="padding:6px 10px;display:flex;align-items:center;gap:8px">
+            <span class="d-label">index.ts</span><span class="d-sep">|</span>
+            <span class="d-label" style="color:#2a5090">styles.css</span>
+          </pane-layout>
+          <pane-layout data-layout="pane-layout" area="F" class="d-sidebar" style="padding:8px;font-size:.65rem;overflow-y:auto">
+            <stacked-layout data-layout="stacked-layout" gap="tiny">
+              <div class="d-label">Files</div>
+              <div style="color:#3a6090">📁 src</div>
+              <div style="color:#4a7090;padding-inline-start:12px">📄 index.ts</div>
+              <div style="color:#3a6090;padding-inline-start:12px">📄 styles.css</div>
+              <div style="color:#3a6090">📁 dist</div>
+            </stacked-layout>
+          </pane-layout>
+          <pane-layout data-layout="pane-layout" area="E" style="overflow:auto">
+            <div class="d-code" style="border-radius:0;height:100%;margin:0">
+              <span style="color:#4060a0">import</span> { define } <span style="color:#4060a0">from</span> <span style="color:#406090">'@ds/layout'</span>;<br>
+              <span style="color:#4060a0">define</span>();
+            </div>
+          </pane-layout>
+          <pane-layout data-layout="pane-layout" area="O" style="background:rgba(2,6,16,.9);padding:8px;overflow:auto">
+            <div class="d-label">Output</div>
+            <div class="d-text" style="font-size:.65rem;color:#2a6040;margin-block-start:4px">✓ Compiled in 12ms</div>
+          </pane-layout>
+        </split-pane-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 04. NAVIGATION BAR ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="04" aria-label="Copy markup for pattern 04" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">04</div>
+        <div class="pattern-title">Navigation Bar</div>
+        <div class="pattern-desc">Logo pushed left, links centered via bookend, actions right.</div>
+        <div class="primitive-tags">
+          <span class="pt">bookend-layout</span><span class="pt">cluster-layout</span><span class="pt">icon-text-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="04">
+        <stacked-layout data-layout="stacked-layout" gap="s">
+          <!-- Top bar with bookend -->
+          <div class="d-surface" style="padding:10px 14px;border-radius:3px">
+            <bookend-layout data-layout="bookend-layout">
+              <span class="d-title">Brand</span>
+              <nav>
+                <cluster-layout data-layout="cluster-layout" gap="l" justify="center">
+                  <a style="font-family:'Barlow Condensed';font-size:.85rem;color:#6090c0;text-transform:uppercase;letter-spacing:.08em">Docs</a>
+                  <a style="font-family:'Barlow Condensed';font-size:.85rem;color:#6090c0;text-transform:uppercase;letter-spacing:.08em">API</a>
+                  <a style="font-family:'Barlow Condensed';font-size:.85rem;color:#80b0e8;text-transform:uppercase;letter-spacing:.08em">Blog</a>
+                </cluster-layout>
+              </nav>
+              <cluster-layout data-layout="cluster-layout" gap="s">
+                <a class="d-btn" style="font-size:.7rem;padding:3px 8px">Sign in</a>
+                <a class="d-btn d-btn-p" style="font-size:.7rem;padding:3px 8px">Get started</a>
+              </cluster-layout>
+            </bookend-layout>
+          </div>
+          <!-- Breadcrumb bar -->
+          <div style="padding:6px 10px;background:rgba(4,12,30,.5);border-radius:2px">
+            <repel-layout data-layout="repel-layout">
+              <cluster-layout data-layout="cluster-layout" gap="xs" style="font-size:.65rem;font-family:'Space Mono'">
+                <a style="color:#2a5090">Home</a><span class="d-sep">/</span>
+                <a style="color:#2a5090">Products</a><span class="d-sep">/</span>
+                <span style="color:#4a7090">Layout</span>
+              </cluster-layout>
+              <input class="d-input" placeholder="Search..." style="max-inline-size:140px;padding:3px 8px">
+            </repel-layout>
+          </div>
+        </stacked-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 05. CARD GRID ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="05" aria-label="Copy markup for pattern 05" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">05</div>
+        <div class="pattern-title">Responsive Card Grid</div>
+        <div class="pattern-desc">Auto column count from minimum width. No breakpoints. Cards align via subgrid.</div>
+        <div class="primitive-tags">
+          <span class="pt">fluid-grid-layout</span><span class="pt">subgrid-layout</span><span class="pt">quadrilateral-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="05">
+        <columns-layout data-layout="columns-layout" cols="3" gap="s"
+          style="--ds-columns-rows:auto 1fr auto;align-items:stretch">
+          <!-- 3 cards with subgrid for aligned header/body/footer -->
+          <subgrid-layout data-layout="subgrid-layout" rows col-span="1" row-span="3">
+            <div class="d-card" style="padding:8px;border-block-end:1px solid rgba(48,100,220,.2)"><div class="d-title" style="font-size:.82rem">Design Tokens</div></div>
+            <div class="d-card" style="padding:8px"><div class="d-text" style="font-size:.68rem">Systematic approach to spacing, color, and type scales that cascade coherently.</div></div>
+            <div class="d-card" style="padding:6px 8px"><span class="d-tag">12 articles</span></div>
+          </subgrid-layout>
+          <subgrid-layout data-layout="subgrid-layout" rows col-span="1" row-span="3">
+            <div class="d-card" style="padding:8px;border-block-end:1px solid rgba(48,100,220,.2)"><div class="d-title" style="font-size:.82rem">Component Patterns</div></div>
+            <div class="d-card" style="padding:8px"><div class="d-text" style="font-size:.68rem">Reusable UI compositions built on layout primitives with accessibility baked in.</div></div>
+            <div class="d-card" style="padding:6px 8px"><span class="d-tag">8 articles</span></div>
+          </subgrid-layout>
+          <subgrid-layout data-layout="subgrid-layout" rows col-span="1" row-span="3">
+            <div class="d-card" style="padding:8px;border-block-end:1px solid rgba(48,100,220,.2)"><div class="d-title" style="font-size:.82rem">Motion Design</div></div>
+            <div class="d-card" style="padding:8px"><div class="d-text" style="font-size:.68rem">Presence-driven transitions with exponential easing and View Transitions integration.</div></div>
+            <div class="d-card" style="padding:6px 8px"><span class="d-tag">6 articles</span></div>
+          </subgrid-layout>
+        </columns-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 06. PRODUCT DETAIL PAGE ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="06" aria-label="Copy markup for pattern 06" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">06</div>
+        <div class="pattern-title">Product Detail Page</div>
+        <div class="pattern-desc">Image gallery left, product info right. Switches from column to row at 35rem.</div>
+        <div class="primitive-tags">
+          <span class="pt">split-layout</span><span class="pt">aspect-ratio-layout</span><span class="pt">stacked-layout</span><span class="pt">cluster-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="06">
+        <split-layout data-layout="split-layout" threshold="280px" gap="m">
+          <!-- Image -->
+          <div style="min-inline-size:120px;max-inline-size:180px">
+            <aspect-ratio-layout data-layout="aspect-ratio-layout" ratio="1">
+              <div class="d-img" style="inline-size:100%;block-size:100%;display:grid;place-items:center;border-radius:3px">
+                <span style="font-size:2.5rem">📦</span>
+              </div>
+            </aspect-ratio-layout>
+            <cluster-layout data-layout="cluster-layout" gap="xs" style="margin-block-start:6px">
+              <div style="width:28px;height:28px;background:rgba(30,70,160,.4);border:1px solid rgba(80,120,255,.4);border-radius:2px"></div>
+              <div style="width:28px;height:28px;background:rgba(10,30,80,.4);border:1px dashed rgba(48,80,200,.3);border-radius:2px"></div>
+              <div style="width:28px;height:28px;background:rgba(20,50,120,.4);border:1px dashed rgba(48,80,200,.3);border-radius:2px"></div>
+            </cluster-layout>
+          </div>
+          <!-- Info -->
+          <stacked-layout data-layout="stacked-layout" gap="s">
+            <div>
+              <div class="d-label">Ceramics Studio</div>
+              <div class="d-title">Stoneware Mug No. 12</div>
+            </div>
+            <div style="font-family:'Barlow Condensed';font-size:1.4rem;font-weight:700;color:#4080ff">$48.00</div>
+            <cluster-layout data-layout="cluster-layout" gap="xs">
+              <span class="d-tag">Handmade</span><span class="d-tag">Lead-free</span><span class="d-tag">280ml</span>
+            </cluster-layout>
+            <div class="d-text" style="font-size:.68rem">Wheel-thrown and fired in our Brooklyn studio. Each piece is unique with slight variations in glaze.</div>
+            <cluster-layout data-layout="cluster-layout" gap="xs" style="margin-block-start:2px">
+              <a class="d-btn d-btn-p" style="font-size:.72rem">Add to cart</a>
+              <a class="d-btn" style="font-size:.72rem">Save</a>
+            </cluster-layout>
+          </stacked-layout>
+        </split-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 07. ACTIVITY FEED ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="07" aria-label="Copy markup for pattern 07" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">07</div>
+        <div class="pattern-title">Activity Feed</div>
+        <div class="pattern-desc">Timestamped events in a scrollable column. icon-text + repel per row.</div>
+        <div class="primitive-tags">
+          <span class="pt">scrolling-layout</span><span class="pt">stacked-layout</span><span class="pt">icon-text-layout</span><span class="pt">repel-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="07">
+        <scrolling-layout data-layout="scrolling-layout" style="block-size:240px">
+          <stacked-layout data-layout="stacked-layout" gap="0">
+            <div class="d-label" style="padding:0 0 8px">Recent activity</div>
+<div style="padding:7px 0;border-block-end:1px solid rgba(48,100,220,.1)">
+              <repel-layout data-layout="repel-layout" gap="s" align="start">
+                <icon-text-layout data-layout="icon-text-layout" gap="s" align="start">
+                  <span style="color:#309060;font-size:.75rem;margin-block-start:1px">✓</span>
+                  <div>
+                    <span style="font-size:.72rem;color:#80a8d0">Aria Hassan</span>
+                    <span class="d-text" style="font-size:.68rem"> merged PR #142</span>
+                  </div>
+                </icon-text-layout>
+                <span class="d-meta" style="white-space:nowrap">2m ago</span>
+              </repel-layout>
+            </div>
+<div style="padding:7px 0;border-block-end:1px solid rgba(48,100,220,.1)">
+              <repel-layout data-layout="repel-layout" gap="s" align="start">
+                <icon-text-layout data-layout="icon-text-layout" gap="s" align="start">
+                  <span style="color:#4080ff;font-size:.75rem;margin-block-start:1px">⚡</span>
+                  <div>
+                    <span style="font-size:.72rem;color:#80a8d0">Jun Nakamura</span>
+                    <span class="d-text" style="font-size:.68rem"> deployed to staging</span>
+                  </div>
+                </icon-text-layout>
+                <span class="d-meta" style="white-space:nowrap">14m ago</span>
+              </repel-layout>
+            </div>
+<div style="padding:7px 0;border-block-end:1px solid rgba(48,100,220,.1)">
+              <repel-layout data-layout="repel-layout" gap="s" align="start">
+                <icon-text-layout data-layout="icon-text-layout" gap="s" align="start">
+                  <span style="color:#6040a0;font-size:.75rem;margin-block-start:1px">💬</span>
+                  <div>
+                    <span style="font-size:.72rem;color:#80a8d0">Priya Osei</span>
+                    <span class="d-text" style="font-size:.68rem"> commented on issue #87</span>
+                  </div>
+                </icon-text-layout>
+                <span class="d-meta" style="white-space:nowrap">1h ago</span>
+              </repel-layout>
+            </div>
+<div style="padding:7px 0;border-block-end:1px solid rgba(48,100,220,.1)">
+              <repel-layout data-layout="repel-layout" gap="s" align="start">
+                <icon-text-layout data-layout="icon-text-layout" gap="s" align="start">
+                  <span style="color:#a03030;font-size:.75rem;margin-block-start:1px">✕</span>
+                  <div>
+                    <span style="font-size:.72rem;color:#80a8d0">CI / build</span>
+                    <span class="d-text" style="font-size:.68rem"> failed on branch feat/grid</span>
+                  </div>
+                </icon-text-layout>
+                <span class="d-meta" style="white-space:nowrap">2h ago</span>
+              </repel-layout>
+            </div>
+<div style="padding:7px 0;border-block-end:1px solid rgba(48,100,220,.1)">
+              <repel-layout data-layout="repel-layout" gap="s" align="start">
+                <icon-text-layout data-layout="icon-text-layout" gap="s" align="start">
+                  <span style="color:#a09030;font-size:.75rem;margin-block-start:1px">★</span>
+                  <div>
+                    <span style="font-size:.72rem;color:#80a8d0">Soren Larsen</span>
+                    <span class="d-text" style="font-size:.68rem"> tagged release v2.4.0</span>
+                  </div>
+                </icon-text-layout>
+                <span class="d-meta" style="white-space:nowrap">3h ago</span>
+              </repel-layout>
+            </div>
+<div style="padding:7px 0;border-block-end:1px solid rgba(48,100,220,.1)">
+              <repel-layout data-layout="repel-layout" gap="s" align="start">
+                <icon-text-layout data-layout="icon-text-layout" gap="s" align="start">
+                  <span style="color:#4080ff;font-size:.75rem;margin-block-start:1px">⚡</span>
+                  <div>
+                    <span style="font-size:.72rem;color:#80a8d0">Mia Chen</span>
+                    <span class="d-text" style="font-size:.68rem"> deployed to production</span>
+                  </div>
+                </icon-text-layout>
+                <span class="d-meta" style="white-space:nowrap">5h ago</span>
+              </repel-layout>
+            </div>
+
+          </stacked-layout>
+        </scrolling-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 08. PRICING CARDS (subgrid) ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="08" aria-label="Copy markup for pattern 08" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">08</div>
+        <div class="pattern-title">Pricing Cards</div>
+        <div class="pattern-desc">Three tiers with aligned feature rows using subgrid. Tallest feature list sets the row height.</div>
+        <div class="primitive-tags">
+          <span class="pt">columns-layout</span><span class="pt">subgrid-layout</span><span class="pt">stacked-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="08">
+        <columns-layout data-layout="columns-layout" cols="3" gap="xs"
+          style="--ds-columns-rows:auto auto 1fr auto;align-items:stretch">
+          <subgrid-layout data-layout="subgrid-layout" rows col-span="1" row-span="4">
+            <div class="d-card" style="padding:8px 10px;border-block-end:1px solid rgba(48,100,220,.2);">
+              <div class="d-title" style="font-size:.9rem;">Free</div>
+            </div>
+            <div class="d-card" style="padding:8px 10px">
+              <span style="font-family:'Barlow Condensed';font-size:1.4rem;font-weight:700;color:#4080c0">$0</span>
+              <span class="d-meta">/mo</span>
+            </div>
+            <div class="d-card" style="padding:8px 10px">
+              <stacked-layout data-layout="stacked-layout" gap="xxs">
+                <icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#305080" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">5 projects</span>
+                </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#305080" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">1 user</span>
+                </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#305080" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">Community support</span>
+                </icon-text-layout>
+              </stacked-layout>
+            </div>
+            <div class="d-card" style="padding:6px 10px">
+              <a class="d-btn" style="font-size:.7rem;display:block;text-align:center">Start free</a>
+            </div>
+          </subgrid-layout><subgrid-layout data-layout="subgrid-layout" rows col-span="1" row-span="4">
+            <div class="d-card" style="padding:8px 10px;border-block-end:1px solid rgba(48,100,220,.2);border-color:rgba(80,130,255,.4)">
+              <div class="d-title" style="font-size:.9rem;color:#80b8ff">Pro</div>
+            </div>
+            <div class="d-card" style="padding:8px 10px">
+              <span style="font-family:'Barlow Condensed';font-size:1.4rem;font-weight:700;color:#5090ff">$29</span>
+              <span class="d-meta">/mo</span>
+            </div>
+            <div class="d-card" style="padding:8px 10px">
+              <stacked-layout data-layout="stacked-layout" gap="xxs">
+                <icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5090ff" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">Unlimited</span>
+                </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5090ff" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">5 seats</span>
+                </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5090ff" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">Priority support</span>
+                </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5090ff" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">Custom domains</span>
+                </icon-text-layout>
+              </stacked-layout>
+            </div>
+            <div class="d-card" style="padding:6px 10px">
+              <a class="d-btn d-btn-p" style="font-size:.7rem;display:block;text-align:center">Get Pro</a>
+            </div>
+          </subgrid-layout><subgrid-layout data-layout="subgrid-layout" rows col-span="1" row-span="4">
+            <div class="d-card" style="padding:8px 10px;border-block-end:1px solid rgba(48,100,220,.2);">
+              <div class="d-title" style="font-size:.9rem;">Team</div>
+            </div>
+            <div class="d-card" style="padding:8px 10px">
+              <span style="font-family:'Barlow Condensed';font-size:1.4rem;font-weight:700;color:#4080c0">$99</span>
+              <span class="d-meta">/mo</span>
+            </div>
+            <div class="d-card" style="padding:8px 10px">
+              <stacked-layout data-layout="stacked-layout" gap="xxs">
+                <icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#305080" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">Unlimited</span>
+                </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#305080" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">25 seats</span>
+                </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#305080" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">SLA 99.9%</span>
+                </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#305080" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">SSO / SAML</span>
+                </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="xs" style="font-size:.65rem">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#305080" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="color:#4a7090">Audit log</span>
+                </icon-text-layout>
+              </stacked-layout>
+            </div>
+            <div class="d-card" style="padding:6px 10px">
+              <a class="d-btn" style="font-size:.7rem;display:block;text-align:center">Contact us</a>
+            </div>
+          </subgrid-layout>
+        </columns-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 09. HERO SECTION ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="09" aria-label="Copy markup for pattern 09" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">09</div>
+        <div class="pattern-title">Hero Section</div>
+        <div class="pattern-desc">z-axis stacking for layered bg + content. overlay for decorative elements. golden ratio subtree.</div>
+        <div class="primitive-tags">
+          <span class="pt">z-axis-layout</span><span class="pt">overlay-layout</span><span class="pt">centered-layout</span><span class="pt">region-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="09">
+        <region-layout data-layout="region-layout" class="golden" pad-block="xl" pad-inline="m"
+          style="border:1px solid rgba(48,100,220,.2);border-radius:3px">
+          <z-axis-layout data-layout="z-axis-layout" align="center">
+            <!-- BG layer -->
+            <overlay-layout data-layout="overlay-layout" no-events style="--ds-overlay-z:0">
+              <svg width="100%" height="100%" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <circle cx="200" cy="100" r="140" stroke="rgba(48,100,255,.12)" stroke-width="1" fill="none" stroke-dasharray="4 8"/>
+                <circle cx="200" cy="100" r="90" stroke="rgba(48,100,255,.1)" stroke-width="1" fill="none" stroke-dasharray="4 8"/>
+                <line x1="0" y1="100" x2="400" y2="100" stroke="rgba(48,100,255,.1)" stroke-width="1" stroke-dasharray="2 6"/>
+                <line x1="200" y1="0" x2="200" y2="200" stroke="rgba(48,100,255,.1)" stroke-width="1" stroke-dasharray="2 6"/>
+              </svg>
+            </overlay-layout>
+            <!-- Content layer -->
+            <centered-layout data-layout="centered-layout" max="42ch" style="position:relative;text-align:center;padding:8px">
+              <stacked-layout data-layout="stacked-layout" gap="m">
+                <div>
+                  <div class="d-label" style="justify-content:center;display:flex;margin-block-end:6px">New in v0.1.0</div>
+                  <h2 style="font-size:var(--ds-text-xxl)">Compose layouts.<br>Not layout CSS.</h2>
+                </div>
+                <p class="d-text" style="font-size:.8rem">Declarative HTML primitives with zero specificity, design tokens, and no build step.</p>
+                <cluster-layout data-layout="cluster-layout" gap="s" justify="center">
+                  <a class="d-btn d-btn-p" style="font-size:.75rem">Get started</a>
+                  <a class="d-btn" style="font-size:.75rem">Read docs</a>
+                </cluster-layout>
+              </stacked-layout>
+            </centered-layout>
+          </z-axis-layout>
+        </region-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 10. KANBAN BOARD ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="10" aria-label="Copy markup for pattern 10" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">10</div>
+        <div class="pattern-title">Kanban Board</div>
+        <div class="pattern-desc">Horizontal scroll of fixed-width columns. Each column scrolls vertically independently.</div>
+        <div class="primitive-tags">
+          <span class="pt">scrolling-layout</span><span class="pt">stacked-layout</span><span class="pt">quadrilateral-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="10">
+        <scrolling-layout data-layout="scrolling-layout" horizontally no-bar item="160px" gap="s" style="block-size:240px">
+          <div style="background:rgba(30,60,120,.5);border:1px solid rgba(48,100,220,.25);border-radius:3px;padding:8px;block-size:100%;overflow-y:auto;flex-shrink:0">
+            <div class="d-label" style="margin-block-end:6px">Backlog <span style="color:#1e3870">3</span></div>
+            <stacked-layout data-layout="stacked-layout" gap="xs">
+              <div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">Research API auth</div><div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">Write migration plan</div><div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">Audit deps</div>
+            </stacked-layout>
+          </div><div style="background:rgba(30,80,160,.5);border:1px solid rgba(48,100,220,.25);border-radius:3px;padding:8px;block-size:100%;overflow-y:auto;flex-shrink:0">
+            <div class="d-label" style="margin-block-end:6px">In Progress <span style="color:#1e3870">3</span></div>
+            <stacked-layout data-layout="stacked-layout" gap="xs">
+              <div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">Build split-pane</div><div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">Fix presence bug</div><div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">Token docs</div>
+            </stacked-layout>
+          </div><div style="background:rgba(40,60,120,.4);border:1px solid rgba(48,100,220,.25);border-radius:3px;padding:8px;block-size:100%;overflow-y:auto;flex-shrink:0">
+            <div class="d-label" style="margin-block-end:6px">Review <span style="color:#1e3870">2</span></div>
+            <stacked-layout data-layout="stacked-layout" gap="xs">
+              <div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">PR #142 CSS refactor</div><div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">Changelog draft</div>
+            </stacked-layout>
+          </div><div style="background:rgba(20,60,40,.5);border:1px solid rgba(48,100,220,.25);border-radius:3px;padding:8px;block-size:100%;overflow-y:auto;flex-shrink:0">
+            <div class="d-label" style="margin-block-end:6px">Done <span style="color:#1e3870">4</span></div>
+            <stacked-layout data-layout="stacked-layout" gap="xs">
+              <div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">Core tokens</div><div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">stacked-layout</div><div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">cluster-layout</div><div class="d-card" style="padding:5px 7px;font-size:.65rem;color:#5a80a0">repel-layout</div>
+            </stacked-layout>
+          </div>
+        </scrolling-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 11. NOTIFICATION CARDS ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="11" aria-label="Copy markup for pattern 11" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">11</div>
+        <div class="pattern-title">Notification Cards</div>
+        <div class="pattern-desc">Left-border severity accent via border-is. icon-text + repel per row.</div>
+        <div class="primitive-tags">
+          <span class="pt">stacked-layout</span><span class="pt">quadrilateral-layout</span><span class="pt">icon-text-layout</span><span class="pt">repel-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="11">
+        <stacked-layout data-layout="stacked-layout" gap="xs">
+          <quadrilateral-layout data-layout="quadrilateral-layout" pad="s" border-is="3px solid rgba(50,160,100,.7)" radius="tiny"
+            style="--ds-quad-bg:rgba(10,40,20,.6)">
+            <repel-layout data-layout="repel-layout" align="start">
+              <icon-text-layout data-layout="icon-text-layout" gap="s" align="start">
+                <span style="color:#40a060;font-size:.9rem">✓</span>
+                <stacked-layout data-layout="stacked-layout" gap="tiny">
+                  <span style="font-size:.75rem;color:#a0c0e0;font-family:'Barlow Condensed'">Deployment succeeded</span>
+                  <span class="d-text" style="font-size:.65rem">v2.4.1 live on production</span>
+                </stacked-layout>
+              </icon-text-layout>
+              <span class="d-badge" style="font-size:.55rem;color:#40a060">SUCCESS</span>
+            </repel-layout>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" pad="s" border-is="3px solid rgba(200,160,30,.7)" radius="tiny"
+            style="--ds-quad-bg:rgba(40,30,10,.5)">
+            <repel-layout data-layout="repel-layout" align="start">
+              <icon-text-layout data-layout="icon-text-layout" gap="s" align="start">
+                <span style="color:#a09030;font-size:.9rem">⚠</span>
+                <stacked-layout data-layout="stacked-layout" gap="tiny">
+                  <span style="font-size:.75rem;color:#a0c0e0;font-family:'Barlow Condensed'">High memory usage</span>
+                  <span class="d-text" style="font-size:.65rem">Worker pool at 87% capacity</span>
+                </stacked-layout>
+              </icon-text-layout>
+              <span class="d-badge" style="font-size:.55rem;color:#a09030">WARNING</span>
+            </repel-layout>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" pad="s" border-is="3px solid rgba(200,60,60,.7)" radius="tiny"
+            style="--ds-quad-bg:rgba(40,10,10,.5)">
+            <repel-layout data-layout="repel-layout" align="start">
+              <icon-text-layout data-layout="icon-text-layout" gap="s" align="start">
+                <span style="color:#c04040;font-size:.9rem">✕</span>
+                <stacked-layout data-layout="stacked-layout" gap="tiny">
+                  <span style="font-size:.75rem;color:#a0c0e0;font-family:'Barlow Condensed'">Database unreachable</span>
+                  <span class="d-text" style="font-size:.65rem">Failover to replica in progress</span>
+                </stacked-layout>
+              </icon-text-layout>
+              <span class="d-badge" style="font-size:.55rem;color:#c04040">ERROR</span>
+            </repel-layout>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" pad="s" border-is="3px solid rgba(60,100,200,.7)" radius="tiny"
+            style="--ds-quad-bg:rgba(10,20,50,.5)">
+            <repel-layout data-layout="repel-layout" align="start">
+              <icon-text-layout data-layout="icon-text-layout" gap="s" align="start">
+                <span style="color:#4060c0;font-size:.9rem">ℹ</span>
+                <stacked-layout data-layout="stacked-layout" gap="tiny">
+                  <span style="font-size:.75rem;color:#a0c0e0;font-family:'Barlow Condensed'">Maintenance window</span>
+                  <span class="d-text" style="font-size:.65rem">Mar 25 at 02:00 UTC</span>
+                </stacked-layout>
+              </icon-text-layout>
+              <span class="d-badge" style="font-size:.55rem;color:#4060c0">INFO</span>
+            </repel-layout>
+          </quadrilateral-layout>
+        </stacked-layout>
+          </stacked-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 12. TIMELINE ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="12" aria-label="Copy markup for pattern 12" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">12</div>
+        <div class="pattern-title">Timeline</div>
+        <div class="pattern-desc">rows-layout with 2 explicit columns: marker track (auto) | content track (1fr).</div>
+        <div class="primitive-tags">
+          <span class="pt">rows-layout</span><span class="pt">stacked-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="12">
+        <rows-layout data-layout="rows-layout" rows="5" cols="auto 1fr" gap-block="0" gap-inline="m">
+          <div style="grid-column:1;padding-block:8px;padding-inline-end:0">
+            <div style="display:flex;flex-direction:column;align-items:center;block-size:100%">
+              <div style="width:8px;height:8px;border-radius:50%;background:rgba(48,100,255,.6);border:1px solid rgba(80,130,255,.8);flex-shrink:0"></div>
+              <div style="width:1px;flex:1;background:rgba(48,100,220,.2);margin-block:2px"></div>
+            </div>
+          </div>
+          <div style="grid-column:2;padding-block:8px">
+            <div class="d-meta" style="margin-block-end:2px">Q1 2024</div>
+            <div class="d-title" style="font-size:.82rem">Project kick-off</div>
+            <div class="d-text" style="font-size:.65rem">Initial architecture and token system defined.</div>
+          </div><div style="grid-column:1;padding-block:8px;padding-inline-end:0">
+            <div style="display:flex;flex-direction:column;align-items:center;block-size:100%">
+              <div style="width:8px;height:8px;border-radius:50%;background:rgba(48,100,255,.6);border:1px solid rgba(80,130,255,.8);flex-shrink:0"></div>
+              <div style="width:1px;flex:1;background:rgba(48,100,220,.2);margin-block:2px"></div>
+            </div>
+          </div>
+          <div style="grid-column:2;padding-block:8px">
+            <div class="d-meta" style="margin-block-end:2px">Q2 2024</div>
+            <div class="d-title" style="font-size:.82rem">Core primitives shipped</div>
+            <div class="d-text" style="font-size:.65rem">stacked, cluster, repel, split released.</div>
+          </div><div style="grid-column:1;padding-block:8px;padding-inline-end:0">
+            <div style="display:flex;flex-direction:column;align-items:center;block-size:100%">
+              <div style="width:8px;height:8px;border-radius:50%;background:rgba(48,100,255,.6);border:1px solid rgba(80,130,255,.8);flex-shrink:0"></div>
+              <div style="width:1px;flex:1;background:rgba(48,100,220,.2);margin-block:2px"></div>
+            </div>
+          </div>
+          <div style="grid-column:2;padding-block:8px">
+            <div class="d-meta" style="margin-block-end:2px">Q3 2024</div>
+            <div class="d-title" style="font-size:.82rem">Grid system complete</div>
+            <div class="d-text" style="font-size:.65rem">columns, rows, fluid-grid, subgrid added.</div>
+          </div><div style="grid-column:1;padding-block:8px;padding-inline-end:0">
+            <div style="display:flex;flex-direction:column;align-items:center;block-size:100%">
+              <div style="width:8px;height:8px;border-radius:50%;background:rgba(48,100,255,.6);border:1px solid rgba(80,130,255,.8);flex-shrink:0"></div>
+              <div style="width:1px;flex:1;background:rgba(48,100,220,.2);margin-block:2px"></div>
+            </div>
+          </div>
+          <div style="grid-column:2;padding-block:8px">
+            <div class="d-meta" style="margin-block-end:2px">Q4 2024</div>
+            <div class="d-title" style="font-size:.82rem">Presence & motion</div>
+            <div class="d-text" style="font-size:.65rem">presence-layout with View Transitions.</div>
+          </div><div style="grid-column:1;padding-block:8px;padding-inline-end:0">
+            <div style="display:flex;flex-direction:column;align-items:center;block-size:100%">
+              <div style="width:8px;height:8px;border-radius:50%;background:rgba(48,100,255,.6);border:1px solid rgba(80,130,255,.8);flex-shrink:0"></div>
+
+            </div>
+          </div>
+          <div style="grid-column:2;padding-block:8px">
+            <div class="d-meta" style="margin-block-end:2px">Q1 2025</div>
+            <div class="d-title" style="font-size:.82rem">v0.1.0 release</div>
+            <div class="d-text" style="font-size:.65rem">First stable release with full test suite.</div>
+          </div>
+        </rows-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 13. CHAT INTERFACE ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="13" aria-label="Copy markup for pattern 13" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">13</div>
+        <div class="pattern-title">Chat Interface</div>
+        <div class="pattern-desc">Scrollable message history. repel aligns avatars and bubbles. Input bar at bottom.</div>
+        <div class="primitive-tags">
+          <span class="pt">sandwich-layout</span><span class="pt">scrolling-layout</span><span class="pt">stacked-layout</span><span class="pt">icon-text-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="13">
+        <sandwich-layout data-layout="sandwich-layout" min="0" style="block-size:260px;border:1px solid rgba(48,100,220,.2);border-radius:3px;overflow:hidden;">
+          <!-- Header -->
+          <div class="d-surface" style="padding:8px 12px">
+            <icon-text-layout data-layout="icon-text-layout" gap="s">
+              <div class="d-avatar">AR</div>
+              <stacked-layout data-layout="stacked-layout" gap="tiny">
+                <span style="font-size:.8rem;color:#a0c0e0;font-family:'Barlow Condensed'">Aria Rahman</span>
+                <span class="d-meta">online</span>
+              </stacked-layout>
+            </icon-text-layout>
+          </div>
+          <!-- Messages -->
+          <scrolling-layout data-layout="scrolling-layout" style="padding:10px">
+            <stacked-layout data-layout="stacked-layout" gap="s">
+              <div style="display:flex;flex-direction:row;align-items:flex-end;gap:6px">
+                <div class="d-avatar" style="width:22px;height:22px;font-size:.55rem;flex-shrink:0">AR</div>
+                <div style="background:rgba(10,24,50,.8);border:1px solid rgba(48,100,220,.2);border-radius:8px 8px 8px 2px;padding:5px 8px;max-inline-size:75%">
+                  <span class="d-text" style="font-size:.68rem">Hey, the layout system looks incredible!</span>
+                </div>
+              </div><div style="display:flex;flex-direction:row-reverse;align-items:flex-end;gap:6px">
+                <div class="d-avatar" style="width:22px;height:22px;font-size:.55rem;flex-shrink:0">Me</div>
+                <div style="background:rgba(30,80,200,.3);border:1px solid rgba(80,130,255,.3);border-radius:8px 8px 2px 8px;padding:5px 8px;max-inline-size:75%">
+                  <span class="d-text" style="font-size:.68rem">Thanks! Just shipped presence-layout with exponential easing.</span>
+                </div>
+              </div><div style="display:flex;flex-direction:row;align-items:flex-end;gap:6px">
+                <div class="d-avatar" style="width:22px;height:22px;font-size:.55rem;flex-shrink:0">AR</div>
+                <div style="background:rgba(10,24,50,.8);border:1px solid rgba(48,100,220,.2);border-radius:8px 8px 8px 2px;padding:5px 8px;max-inline-size:75%">
+                  <span class="d-text" style="font-size:.68rem">Does it work with Datastar signals?</span>
+                </div>
+              </div><div style="display:flex;flex-direction:row-reverse;align-items:flex-end;gap:6px">
+                <div class="d-avatar" style="width:22px;height:22px;font-size:.55rem;flex-shrink:0">Me</div>
+                <div style="background:rgba(30,80,200,.3);border:1px solid rgba(80,130,255,.3);border-radius:8px 8px 2px 8px;padding:5px 8px;max-inline-size:75%">
+                  <span class="d-text" style="font-size:.68rem">Yes — just set data-state from a signal. Fully behaviorless.</span>
+                </div>
+              </div>
+            </stacked-layout>
+          </scrolling-layout>
+          <!-- Input -->
+          <div style="padding:8px 10px;border-block-start:1px solid rgba(48,100,220,.2)">
+            <repel-layout data-layout="repel-layout" gap="s">
+              <input class="d-input" placeholder="Type a message..." style="flex:1">
+              <button class="d-btn d-btn-p" style="font-size:.7rem;padding:4px 10px;flex-shrink:0">Send</button>
+            </repel-layout>
+          </div>
+        </sandwich-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 14. SETTINGS PAGE ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="14" aria-label="Copy markup for pattern 14" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">14</div>
+        <div class="pattern-title">Settings Page</div>
+        <div class="pattern-desc">Tabbed sidebar navigation with form content area. Vertical nav + main split.</div>
+        <div class="primitive-tags">
+          <span class="pt">split-layout</span><span class="pt">stacked-layout</span><span class="pt">repel-layout</span><span class="pt">rows-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="14">
+        <split-layout data-layout="split-layout" horizontally threshold="0" gap="0"
+          style="block-size:260px;border:1px solid rgba(48,100,220,.2);border-radius:3px;overflow:hidden">
+          <div class="d-sidebar" style="min-inline-size:100px;max-inline-size:120px;padding:10px 0;overflow-y:auto">
+            <stacked-layout data-layout="stacked-layout" gap="0">
+              <div class="d-label" style="padding:0 10px 6px;font-size:.55rem">Account</div><div class="d-nav-item on" style="padding:4px 10px">Profile</div><div class="d-nav-item" style="padding:4px 10px">Security</div><div class="d-nav-item" style="padding:4px 10px">Notifications</div><div class="d-nav-item" style="padding:4px 10px">API Keys</div><div class="d-label" style="padding:8px 10px 6px;font-size:.55rem">Team</div><div class="d-nav-item" style="padding:4px 10px">Members</div><div class="d-nav-item" style="padding:4px 10px">Billing</div><div class="d-nav-item" style="padding:4px 10px">Integrations</div>
+            </stacked-layout>
+          </div>
+          <div style="flex:1;padding:10px;overflow-y:auto">
+            <stacked-layout data-layout="stacked-layout" gap="s">
+              <h4 style="font-size:.9rem">Profile</h4>
+              <rows-layout data-layout="rows-layout" rows="4" cols="1fr" gap-block="s">
+                <div>
+                  <div class="d-label" style="margin-block-end:3px">Display name</div>
+                  <input class="d-input" value="Aria Hassan">
+                </div><div>
+                  <div class="d-label" style="margin-block-end:3px">Email</div>
+                  <input class="d-input" value="aria@synthesis.io">
+                </div><div>
+                  <div class="d-label" style="margin-block-end:3px">Username</div>
+                  <input class="d-input" value="@aria">
+                </div>
+                <repel-layout data-layout="repel-layout">
+                  <span class="d-meta">Changes auto-save</span>
+                  <a class="d-btn d-btn-p" style="font-size:.65rem;padding:3px 10px">Save</a>
+                </repel-layout>
+              </rows-layout>
+            </stacked-layout>
+          </div>
+        </split-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 15. ARTICLE + PULLQUOTE ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="15" aria-label="Copy markup for pattern 15" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">15</div>
+        <div class="pattern-title">Article with Pull Quote</div>
+        <div class="pattern-desc">Prose in centered column. Full-bleed pull quote via breakout + breakin.</div>
+        <div class="primitive-tags">
+          <span class="pt">region-layout</span><span class="pt">centered-layout</span><span class="pt">breakout-layout</span><span class="pt">breakin-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="15">
+        <region-layout data-layout="region-layout" pad-block="m" pad-inline="xl" style="border:1px solid rgba(48,100,220,.2);border-radius:3px">
+          <stacked-layout data-layout="stacked-layout" gap="m">
+            <centered-layout data-layout="centered-layout" max="45ch">
+              <div class="d-title" style="font-size:.9rem;margin-block-end:4px">On the nature of layout</div>
+              <div class="d-text" style="font-size:.7rem">Good layout is invisible. When it works, users see content — not structure. The moment they notice the grid, something has gone wrong.</div>
+            </centered-layout>
+            <!-- Full-bleed pull quote -->
+            <breakout-layout data-layout="breakout-layout">
+              <div style="background:rgba(20,60,160,.15);border-block:1px dashed rgba(48,100,220,.3);padding:12px 0">
+                <breakin-layout data-layout="breakin-layout" max="38ch" gutter="m">
+                  <div style="text-align:center">
+                    <div style="font-family:'Barlow Condensed';font-size:2.5rem;color:rgba(48,100,200,.3);line-height:.8">"</div>
+                    <div style="font-family:'Barlow Condensed';font-size:1.1rem;color:#7090b8;font-style:italic">Layout should disappear. The user should only see content.</div>
+                  </div>
+                </breakin-layout>
+              </div>
+            </breakout-layout>
+            <centered-layout data-layout="centered-layout" max="45ch">
+              <div class="d-text" style="font-size:.7rem">This is why layout primitives with zero specificity matter. They hold your content without competing with it, and vanish from the developer's mental model once they become habit.</div>
+            </centered-layout>
+          </stacked-layout>
+        </region-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 16. KPI DASHBOARD ROW ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="16" aria-label="Copy markup for pattern 16" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">16</div>
+        <div class="pattern-title">KPI Dashboard Row</div>
+        <div class="pattern-desc">Asymmetric grid: main KPI at 2fr, three secondary at 1fr each. Repel for change indicator.</div>
+        <div class="primitive-tags">
+          <span class="pt">columns-layout</span><span class="pt">stacked-layout</span><span class="pt">repel-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="16">
+        <columns-layout data-layout="columns-layout" cols="2fr 1fr 1fr 1fr" gap="s">
+          <quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="m" radius="tiny">
+            <stacked-layout data-layout="stacked-layout" gap="xs">
+              <repel-layout data-layout="repel-layout">
+                <span class="d-label">Monthly Revenue</span>
+                <span class="d-badge" style="color:#309060">↑ 18%</span>
+              </repel-layout>
+              <div class="d-stat">$2.4M</div>
+              <div class="d-text" style="font-size:.65rem">vs $2.03M last month</div>
+            </stacked-layout>
+          </quadrilateral-layout>
+          <quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="m" radius="tiny">
+            <stacked-layout data-layout="stacked-layout" gap="xs">
+              <span class="d-label">New Users</span>
+              <div class="d-stat" style="font-size:1.3rem">1,284</div>
+              <span style="font-size:.62rem;color:#309060">↑ 24%</span>
+            </stacked-layout>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="m" radius="tiny">
+            <stacked-layout data-layout="stacked-layout" gap="xs">
+              <span class="d-label">Conversion</span>
+              <div class="d-stat" style="font-size:1.3rem">3.7%</div>
+              <span style="font-size:.62rem;color:#a03030">↓ 0.2%</span>
+            </stacked-layout>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="m" radius="tiny">
+            <stacked-layout data-layout="stacked-layout" gap="xs">
+              <span class="d-label">Avg Order</span>
+              <div class="d-stat" style="font-size:1.3rem">$187</div>
+              <span style="font-size:.62rem;color:#309060">↑ 9%</span>
+            </stacked-layout>
+          </quadrilateral-layout>
+        </columns-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 17. IMAGE WITH CAPTION OVERLAY ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="17" aria-label="Copy markup for pattern 17" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">17</div>
+        <div class="pattern-title">Image + Caption Overlay</div>
+        <div class="pattern-desc">z-axis-layout stacks caption over image in flow. No position:absolute on the caption.</div>
+        <div class="primitive-tags">
+          <span class="pt">z-axis-layout</span><span class="pt">aspect-ratio-layout</span><span class="pt">stacked-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="17">
+        <fluid-grid-layout data-layout="fluid-grid-layout" min="150px" gap="s" fill>
+          <div>
+            <z-axis-layout data-layout="z-axis-layout" align="end" isolate style="border-radius:3px;overflow:hidden">
+              <aspect-ratio-layout data-layout="aspect-ratio-layout" ratio="4/3">
+                <div class="d-img" style="inline-size:100%;block-size:100%;display:grid;place-items:center">
+                  <span style="font-size:2.5rem">🏔</span>
+                </div>
+              </aspect-ratio-layout>
+              <div style="background:linear-gradient(to top,rgba(2,8,20,.9) 0%,transparent 100%);inline-size:100%;padding:20px 10px 8px">
+                <div class="d-title" style="font-size:.82rem">Summit Trail</div>
+                <div class="d-meta">12km · Moderate</div>
+              </div>
+            </z-axis-layout>
+          </div><div>
+            <z-axis-layout data-layout="z-axis-layout" align="end" isolate style="border-radius:3px;overflow:hidden">
+              <aspect-ratio-layout data-layout="aspect-ratio-layout" ratio="4/3">
+                <div class="d-img" style="inline-size:100%;block-size:100%;display:grid;place-items:center">
+                  <span style="font-size:2.5rem">🌊</span>
+                </div>
+              </aspect-ratio-layout>
+              <div style="background:linear-gradient(to top,rgba(2,8,20,.9) 0%,transparent 100%);inline-size:100%;padding:20px 10px 8px">
+                <div class="d-title" style="font-size:.82rem">Coastal Path</div>
+                <div class="d-meta">8km · Easy</div>
+              </div>
+            </z-axis-layout>
+          </div>
+        </fluid-grid-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 18. MASONRY GALLERY ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="18" aria-label="Copy markup for pattern 18" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">18</div>
+        <div class="pattern-title">Masonry Gallery</div>
+        <div class="pattern-desc">Variable-height items fill the shortest column. Multicol baseline, CSS masonry where supported.</div>
+        <div class="primitive-tags">
+          <span class="pt">masonry-layout</span><span class="pt">quadrilateral-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="18">
+        <masonry-layout data-layout="masonry-layout" min="100px" gap="xs" columns="3">
+          <quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s"
+            style="height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center">
+            <span style="font-size:1.2rem">🌿</span>
+            <span class="d-meta" style="font-size:.55rem;line-height:1.3">Fern</span>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s"
+            style="height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center">
+            <span style="font-size:1.2rem">🌸</span>
+            <span class="d-meta" style="font-size:.55rem;line-height:1.3">Cherry Blossom<br>Photo by Aria H.</span>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s"
+            style="height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center">
+            <span style="font-size:1.2rem">🪨</span>
+            <span class="d-meta" style="font-size:.55rem;line-height:1.3">Stone</span>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s"
+            style="height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center">
+            <span style="font-size:1.2rem">🌊</span>
+            <span class="d-meta" style="font-size:.55rem;line-height:1.3">Ocean Study<br>Series no. 4</span>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s"
+            style="height:55px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center">
+            <span style="font-size:1.2rem">🌙</span>
+            <span class="d-meta" style="font-size:.55rem;line-height:1.3">Lunar</span>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s"
+            style="height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center">
+            <span style="font-size:1.2rem">🏔</span>
+            <span class="d-meta" style="font-size:.55rem;line-height:1.3">Mountain Range<br>High Sierra 2024</span>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s"
+            style="height:65px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center">
+            <span style="font-size:1.2rem">🌻</span>
+            <span class="d-meta" style="font-size:.55rem;line-height:1.3">Sunflower</span>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s"
+            style="height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center">
+            <span style="font-size:1.2rem">🦋</span>
+            <span class="d-meta" style="font-size:.55rem;line-height:1.3">Butterfly<br>in Blue</span>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s"
+            style="height:45px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center">
+            <span style="font-size:1.2rem">🌱</span>
+            <span class="d-meta" style="font-size:.55rem;line-height:1.3">Seedling</span>
+          </quadrilateral-layout>
+        </masonry-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 19. FEATURE LIST ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="19" aria-label="Copy markup for pattern 19" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">19</div>
+        <div class="pattern-title">Feature List</div>
+        <div class="pattern-desc">icon-text rows in a 2-column grid. Each icon tracks font size — scales with type.</div>
+        <div class="primitive-tags">
+          <span class="pt">fluid-grid-layout</span><span class="pt">icon-text-layout</span><span class="pt">stacked-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="19">
+        <stacked-layout data-layout="stacked-layout" gap="m">
+          <h3 style="font-size:var(--ds-text-l)">Why layout primitives</h3>
+          <fluid-grid-layout data-layout="fluid-grid-layout" min="200px" gap="m" fill>
+            <icon-text-layout data-layout="icon-text-layout" gap="m" size="xl" align="start">
+              <span style="font-size:1.2rem;flex-shrink:0">⚡</span>
+              <stacked-layout data-layout="stacked-layout" gap="tiny">
+                <div class="d-title" style="font-size:.9rem">Zero specificity</div>
+                <div class="d-text" style="font-size:.68rem">Every rule uses :where() — nothing wins by default, everything can be overridden.</div>
+              </stacked-layout>
+            </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="m" size="xl" align="start">
+              <span style="font-size:1.2rem;flex-shrink:0">🧩</span>
+              <stacked-layout data-layout="stacked-layout" gap="tiny">
+                <div class="d-title" style="font-size:.9rem">Composable</div>
+                <div class="d-text" style="font-size:.68rem">Nest any primitive inside any other. No special rules or forbidden combinations.</div>
+              </stacked-layout>
+            </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="m" size="xl" align="start">
+              <span style="font-size:1.2rem;flex-shrink:0">📐</span>
+              <stacked-layout data-layout="stacked-layout" gap="tiny">
+                <div class="d-title" style="font-size:.9rem">Token-coherent</div>
+                <div class="d-text" style="font-size:.68rem">Spacing, type, and ratios all derive from the same scale root.</div>
+              </stacked-layout>
+            </icon-text-layout><icon-text-layout data-layout="icon-text-layout" gap="m" size="xl" align="start">
+              <span style="font-size:1.2rem;flex-shrink:0">♿</span>
+              <stacked-layout data-layout="stacked-layout" gap="tiny">
+                <div class="d-title" style="font-size:.9rem">Accessible</div>
+                <div class="d-text" style="font-size:.68rem">No layout hacks that break reading order. DOM structure matches visual structure.</div>
+              </stacked-layout>
+            </icon-text-layout>
+          </fluid-grid-layout>
+        </stacked-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 20. PROFILE + BADGE ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="20" aria-label="Copy markup for pattern 20" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">20</div>
+        <div class="pattern-title">Profile Cards + Badges</div>
+        <div class="pattern-desc">z-axis-layout for badge placement without position:absolute. [isolate] scopes z-index.</div>
+        <div class="primitive-tags">
+          <span class="pt">z-axis-layout</span><span class="pt">fluid-grid-layout</span><span class="pt">quadrilateral-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="20">
+        <fluid-grid-layout data-layout="fluid-grid-layout" min="130px" gap="s" fill>
+          <quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s" radius="tiny">
+            <stacked-layout data-layout="stacked-layout" gap="xs" style="align-items:center;text-align:center">
+              <z-axis-layout data-layout="z-axis-layout" align="start" justify="center" isolate style="inline-size:fit-content;width:fit-content">
+                <div class="d-avatar d-avatar-lg">AH</div>
+                <span style="align-self:start;justify-self:end;background:#c04040;color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;border:2px solid #07111e;position:relative;inset-block-start:-3px;inset-inline-end:-3px">3</span>
+              </z-axis-layout>
+              <div>
+                <div class="d-title" style="font-size:.78rem">Aria Hassan</div>
+                <div class="d-meta">Design Eng</div>
+              </div>
+              <span class="d-badge" style="font-size:.55rem;color:#309060">● Online</span>
+            </stacked-layout>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s" radius="tiny">
+            <stacked-layout data-layout="stacked-layout" gap="xs" style="align-items:center;text-align:center">
+              <z-axis-layout data-layout="z-axis-layout" align="start" justify="center" isolate style="inline-size:fit-content;width:fit-content">
+                <div class="d-avatar d-avatar-lg">JN</div>
+
+              </z-axis-layout>
+              <div>
+                <div class="d-title" style="font-size:.78rem">Jun Nakamura</div>
+                <div class="d-meta">Frontend</div>
+              </div>
+              <span class="d-badge" style="font-size:.55rem;color:#309060">● Online</span>
+            </stacked-layout>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s" radius="tiny">
+            <stacked-layout data-layout="stacked-layout" gap="xs" style="align-items:center;text-align:center">
+              <z-axis-layout data-layout="z-axis-layout" align="start" justify="center" isolate style="inline-size:fit-content;width:fit-content">
+                <div class="d-avatar d-avatar-lg">PO</div>
+                <span style="align-self:start;justify-self:end;background:#c04040;color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;border:2px solid #07111e;position:relative;inset-block-start:-3px;inset-inline-end:-3px">9+</span>
+              </z-axis-layout>
+              <div>
+                <div class="d-title" style="font-size:.78rem">Priya Osei</div>
+                <div class="d-meta">Backend</div>
+              </div>
+              <span class="d-badge" style="font-size:.55rem;color:#3a6090">○ Away</span>
+            </stacked-layout>
+          </quadrilateral-layout><quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="s" radius="tiny">
+            <stacked-layout data-layout="stacked-layout" gap="xs" style="align-items:center;text-align:center">
+              <z-axis-layout data-layout="z-axis-layout" align="start" justify="center" isolate style="inline-size:fit-content;width:fit-content">
+                <div class="d-avatar d-avatar-lg">SL</div>
+                <span style="align-self:start;justify-self:end;background:#c04040;color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;border:2px solid #07111e;position:relative;inset-block-start:-3px;inset-inline-end:-3px">1</span>
+              </z-axis-layout>
+              <div>
+                <div class="d-title" style="font-size:.78rem">Soren Larsen</div>
+                <div class="d-meta">Fullstack</div>
+              </div>
+              <span class="d-badge" style="font-size:.55rem;color:#309060">● Online</span>
+            </stacked-layout>
+          </quadrilateral-layout>
+        </fluid-grid-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 21. TWO-COLUMN FORM ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="21" aria-label="Copy markup for pattern 21" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">21</div>
+        <div class="pattern-title">Two-Column Form</div>
+        <div class="pattern-desc">split-layout for the top half, full-width fields below. Consistent spacing via stacked-layout.</div>
+        <div class="primitive-tags">
+          <span class="pt">stacked-layout</span><span class="pt">split-layout</span><span class="pt">repel-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="21">
+        <quadrilateral-layout data-layout="quadrilateral-layout" class="d-card" pad="m" radius="tiny">
+          <stacked-layout data-layout="stacked-layout" gap="s">
+            <h4 style="font-size:.95rem">New workspace</h4>
+            <hr class="d-divider">
+            <!-- Two-column top section -->
+            <split-layout data-layout="split-layout" threshold="200px" gap="s">
+              <div>
+                <div class="d-label" style="margin-block-end:3px">First name</div>
+                <input class="d-input" value="Aria">
+              </div>
+              <div>
+                <div class="d-label" style="margin-block-end:3px">Last name</div>
+                <input class="d-input" value="Hassan">
+              </div>
+            </split-layout>
+            <!-- Full-width fields -->
+            <div>
+              <div class="d-label" style="margin-block-end:3px">Workspace name</div>
+              <input class="d-input" value="Synthesis Design">
+            </div>
+            <div>
+              <div class="d-label" style="margin-block-end:3px">Team size</div>
+              <input class="d-input" value="1–10 people">
+            </div>
+            <hr class="d-divider">
+            <repel-layout data-layout="repel-layout">
+              <a class="d-btn" style="font-size:.72rem">Cancel</a>
+              <a class="d-btn d-btn-p" style="font-size:.72rem">Create workspace</a>
+            </repel-layout>
+          </stacked-layout>
+        </quadrilateral-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 22. TOAST NOTIFICATION STACK ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="22" aria-label="Copy markup for pattern 22" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">22</div>
+        <div class="pattern-title">Toast Stack</div>
+        <div class="pattern-desc">overlay-layout fixed at bottom-center. presence-layout animates each toast in/out.</div>
+        <div class="primitive-tags">
+          <span class="pt">overlay-layout</span><span class="pt">presence-layout</span><span class="pt">stacked-layout</span><span class="pt">repel-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="22" style="position:relative;block-size:220px">
+        <!-- Simulated viewport -->
+        <div style="border:1px solid rgba(48,100,220,.2);border-radius:3px;block-size:100%;background:rgba(3,8,20,.5);overflow:hidden;position:relative">
+          <div style="padding:10px;color:#2a5090;font-size:.65rem;font-family:'Space Mono'">← page content area →</div>
+          <!-- Toast container: overlay fixed (simulated with absolute in demo) -->
+          <div style="position:absolute;inset-inline:0;inset-block-end:10px;display:flex;justify-content:center;pointer-events:none">
+            <stacked-layout data-layout="stacked-layout" gap="xs" style="pointer-events:auto;min-inline-size:240px;max-inline-size:280px">
+              <presence-layout data-layout="presence-layout" box animate="entry" data-state="visible" style="--ds-presence-dur:220ms">
+                <quadrilateral-layout data-layout="quadrilateral-layout"
+                  style="--ds-quad-pad:var(--ds-space-s);--ds-quad-bg:rgba(8,20,50,.95);--ds-quad-border:1px solid rgba(48,100,220,.3);--ds-quad-radius:3px;--ds-quad-shadow:0 4px 12px rgba(0,0,0,.4)">
+                  <repel-layout data-layout="repel-layout" gap="s">
+                    <icon-text-layout data-layout="icon-text-layout" gap="s">
+                      <span style="color:#309060">✓</span>
+                      <span class="d-text" style="font-size:.7rem">Profile saved successfully</span>
+                    </icon-text-layout>
+                    <span style="color:#2a5090;cursor:pointer;font-size:.75rem">✕</span>
+                  </repel-layout>
+                </quadrilateral-layout>
+              </presence-layout><presence-layout data-layout="presence-layout" box animate="entry" data-state="visible" style="--ds-presence-dur:220ms">
+                <quadrilateral-layout data-layout="quadrilateral-layout"
+                  style="--ds-quad-pad:var(--ds-space-s);--ds-quad-bg:rgba(8,20,50,.95);--ds-quad-border:1px solid rgba(48,100,220,.3);--ds-quad-radius:3px;--ds-quad-shadow:0 4px 12px rgba(0,0,0,.4)">
+                  <repel-layout data-layout="repel-layout" gap="s">
+                    <icon-text-layout data-layout="icon-text-layout" gap="s">
+                      <span style="color:#a09030">⚠</span>
+                      <span class="d-text" style="font-size:.7rem">Session expires in 5 minutes</span>
+                    </icon-text-layout>
+                    <span style="color:#2a5090;cursor:pointer;font-size:.75rem">✕</span>
+                  </repel-layout>
+                </quadrilateral-layout>
+              </presence-layout><presence-layout data-layout="presence-layout" box animate="entry" data-state="visible" style="--ds-presence-dur:220ms">
+                <quadrilateral-layout data-layout="quadrilateral-layout"
+                  style="--ds-quad-pad:var(--ds-space-s);--ds-quad-bg:rgba(8,20,50,.95);--ds-quad-border:1px solid rgba(48,100,220,.3);--ds-quad-radius:3px;--ds-quad-shadow:0 4px 12px rgba(0,0,0,.4)">
+                  <repel-layout data-layout="repel-layout" gap="s">
+                    <icon-text-layout data-layout="icon-text-layout" gap="s">
+                      <span style="color:#4060c0">ℹ</span>
+                      <span class="d-text" style="font-size:.7rem">New version available</span>
+                    </icon-text-layout>
+
+                  </repel-layout>
+                </quadrilateral-layout>
+              </presence-layout>
+            </stacked-layout>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ════ 23. FOOTER ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="23" aria-label="Copy markup for pattern 23" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">23</div>
+        <div class="pattern-title">Site Footer</div>
+        <div class="pattern-desc">fluid-grid for link columns. repel for sub-footer. stacked per column.</div>
+        <div class="primitive-tags">
+          <span class="pt">region-layout</span><span class="pt">fluid-grid-layout</span><span class="pt">stacked-layout</span><span class="pt">repel-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="23">
+        <region-layout data-layout="region-layout" pad-block="m" pad-inline="m"
+          style="border:1px solid rgba(48,100,220,.2);border-radius:3px;--ds-region-bg:rgba(4,10,22,.7)">
+          <stacked-layout data-layout="stacked-layout" gap="l">
+            <!-- Link columns -->
+            <fluid-grid-layout data-layout="fluid-grid-layout" min="100px" gap="m" fill>
+              <stacked-layout data-layout="stacked-layout" gap="xs">
+                <div class="d-label">Product</div>
+                <a style="font-size:.68rem;color:#3a6090">Primitives</a><a style="font-size:.68rem;color:#3a6090">Patterns</a><a style="font-size:.68rem;color:#3a6090">Changelog</a><a style="font-size:.68rem;color:#3a6090">Roadmap</a>
+              </stacked-layout><stacked-layout data-layout="stacked-layout" gap="xs">
+                <div class="d-label">Docs</div>
+                <a style="font-size:.68rem;color:#3a6090">Getting started</a><a style="font-size:.68rem;color:#3a6090">API reference</a><a style="font-size:.68rem;color:#3a6090">Examples</a><a style="font-size:.68rem;color:#3a6090">Blog</a>
+              </stacked-layout><stacked-layout data-layout="stacked-layout" gap="xs">
+                <div class="d-label">Company</div>
+                <a style="font-size:.68rem;color:#3a6090">About</a><a style="font-size:.68rem;color:#3a6090">Careers</a><a style="font-size:.68rem;color:#3a6090">Press</a><a style="font-size:.68rem;color:#3a6090">Contact</a>
+              </stacked-layout><stacked-layout data-layout="stacked-layout" gap="xs">
+                <div class="d-label">Legal</div>
+                <a style="font-size:.68rem;color:#3a6090">Privacy</a><a style="font-size:.68rem;color:#3a6090">Terms</a><a style="font-size:.68rem;color:#3a6090">Security</a><a style="font-size:.68rem;color:#3a6090">Cookies</a>
+              </stacked-layout>
+            </fluid-grid-layout>
+            <hr class="d-divider">
+            <!-- Sub-footer -->
+            <repel-layout data-layout="repel-layout" wrap>
+              <span class="d-meta">© 2026 @the-design-system/layout</span>
+              <cluster-layout data-layout="cluster-layout" gap="m">
+                <a style="font-size:.65rem;color:#1e3870">Twitter</a>
+                <a style="font-size:.65rem;color:#1e3870">GitHub</a>
+                <a style="font-size:.65rem;color:#1e3870">Discord</a>
+              </cluster-layout>
+            </repel-layout>
+          </stacked-layout>
+        </region-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 24. EMPTY STATE ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="24" aria-label="Copy markup for pattern 24" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">24</div>
+        <div class="pattern-title">Empty State</div>
+        <div class="pattern-desc">sandwich-layout with 1fr middle holds centered content vertically in any container height.</div>
+        <div class="primitive-tags">
+          <span class="pt">sandwich-layout</span><span class="pt">centered-layout</span><span class="pt">stacked-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="24">
+        <sandwich-layout data-layout="sandwich-layout" min="0" style="block-size:240px;border:1px solid rgba(48,100,220,.2);border-radius:3px">
+          <div></div><!-- spacer header -->
+          <centered-layout data-layout="centered-layout" max="30ch" gutter="m">
+            <stacked-layout data-layout="stacked-layout" gap="m" style="align-items:center;text-align:center">
+              <div style="width:56px;height:56px;border:2px dashed rgba(48,100,200,.3);border-radius:50%;display:grid;place-items:center;color:rgba(48,100,200,.4);font-size:1.5rem">⬛</div>
+              <div>
+                <div class="d-title" style="font-size:1rem">No projects yet</div>
+                <div class="d-text" style="font-size:.72rem;margin-block-start:4px">Create your first project to get started with the layout system.</div>
+              </div>
+              <a class="d-btn d-btn-p" style="font-size:.75rem">Create project</a>
+            </stacked-layout>
+          </centered-layout>
+          <div></div><!-- spacer footer -->
+        </sandwich-layout>
+      </div>
+    </div>
+
+
+    <!-- ════ 25. HORIZONTAL FILM STRIP ════ -->
+    <div class="pattern-card">
+      <button class="copy-btn" data-demo="25" aria-label="Copy markup for pattern 25" title="Copy markup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg><span class="copy-ok"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg></span></button>
+      <div class="pattern-meta">
+        <div class="pattern-number">25</div>
+        <div class="pattern-title">Horizontal Film Strip</div>
+        <div class="pattern-desc">Snap-scrolling carousel with peek. Each card is a fixed item width via the item attribute.</div>
+        <div class="primitive-tags">
+          <span class="pt">scrolling-layout</span><span class="pt">aspect-ratio-layout</span><span class="pt">z-axis-layout</span>
+        </div>
+      </div>
+      <div class="pattern-demo" data-num="25" style="overflow:hidden">
+        <stacked-layout data-layout="stacked-layout" gap="s">
+          <repel-layout data-layout="repel-layout">
+            <span class="d-label">Featured articles</span>
+            <span class="d-meta">← drag →</span>
+          </repel-layout>
+          <scrolling-layout data-layout="scrolling-layout"
+            horizontally snap-horizontally no-bar item="200px" gap="s" peek="s">
+            <div>
+              <z-axis-layout data-layout="z-axis-layout" align="end" style="border-radius:3px;overflow:hidden">
+                <aspect-ratio-layout data-layout="aspect-ratio-layout" ratio="4/3">
+                  <div style="background:linear-gradient(135deg,#081830,#102860);inline-size:100%;block-size:100%;display:grid;place-items:center">
+                    <span style="font-size:2rem">📐</span>
+                  </div>
+                </aspect-ratio-layout>
+                <div style="background:linear-gradient(to top,rgba(2,8,20,.9),transparent);inline-size:100%;padding:16px 8px 6px">
+                  <span class="d-badge" style="font-size:.55rem;margin-block-end:2px;display:block">Tokens</span>
+                  <div class="d-title" style="font-size:.78rem">Fluid spacing systems</div>
+                </div>
+              </z-axis-layout>
+            </div><div>
+              <z-axis-layout data-layout="z-axis-layout" align="end" style="border-radius:3px;overflow:hidden">
+                <aspect-ratio-layout data-layout="aspect-ratio-layout" ratio="4/3">
+                  <div style="background:linear-gradient(135deg,#0a1e50,#1a4090);inline-size:100%;block-size:100%;display:grid;place-items:center">
+                    <span style="font-size:2rem">📦</span>
+                  </div>
+                </aspect-ratio-layout>
+                <div style="background:linear-gradient(to top,rgba(2,8,20,.9),transparent);inline-size:100%;padding:16px 8px 6px">
+                  <span class="d-badge" style="font-size:.55rem;margin-block-end:2px;display:block">Techniques</span>
+                  <div class="d-title" style="font-size:.78rem">Container query patterns</div>
+                </div>
+              </z-axis-layout>
+            </div><div>
+              <z-axis-layout data-layout="z-axis-layout" align="end" style="border-radius:3px;overflow:hidden">
+                <aspect-ratio-layout data-layout="aspect-ratio-layout" ratio="4/3">
+                  <div style="background:linear-gradient(135deg,#0e1c40,#1a3080);inline-size:100%;block-size:100%;display:grid;place-items:center">
+                    <span style="font-size:2rem">⊞</span>
+                  </div>
+                </aspect-ratio-layout>
+                <div style="background:linear-gradient(to top,rgba(2,8,20,.9),transparent);inline-size:100%;padding:16px 8px 6px">
+                  <span class="d-badge" style="font-size:.55rem;margin-block-end:2px;display:block">Grid</span>
+                  <div class="d-title" style="font-size:.78rem">Subgrid for card alignment</div>
+                </div>
+              </z-axis-layout>
+            </div><div>
+              <z-axis-layout data-layout="z-axis-layout" align="end" style="border-radius:3px;overflow:hidden">
+                <aspect-ratio-layout data-layout="aspect-ratio-layout" ratio="4/3">
+                  <div style="background:linear-gradient(135deg,#081628,#0c2050);inline-size:100%;block-size:100%;display:grid;place-items:center">
+                    <span style="font-size:2rem">✦</span>
+                  </div>
+                </aspect-ratio-layout>
+                <div style="background:linear-gradient(to top,rgba(2,8,20,.9),transparent);inline-size:100%;padding:16px 8px 6px">
+                  <span class="d-badge" style="font-size:.55rem;margin-block-end:2px;display:block">Motion</span>
+                  <div class="d-title" style="font-size:.78rem">Presence-driven UI</div>
+                </div>
+              </z-axis-layout>
+            </div><div>
+              <z-axis-layout data-layout="z-axis-layout" align="end" style="border-radius:3px;overflow:hidden">
+                <aspect-ratio-layout data-layout="aspect-ratio-layout" ratio="4/3">
+                  <div style="background:linear-gradient(135deg,#0a1428,#0e1c40);inline-size:100%;block-size:100%;display:grid;place-items:center">
+                    <span style="font-size:2rem">📊</span>
+                  </div>
+                </aspect-ratio-layout>
+                <div style="background:linear-gradient(to top,rgba(2,8,20,.9),transparent);inline-size:100%;padding:16px 8px 6px">
+                  <span class="d-badge" style="font-size:.55rem;margin-block-end:2px;display:block">Opinion</span>
+                  <div class="d-title" style="font-size:.78rem">The role of breakpoints</div>
+                </div>
+              </z-axis-layout>
+            </div>
+          </scrolling-layout>
+        </stacked-layout>
+      </div>
+    </div>
+
+
+  </fluid-grid-layout>
+</section>
+
+
+<!-- Footer -->
+<footer>
+  <region-layout data-layout="region-layout" class="site-footer" pad-block="l" pad-inline="xl">
+    <repel-layout data-layout="repel-layout">
+      <a href="index.html" class="logo">@the-design-system<span>/</span>layout</a>
+      <span class="d-meta">25 patterns · 26 primitives · 0 dependencies</span>
+    </repel-layout>
+  </region-layout>
+</footer>
+
+
+<script>
+/* Factory (abbreviated) */
+function aV(el,n,v){if(v===''||v==null)el.style.removeProperty(n);else el.style.setProperty(n,v);}
+function aP(el,n,v){if(v===''||v==null)el.style.removeProperty(n);else el.style.setProperty(n,v);}
+const ST=new Set(['tiny','xxxs','xxs','xs','s','m','l','xl','xxl','xxxl','huge','xs-s','s-m','m-l','l-xl','xl-xxl','m-s','xxs-xs','xxxs-xxs']);
+const ZT=new Set(['base','raised','dropdown','sticky','overlay','modal','toast']);
+function ns(v){const s=String(v||'').trim();if(!s)return'';if(s==='0')return'0';if(ST.has(s))return`var(--ds-space-${s})`;return s;}
+function nz(v){const s=String(v||'').trim();if(!s)return'';if(ZT.has(s))return`var(--ds-z-${s})`;if(s==='auto'||/^-?\d+$/.test(s))return s;return'';}
+function nr(v){return String(v||'').trim();}
+function nn(v){const s=String(v||'').trim();return/^-?\d+(\.\d+)?$/.test(s)?s:'';}
+function nc(v){const s=String(v||'').trim();if(!s)return'';if(/^\d+$/.test(s))return`repeat(${s},1fr)`;return s;}
+function nrow(v){const s=String(v||'').trim();if(!s)return'';if(/^\d+$/.test(s))return`repeat(${s},auto)`;return s;}
+function el(map){
+  const e=Object.entries(map),a=[...Object.keys(map),'vt-name'];
+  return class extends HTMLElement{
+    static get observedAttributes(){return a;}
+    connectedCallback(){this._a();}
+    attributeChangedCallback(){this._a();}
+    _a(){
+      for(const[attr,spec]of e){
+        const raw=this.getAttribute(attr)??'';
+        let val;switch(spec.type){case'space':val=ns(raw);break;case'z-index':val=nz(raw);break;case'number':val=nn(raw);break;case'columns':val=nc(raw);break;case'rows':val=nrow(raw);break;default:val=nr(raw);}
+        if(spec.var)aV(this,spec.var,val);if(spec.prop)aP(this,spec.prop,val);
+      }
+      aV(this,'--ds-vt-name',(this.getAttribute('vt-name')||'').trim());
+    }
+  };
+}
+function def(t,c){if(!customElements.get(t))customElements.define(t,c);}
+
+def('stacked-layout',el({gap:{type:'space',var:'--ds-stacked-gap'},align:{type:'raw',var:'--ds-stacked-align'}}));
+def('cluster-layout',el({gap:{type:'space',var:'--ds-cluster-gap'},align:{type:'raw',var:'--ds-cluster-align'},justify:{type:'raw',var:'--ds-cluster-justify'}}));
+def('repel-layout',el({gap:{type:'space',var:'--ds-repel-gap'},align:{type:'raw',var:'--ds-repel-align'}}));
+def('split-layout',el({gap:{type:'space',var:'--ds-split-gap'},threshold:{type:'space',var:'--ds-split-threshold'}}));
+def('columns-layout',el({cols:{type:'columns',var:'--ds-columns-cols'},rows:{type:'rows',var:'--ds-columns-rows'},gap:{type:'space',var:'--ds-columns-gap'},'gap-block':{type:'space',var:'--ds-columns-gap-block'},'gap-inline':{type:'space',var:'--ds-columns-gap-inline'},align:{type:'raw',var:'--ds-columns-align'},justify:{type:'raw',var:'--ds-columns-justify'}}));
+def('rows-layout',el({rows:{type:'rows',var:'--ds-rows-rows'},cols:{type:'columns',var:'--ds-rows-cols'},gap:{type:'space',var:'--ds-rows-gap'},'gap-block':{type:'space',var:'--ds-rows-gap-block'},'gap-inline':{type:'space',var:'--ds-rows-gap-inline'}}));
+def('fluid-grid-layout',el({min:{type:'space',var:'--ds-fluid-grid-min'},max:{type:'space',var:'--ds-fluid-grid-max'},gap:{type:'space',var:'--ds-fluid-grid-gap'},'gap-block':{type:'space',var:'--ds-fluid-grid-gap-block'},'gap-inline':{type:'space',var:'--ds-fluid-grid-gap-inline'},columns:{type:'number',var:'--ds-fluid-grid-columns'},align:{type:'raw',var:'--ds-fluid-grid-align'}}));
+def('sandwich-layout',el({'size-bs':{type:'space',var:'--ds-sandwich-size-bs'},'size-ml':{type:'space',var:'--ds-sandwich-size-ml'},'size-be':{type:'space',var:'--ds-sandwich-size-be'},min:{type:'raw',var:'--ds-sandwich-min'}}));
+def('bookend-layout',el({'size-is':{type:'space',var:'--ds-bookend-size-is'},'size-ml':{type:'space',var:'--ds-bookend-size-ml'},'size-ie':{type:'space',var:'--ds-bookend-size-ie'}}));
+def('region-layout',el({'pad-block':{type:'space',var:'--ds-region-pad-block'},'pad-inline':{type:'space',var:'--ds-region-pad-inline'},bg:{type:'raw',var:'--ds-region-bg'}}));
+def('centered-layout',el({max:{type:'space',var:'--ds-centered-max'},gutter:{type:'space',var:'--ds-centered-gutter'}}));
+def('breakout-layout',el({size:{type:'space',var:'--ds-breakout-size'},pad:{type:'space',var:'--ds-breakout-pad'}}));
+def('breakin-layout',el({max:{type:'space',var:'--ds-breakin-max'},gutter:{type:'space',var:'--ds-breakin-gutter'}}));
+// Quadrilateral-layout: box model + transform extensions
+const _QBase = (typeof makeElement !== 'undefined' ? makeElement : el)({'pad':{type:'space',var:'--ds-quad-pad'},'pad-block':{type:'space',var:'--ds-quad-pad-block'},'pad-inline':{type:'space',var:'--ds-quad-pad-inline'},pbs:{type:'space',var:'--ds-quad-pbs'},pbe:{type:'space',var:'--ds-quad-pbe'},pis:{type:'space',var:'--ds-quad-pis'},pie:{type:'space',var:'--ds-quad-pie'},border:{type:'raw',var:'--ds-quad-border'},'border-block':{type:'raw',var:'--ds-quad-border-block'},'border-inline':{type:'raw',var:'--ds-quad-border-inline'},'border-bs':{type:'raw',var:'--ds-quad-border-bs'},'border-be':{type:'raw',var:'--ds-quad-border-be'},'border-is':{type:'raw',var:'--ds-quad-border-is'},'border-ie':{type:'raw',var:'--ds-quad-border-ie'},radius:{type:'space',var:'--ds-quad-radius'},'radius-ss':{type:'space',var:'--ds-quad-radius-ss'},'radius-se':{type:'space',var:'--ds-quad-radius-se'},'radius-es':{type:'space',var:'--ds-quad-radius-es'},'radius-ee':{type:'space',var:'--ds-quad-radius-ee'},bg:{type:'raw',var:'--ds-quad-bg'},fg:{type:'raw',var:'--ds-quad-fg'},shadow:{type:'raw',var:'--ds-quad-shadow'},'skew-x':{type:'raw',var:'--ds-quad-skew-x'},'skew-y':{type:'raw',var:'--ds-quad-skew-y'},rotate:{type:'raw',var:'--ds-quad-rotate'},scale:{type:'raw',var:'--ds-quad-scale'},translate:{type:'raw',var:'--ds-quad-translate'},origin:{type:'raw',var:'--ds-quad-origin'},perspective:{type:'raw',prop:'perspective'}});
+class _QEl extends _QBase {
+  static get observedAttributes(){return[...super.observedAttributes,'preserve-3d','backface','flip-x','flip-y'];}
+  connectedCallback(){super.connectedCallback();this._qt();}
+  attributeChangedCallback(n,o,v){super.attributeChangedCallback(n,o,v);this._qt();}
+  _qt(){
+    const p3d=this.hasAttribute('preserve-3d'),bf=this.hasAttribute('backface');
+    const fx=this.hasAttribute('flip-x'),fy=this.hasAttribute('flip-y');
+    p3d?this.style.setProperty('transform-style','preserve-3d'):this.style.removeProperty('transform-style');
+    bf?this.style.setProperty('backface-visibility','hidden'):this.style.removeProperty('backface-visibility');
+    if(fx||fy)this.style.setProperty('scale',`${fx?-1:1} ${fy?-1:1}`);
+  }
+}
+def('quadrilateral-layout', _QEl);
+def('aspect-ratio-layout',el({ratio:{type:'raw',var:'--ds-aspect-ratio'},fit:{type:'raw',var:'--ds-aspect-fit'},position:{type:'raw',var:'--ds-aspect-position'}}));
+def('sticky-layout',el({bs:{type:'space',var:'--ds-sticky-bs'},be:{type:'space',var:'--ds-sticky-be'},z:{type:'z-index',var:'--ds-sticky-z'}}));
+def('overlay-layout',el({inset:{type:'space',var:'--ds-overlay-inset'},align:{type:'raw',var:'--ds-overlay-align'},justify:{type:'raw',var:'--ds-overlay-justify'},z:{type:'z-index',var:'--ds-overlay-z'}}));
+def('z-axis-layout',el({align:{type:'raw',var:'--ds-z-axis-align'},justify:{type:'raw',var:'--ds-z-axis-justify'},z:{type:'z-index',var:'--ds-z-axis-z'}}));
+def('icon-text-layout',el({gap:{type:'space',var:'--ds-icon-text-gap'},size:{type:'space',var:'--ds-icon-size'},align:{type:'raw',var:'--ds-icon-text-align'}}));
+def('scrolling-layout',el({gap:{type:'space',var:'--ds-scrolling-gap'},'pad-block':{type:'space',var:'--ds-scrolling-pad-block'},'pad-inline':{type:'space',var:'--ds-scrolling-pad-inline'},item:{type:'space',var:'--ds-scrolling-item'},peek:{type:'space',var:'--ds-scrolling-peek'},overscroll:{type:'raw',var:'--ds-scrolling-overscroll'},align:{type:'raw',var:'--ds-scrolling-align'}}));
+def('masonry-layout',el({gap:{type:'space',var:'--ds-masonry-gap'},'gap-block':{type:'space',var:'--ds-masonry-gap-block'},'gap-inline':{type:'space',var:'--ds-masonry-gap-inline'},min:{type:'space',var:'--ds-masonry-min'},columns:{type:'number',var:'--ds-masonry-columns'}}));
+def('subgrid-layout',el({'col-span':{type:'number',var:'--ds-subgrid-col-span'},'row-span':{type:'number',var:'--ds-subgrid-row-span'},gap:{type:'space',var:'--ds-subgrid-gap'},align:{type:'raw',var:'--ds-subgrid-align'},justify:{type:'raw',var:'--ds-subgrid-justify'}}));
+
+// split-pane + pane
+function parsePanes(r){if(!r)return null;const s=r.includes('/')?'/':'\n';const rows=r.split(s).map(x=>x.trim().split(/\s+/).filter(Boolean)).filter(x=>x.length);if(!rows.length)return null;const c=rows[0].length;if(!rows.every(x=>x.length===c))return null;return{rowCount:rows.length,colCount:c,areasCSS:rows.map(x=>`"${x.join(' ')}"`).join(' ')};}
+function nc2(v){const s=String(v||'').trim();if(!s)return'';if(/^\d+$/.test(s))return`repeat(${s},1fr)`;return s;}
+function nr2(v){const s=String(v||'').trim();if(!s)return'';if(/^\d+$/.test(s))return`repeat(${s},auto)`;return s;}
+class SPL extends HTMLElement{
+  static get observedAttributes(){return['panes','cols','rows','gap'];}
+  connectedCallback(){this._a();}attributeChangedCallback(){this._a();}
+  _a(){const p=parsePanes(this.getAttribute('panes')||'');if(p){this.style.setProperty('grid-template-areas',p.areasCSS);const c=this.getAttribute('cols');this.style.setProperty('grid-template-columns',c?nc2(c):`repeat(${p.colCount},1fr)`);const r=this.getAttribute('rows');this.style.setProperty('grid-template-rows',r?nr2(r):`repeat(${p.rowCount},auto)`);}aV(this,'--ds-split-pane-gap',ns(this.getAttribute('gap')));}}
+def('split-pane-layout',SPL);
+def('pane-layout',el({area:{type:'raw',var:'--ds-pane-area'}}));
+
+// presence
+function nf(){return new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));}
+function wt(el,max=600){return new Promise(r=>{let dt;const g=setTimeout(()=>{el.removeEventListener('transitionend',fn);r();},max);const fn=()=>{clearTimeout(dt);dt=setTimeout(()=>{clearTimeout(g);el.removeEventListener('transitionend',fn);r();},20);};el.addEventListener('transitionend',fn);});}
+class PL extends HTMLElement{
+  static get observedAttributes(){return['data-state','vt-name'];}
+  connectedCallback(){aV(this,'--ds-vt-name',(this.getAttribute('vt-name')||'').trim());}
+  attributeChangedCallback(n,o,v){if(n==='vt-name')aV(this,'--ds-vt-name',(v||'').trim());}
+  get state(){return this._n(this.getAttribute('data-state'));}
+  set state(v){this.setAttribute('data-state',v);}
+  _n(v){return['invisible','hidden','absent'].includes(v)?v:'visible';}
+  async show(){if(this.state==='visible')return;const an=(this.getAttribute('animate')||'').includes('entry');if(!an){this.state='visible';return;}if(this.state==='absent'||this.state==='hidden'){this.state='invisible';await nf();}this.state='visible';await wt(this);}
+  async hide(to='absent'){if(this.state==='absent'||this.state==='hidden')return;const an=(this.getAttribute('animate')||'').includes('entry');if(!an){this.state=to;return;}this.state='invisible';await wt(this);this.style.setProperty('transition','none');this.style.setProperty('transition-duration','0s');this.style.setProperty('transition-behavior','normal');this.state=to;setTimeout(()=>{this.style.removeProperty('transition');this.style.removeProperty('transition-duration');this.style.removeProperty('transition-behavior');},0);}
+}
+def('presence-layout',PL);
+
+// Wire up split-pane panes strings for patterns 02 and 03
+document.addEventListener('DOMContentLoaded',()=>{
+  const p02=document.getElementById('p02-spl');
+  if(p02){p02.setAttribute('panes','S M');p02.setAttribute('cols','110px 1fr');}
+  const p03=document.getElementById('p03-spl');
+  if(p03){p03.setAttribute('panes','H H / F E / F O');p03.setAttribute('cols','90px 1fr');p03.setAttribute('rows','32px 1fr 80px');}
+});
+
+/* ── Copy-markup buttons ─────────────────────────────────────────── */
+(function() {
+  // Attributes that are doc-layer decorations, not needed in copied markup
+  const STRIP_ATTRS = ['data-layout'];
+  // IDs used only in this demo context (split-pane wiring)
+  const STRIP_IDS   = /\s+id="p\d+-\w+"/g;
+
+  function cleanMarkup(raw) {
+    // Strip doc-only attributes
+    let out = raw;
+    for (const attr of STRIP_ATTRS) {
+      out = out.replace(new RegExp(`\\s+${attr}="[^"]*"`, 'g'), '');
+    }
+    // Strip demo-specific IDs
+    out = out.replace(STRIP_IDS, '');
+    // Collapse runs of blank lines to one
+    out = out.replace(/\n(\s*\n){2,}/g, '\n\n');
+    // Trim leading/trailing whitespace
+    return out.trim();
+  }
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const num  = btn.dataset.demo;
+      const demo = document.querySelector(`.pattern-demo[data-num="${num}"]`);
+      if (!demo) return;
+
+      const markup = cleanMarkup(demo.innerHTML);
+
+      navigator.clipboard.writeText(markup).then(() => {
+        btn.classList.add('copied');
+        setTimeout(() => btn.classList.remove('copied'), 1600);
+      }).catch(() => {
+        // Fallback for non-secure contexts
+        const ta = document.createElement('textarea');
+        ta.value = markup;
+        ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.classList.add('copied');
+        setTimeout(() => btn.classList.remove('copied'), 1600);
+      });
+    });
+  });
+})();
+
+
+// prose-layout — flow rhythm for mixed HTML content
+const _PLBase = el({
+  measure:{type:'raw',var:'--ds-prose-measure'},
+  leading:{type:'raw',var:'--ds-prose-leading'},
+  flow:{type:'space',var:'--ds-prose-flow'},
+  'flow-heading':{type:'space',var:'--ds-prose-flow-heading'},
+  'li-gap':{type:'space',var:'--ds-prose-li-gap'},
+  'list-indent':{type:'raw',var:'--ds-prose-list-indent'},
+  'rule-gap':{type:'space',var:'--ds-prose-rule-gap'},
+  'pre-pad':{type:'space',var:'--ds-prose-pre-pad'},
+  'pre-radius':{type:'space',var:'--ds-prose-pre-radius'},
+  'heading-leading':{type:'raw',var:'--ds-prose-heading-leading'},
+  'dt-weight':{type:'raw',var:'--ds-prose-dt-weight'}
+});
+class _PLEl extends _PLBase {
+  static get observedAttributes(){return[...super.observedAttributes,'compact'];}
+}
+def('prose-layout',_PLEl);
+</script>
+</body>
+</html>

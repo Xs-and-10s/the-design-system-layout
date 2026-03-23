@@ -1,0 +1,130 @@
+@layer ds.layout {
+
+    /* ── repel-layout ────────────────────────────────────────
+       A two-child flex row that pushes its children to opposite
+       ends of the inline axis. The correct primitive for any
+       "left thing | right thing" pattern.
+
+       Common use cases:
+         - Header bar:    logo | navigation
+         - Toolbar:       title | action button(s)
+         - Card header:   heading | dismiss icon
+         - List item:     label | value / badge / toggle
+         - Breadcrumb:    path | current page
+         - Form row:      label | hint text / character count
+         - Media meta:    author | timestamp
+
+       WHY NOT bookend-layout:
+       bookend-layout is a three-column grid requiring three children.
+       repel-layout is a two-child flex container with no middle track.
+       The distinctions matter:
+         - No vestigial empty child required
+         - No fixed middle column consuming track space
+         - Natural flex wrapping: children stack vertically when the
+           container is too narrow, which is the correct responsive
+           behavior for header and toolbar patterns (use [wrap])
+
+       WHY NOT split-layout:
+       split-layout creates equal-width children that switch between
+       row and column at a threshold. repel-layout children keep their
+       intrinsic sizes and are simply pushed apart. A logo and a nav
+       are not equal-width — the logo is narrow, the nav is flexible.
+       repel is the correct tool.
+
+       WHY NOT clustered-layout with justify="space-between":
+       clustered-layout supports justify-content but is designed for
+       N homogeneous items that wrap. repel is explicitly a two-child
+       primitive — the semantic and structural contract is different.
+       Using clustered for two-child repel also requires overriding
+       the default justify-content, adding noise.
+
+       ── TWO-CHILD CONTRACT ─────────────────────────────────────
+
+       repel-layout is designed for exactly two direct children:
+         <repel-layout>
+           <first-child>…</first-child>
+           <last-child>…</last-child>
+         </repel-layout>
+
+       With fewer than two children, justify-content: space-between
+       has no effect — a single child aligns to the start edge.
+       With more than two children, items distribute via space-between
+       across all children, which may or may not be the intended result.
+       For three or more items, prefer bookend-layout or clustered-layout.
+
+       ── WRAPPING BEHAVIOR ──────────────────────────────────────
+
+       Default: flex-wrap: nowrap. Children stay on one line.
+       If the container is too narrow, children overflow (or shrink
+       via flex-shrink if their content allows).
+
+       Add [wrap] to enable flex-wrap: wrap. When the two children
+       can no longer fit side by side, they wrap — each taking a
+       full line, with the first child above the second.
+
+       [wrap] with align="start": children are left-aligned when
+       stacked (start of their respective rows).
+
+       [wrap] with align="center": children are centered when stacked.
+
+       ── ATTRIBUTES ─────────────────────────────────────────────
+
+         gap="<token | length>"
+           Minimum space between children. With nowrap, this sets
+           the floor gap between the two ends. With [wrap], this is
+           the gap between the two stacked rows.
+           Default: --ds-gap.
+
+         align="<align-items value>"
+           Cross-axis (vertical) alignment of both children.
+           center (default — correct for most header/toolbar use),
+           start, end, stretch, baseline.
+
+       BOOLEAN ATTRIBUTES (CSS-only):
+         [wrap]
+           Enables flex-wrap: wrap. Children stack vertically when
+           the container is too narrow to hold both side by side.
+           Each child takes its natural width on its own line.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(repel-layout) {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        align-items: var(--ds-repel-align, center);
+        gap: var(--ds-repel-gap, var(--ds-gap, 1rem));
+    }
+
+    /*
+        Children: prevent flex-shrink from making content illegible.
+        min-inline-size: 0 allows children to shrink below their
+        intrinsic width if needed (e.g. a long title truncated with
+        overflow: hidden text-overflow: ellipsis), rather than
+        overflowing the container.
+        flex-shrink: 1 is the flex default — both children shrink
+        proportionally when space is tight.
+    */
+    :where(repel-layout > *) {
+        min-inline-size: 0;
+    }
+
+
+    /* ── [wrap] — responsive stacking ───────────────────────
+       Enables wrapping. Each child takes its own line when the
+       container is too narrow.
+
+       With wrap, `gap` becomes the block gap between the two rows.
+       The column gap (between children when they're on the same
+       line) is also controlled by `gap`.
+
+       justify-content: space-between on a wrapped flex container
+       affects each line independently. A line with only one child
+       aligns it to the start edge. This is the correct behavior:
+       on narrow screens, the logo is left-aligned and the nav is
+       left-aligned on the next line.
+    ──────────────────────────────────────────────────────────── */
+    :where(repel-layout[wrap]) {
+        flex-wrap: wrap;
+    }
+
+}

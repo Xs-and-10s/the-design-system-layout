@@ -1,0 +1,348 @@
+@layer ds.presence {
+
+    /* ── presence-layout ─────────────────────────────────────
+       Visibility management wrapper with animated entry/exit
+       transitions, optional discrete display switching, and
+       View Transitions API integration.
+
+       ── WHY 3 STEPS, NOT 4 ────────────────────────────────────
+
+       The proposal "Visible → Invisible → Scale-to-point → Absent"
+       adds a 4th step, but "scale to a point" is not a visibility
+       state — it is part of the VISUAL TRANSITION between states.
+       `transform: scale(0)` does not remove layout space: the element
+       still occupies its original footprint at scale zero, creating a
+       phantom gap in the layout during the scale step. That gap is
+       jarring and defeats the purpose of a clean exit.
+
+       The 3-step machine (absent ↔ invisible ↔ visible) handles
+       layout correctly. The "scale from/to a point" effect lives in
+       the CSS transition values: the transform includes both a scale
+       and a translateY component, both animated simultaneously with
+       exponential easing. The visual result is identical to what a
+       4-step machine would produce, without the layout gap.
+
+       Set --ds-presence-scale-from: 0 to get "scale to a literal point."
+       Set --ds-presence-scale-from: 0.85 (default) for a subtle, iOS-
+       style shrink-on-exit / grow-on-entry that reads as professional.
+
+       ── DISPLAY MODES ─────────────────────────────────────────
+
+       (no attr)  display: contents — fully transparent to layout.
+                  Children participate in layout as if this element
+                  doesn't exist. Has no rendering box — cannot receive
+                  view-transition-name, opacity, or transform.
+       [box]      display: block — required for any animation or VT.
+
+       ── STATE MACHINE ─────────────────────────────────────────
+
+       data-state     CSS effect
+       ─────────────  ─────────────────────────────────────────
+       (missing)      same as "visible"
+       "visible"      in flow, fully painted, accessible
+       "invisible"    visibility: hidden — space preserved, not painted
+       "hidden"       display: none — removed from flow + a11y tree
+       "absent"       display: none — semantic: this content isn't here
+
+       ── EASING PHILOSOPHY ─────────────────────────────────────
+
+       Separate in/out easing tokens for the exponential feel:
+
+         --ds-presence-ease-in  (entry, expo-out):
+           Fast arrival, smooth deceleration. The element "snaps in"
+           and settles. Objects entering from outside should arrive
+           quickly — users are waiting for them.
+
+         --ds-presence-ease-out (exit, expo-in):
+           Immediate departure, rapid disappearance. Objects leaving
+           should get out of the way quickly — users aren't waiting
+           for them to leave; they've already moved on mentally.
+
+       Exits should be SHORT and FAST. Entry a little slower and
+       springier. That asymmetry is what makes motion feel intentional.
+
+       Baseline cubic-bezier values:
+         ease-in:  cubic-bezier(0.16, 1, 0.3, 1)   [expo-out]
+         ease-out: cubic-bezier(0.7, 0, 0.84, 0)   [expo-in]
+
+       Enhanced with linear() (Baseline 2024) for mathematical accuracy.
+
+       ── SCALE TRANSITION ──────────────────────────────────────
+
+       The entry/exit transform combines translateY AND scale():
+         exit  (visible → invisible):
+           scale(1) translateY(0)  →  scale(from) translateY(offset)
+         entry (invisible → visible):
+           scale(from) translateY(offset)  →  scale(1) translateY(0)
+
+       --ds-presence-scale-from: 0.85
+         The scale value to animate FROM on entry (and TO on exit).
+         0.85 = subtle iOS-style shrink; professional and non-distracting.
+         0    = "scale to a literal point" — dramatic, more app-like.
+         0.95 = barely perceptible; good for tooltips and context menus.
+         1    = no scale at all; pure opacity + translate.
+
+       Note on scale(0) and layout:
+         transform: scale(0) renders the element as a point but preserves
+         layout space — the element still takes up its normal height and
+         width. This is correct for the invisible state (visibility: hidden
+         also preserves layout space). Layout space is only reclaimed when
+         transitioning to absent/hidden (display: none). So there is no
+         "phantom gap" — the space was already reserved by the invisible
+         state, and scale(0) within it is clean.
+
+       ── TOKENS ────────────────────────────────────────────────
+
+         --ds-presence-dur           transition duration     160ms
+         --ds-presence-ease-in       entry easing            expo-out
+         --ds-presence-ease-out      exit easing             expo-in
+         --ds-presence-offset        translateY offset       0.25rem
+         --ds-presence-scale-from    scale start/end value   0.85
+         --ds-presence-vt-dur        view transition dur     220ms
+    ──────────────────────────────────────────────────────────── */
+
+
+    /* ── Easing tokens ───────────────────────────────────────
+       Defined on :root so they're available to developer-authored
+       ::view-transition-* rules (which live outside element scope).
+    ──────────────────────────────────────────────────────────── */
+
+    :root {
+        /* expo-out: fast start, smooth deceleration (entry feel) */
+        --ds-presence-ease-in:  cubic-bezier(0.16, 1, 0.3, 1);
+
+        /* expo-in: slow start, rapid acceleration (exit feel) */
+        --ds-presence-ease-out: cubic-bezier(0.7, 0, 0.84, 0);
+    }
+
+    /*
+        linear() enhancement: mathematically accurate exponential curves.
+        Same perceptual shape as the cubic-bezier values but with more
+        accurate intermediate values — less deviation from a true
+        exponential in the middle of the curve.
+        Baseline 2024: Chrome 113+, Firefox 112+, Safari 17.2+.
+    */
+    @supports (animation-timing-function: linear(0, 1)) {
+        :root {
+            /* True expo-out: 1 - 2^(-10t) normalized to [0, 1] */
+            --ds-presence-ease-in: linear(
+                0, 0.003 2%, 0.013 4%, 0.03 6%, 0.054 8%,
+                0.083 10%, 0.119 12%, 0.159 14%, 0.204 16%,
+                0.252 18%, 0.303 20%, 0.356 22%, 0.41 24%,
+                0.463 26%, 0.517 28%, 0.57 30%, 0.62 32%,
+                0.669 34%, 0.715 36%, 0.759 38%, 0.8 40%,
+                0.838 42%, 0.873 44%, 0.906 46%, 0.935 48%,
+                0.961 50%, 0.983 52%, 1 55%, 1 100%
+            );
+
+            /* True expo-in: 2^(10t - 10) normalized to [0, 1] */
+            --ds-presence-ease-out: linear(
+                1, 0.997 2%, 0.987 4%, 0.97 6%, 0.946 8%,
+                0.917 10%, 0.881 12%, 0.841 14%, 0.796 16%,
+                0.748 18%, 0.697 20%, 0.644 22%, 0.59 24%,
+                0.537 26%, 0.483 28%, 0.43 30%, 0.38 32%,
+                0.331 34%, 0.285 36%, 0.241 38%, 0.2 40%,
+                0.162 42%, 0.127 44%, 0.094 46%, 0.065 48%,
+                0.039 50%, 0.017 52%, 0 55%
+            );
+        }
+    }
+
+
+    /* ── Display ─────────────────────────────────────────────── */
+
+    :where(presence-layout) {
+        display: contents;
+    }
+
+    :where(presence-layout[box]) {
+        display: block;
+    }
+
+
+    /* ── States ──────────────────────────────────────────────── */
+
+    :where(presence-layout:not([data-state]),
+           presence-layout[data-state="visible"]) {
+        /* intentionally empty */
+    }
+
+    :where(presence-layout[data-state="invisible"]) {
+        visibility: hidden;
+    }
+
+    :where(presence-layout[data-state="hidden"],
+           presence-layout[data-state="absent"]) {
+        display: none;
+    }
+
+
+    /* ── Discrete display transitions ────────────────────────── */
+
+    @supports (transition-behavior: allow-discrete) {
+        :where(presence-layout[box][animate~="discrete"]) {
+            transition-behavior: allow-discrete;
+        }
+    }
+
+
+    /* ── Entry / exit transitions ────────────────────────────
+       Combines opacity + scale + translateY into one coordinated motion.
+
+       The scale and translate work together with exponential easing:
+         - On entry (expo-out): element arrives from offset + shrunken,
+           accelerates into position, then decelerates hard as it hits
+           scale:1. The deceleration "feels" like impact.
+         - On exit (expo-in): element starts hesitantly then SNAPS away,
+           shrinking and sliding simultaneously. The acceleration on the
+           way out reads as intentional departure.
+
+       transform order matters: scale() then translateY().
+       This scales the element AND moves it, with the movement expressed
+       in the element's own (scaled) coordinate space. The result is that
+       at scale(0) the offset is also effectively zero — the element
+       collapses to a point AT its natural position, not offset from it.
+       This feels more natural than the element shrinking away from an
+       offset position.
+
+       The property order in the `transform` value:
+         scale(var(--ds-presence-scale-from)) translateY(var(--ds-presence-offset))
+       means: first scale, then translate in the scaled space.
+    ──────────────────────────────────────────────────────────── */
+
+    @media (prefers-reduced-motion: no-preference) {
+
+        :where(presence-layout[box][animate~="entry"]) {
+            transition-property: opacity, transform;
+            /* visibility is intentionally NOT transitioned — it must snap instantly.
+               Animating visibility from hidden(invisible) to visible(absent's initial
+               value) can cause a brief rendered frame where visibility:visible is
+               computed while display:none is still pending in some browsers.
+               The visual effect is handled entirely by opacity + transform. */
+            transition-duration: var(--ds-presence-dur, 160ms);
+        }
+
+        /*
+            VISIBLE: fully present.
+            transition-timing-function = ease-in (expo-out) for entry feel.
+            This applies when the element is ARRIVING at this state.
+        */
+        :where(presence-layout[box][animate~="entry"]:not([data-state]),
+               presence-layout[box][animate~="entry"][data-state="visible"]) {
+            opacity: 1;
+            transform: none;
+            visibility: visible;
+            transition-timing-function: var(--ds-presence-ease-in,
+                cubic-bezier(0.16, 1, 0.3, 1));
+        }
+
+        /*
+            INVISIBLE: not painted, space preserved.
+            transition-timing-function = ease-out (expo-in) for exit feel.
+            This applies when the element is LEAVING toward this state.
+        */
+        :where(presence-layout[box][animate~="entry"][data-state="invisible"]) {
+            opacity: 0;
+            transform:
+                scale(var(--ds-presence-scale-from, 0.85))
+                translateY(var(--ds-presence-offset, 0.25rem));
+            visibility: hidden;
+            transition-timing-function: var(--ds-presence-ease-out,
+                cubic-bezier(0.7, 0, 0.84, 0));
+        }
+
+        /*
+            HIDDEN/ABSENT: these are the same visual state as invisible
+            but with display: none. These values apply just before
+            display: none takes effect (on exit) and just after display: none
+            is removed (on entry, with allow-discrete).
+        */
+        :where(presence-layout[box][animate~="entry"][data-state="hidden"],
+               presence-layout[box][animate~="entry"][data-state="absent"]) {
+            opacity: 0;
+            transform:
+                scale(var(--ds-presence-scale-from, 0.85))
+                translateY(var(--ds-presence-offset, 0.25rem));
+            /* Explicit visibility: hidden prevents absent state from reverting to
+               visibility:visible (its initial value), which in some browsers creates
+               a rendered frame between the invisible→absent attribute change and
+               the display:none taking full effect. */
+            visibility: hidden;
+            transition-timing-function: var(--ds-presence-ease-out,
+                cubic-bezier(0.7, 0, 0.84, 0));
+        }
+
+        /*
+            @starting-style: the "from" values for entry animation.
+            When the element first becomes visible (data-state flips to
+            "visible"), it starts at these values and transitions to the
+            "visible" state above.
+
+            Note: the easing is read from the destination state (visible),
+            so expo-out (ease-in token) correctly applies to the entry.
+        */
+        @starting-style {
+            :where(presence-layout[box][animate~="entry"]:not([data-state]),
+                   presence-layout[box][animate~="entry"][data-state="visible"]) {
+                opacity: 0;
+                transform:
+                    scale(var(--ds-presence-scale-from, 0.85))
+                    translateY(var(--ds-presence-offset, 0.25rem));
+            }
+        }
+
+    }
+
+
+    /* ── View transition keyframes ───────────────────────────
+       Named keyframes for developer-authored ::view-transition-* rules.
+       Not applied automatically. Compose them in your own CSS.
+
+       These use the same tokens as the CSS transitions, so motion
+       feels consistent whether triggered by a state change or by
+       a wrapped document.startViewTransition() call.
+
+       Usage:
+         ::view-transition-old(my-panel) {
+             animation:
+               ds-presence-fade-out
+               var(--ds-presence-vt-dur, 220ms)
+               var(--ds-presence-ease-out)
+               forwards;
+         }
+         ::view-transition-new(my-panel) {
+             animation:
+               ds-presence-fade-in
+               var(--ds-presence-vt-dur, 220ms)
+               var(--ds-presence-ease-in)
+               forwards;
+         }
+    ──────────────────────────────────────────────────────────── */
+
+    @keyframes ds-presence-fade-in {
+        from {
+            opacity: 0;
+            transform:
+                scale(var(--ds-presence-scale-from, 0.85))
+                translateY(var(--ds-presence-offset, 0.25rem));
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    @keyframes ds-presence-fade-out {
+        from {
+            opacity: 1;
+            transform: none;
+        }
+        to {
+            opacity: 0;
+            transform:
+                scale(var(--ds-presence-scale-from, 0.85))
+                translateY(var(--ds-presence-offset, 0.25rem));
+        }
+    }
+
+}

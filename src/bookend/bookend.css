@@ -1,0 +1,106 @@
+@layer ds.layout {
+
+    /* ── bookend-layout ──────────────────────────────────────
+       A three-child inline (horizontal) grid. Places one item at
+       the inline-start, one in the middle, and one at the inline-end.
+       The middle item takes remaining space by default.
+
+       Extracted from the original `centered` primitive's gutter
+       pattern and generalized to support any three-part horizontal
+       composition.
+
+       Common use cases:
+         - Centered content with explicit gutter columns
+             <bookend-layout size-is="l" size-ie="l">
+               <div></div>   ← gutter (can be empty)
+               <main>…</main>
+               <div></div>   ← gutter (can be empty)
+             </bookend-layout>
+
+         - Page shell with fixed sidebar and main content
+             <bookend-layout size-is="240px" size-ie="0">
+               <nav>…</nav>
+               <main>…</main>
+               <aside style="display:none">…</aside>
+             </bookend-layout>
+
+         - Logo / nav / actions header bar
+             <bookend-layout>
+               <a href="/">Logo</a>
+               <nav>…</nav>
+               <clustered-layout ui>…actions…</clustered-layout>
+             </bookend-layout>
+
+       Expects exactly 3 direct children. Additional children flow
+       into implicit grid columns with auto sizing. Fewer than 3
+       leaves empty columns.
+
+       THE EMPTY GUTTER PATTERN:
+       When using bookend-layout to provide gutters around centered
+       content, the inline-start and inline-end children can be empty
+       elements (<div></div>) or elements with no visible content.
+       This is intentional — the grid column gives the space, not
+       the child's content.
+
+       Attributes:
+         size-is="<token | css track size>"
+           Width of the inline-start column.
+           Accepts space tokens (l, xl, s-m, etc.) → fixed column width.
+           Accepts any CSS grid track size: auto, 1fr, minmax(0, 20%),
+           200px, 20ch, etc.
+           Default: auto (shrink to content width)
+
+         size-ml="<token | css track size>"
+           Width of the middle column.
+           Accepts space tokens or any CSS track size.
+           Default: 1fr (take all remaining space)
+
+         size-ie="<token | css track size>"
+           Width of the inline-end column.
+           Accepts space tokens or any CSS track size.
+           Default: auto (shrink to content width)
+
+       On space tokens as track sizes:
+       When a space token is used (e.g. size-is="xl"), the column
+       becomes a fixed-width track equal to var(--ds-space-xl). This
+       is ideal for gutter columns whose width should stay in rhythm
+       with the spacing scale. For a flexible track, use fr units or
+       auto instead.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(bookend-layout) {
+        display: grid;
+
+        /*
+            Three columns: inline-start | middle | inline-end.
+
+            The custom properties are set by the JS element from
+            attributes. When an attribute is absent, the JS applies
+            no inline style, and the var() fallback below takes over.
+
+            Note: fr units, `auto`, `minmax(...)`, and space token
+            var() references all work as grid track values when placed
+            inside a CSS custom property used in grid-template-columns.
+        */
+        grid-template-columns:
+            var(--ds-bookend-size-is, auto)
+            var(--ds-bookend-size-ml, 1fr)
+            var(--ds-bookend-size-ie, auto);
+    }
+
+    /*
+        min-inline-size: 0 and min-block-size: 0 on children:
+        Grid children, unlike flex children, do respect their intrinsic
+        minimum sizes when sizing tracks. Without min-inline-size: 0,
+        a child with wide unbreakable content can force its column to
+        be wider than intended. This is especially important for the
+        middle column which uses 1fr by default — 1fr means "remaining
+        space after other tracks", but if the content min-width exceeds
+        that remaining space the grid overflows.
+    */
+    :where(bookend-layout > *) {
+        min-inline-size: 0;
+        min-block-size:  0;
+    }
+
+}

@@ -1,0 +1,288 @@
+@layer ds.prose {
+
+    /* ── prose-layout ─────────────────────────────────────────────────────────
+       A block wrapper that applies consistent vertical flow rhythm to arbitrary
+       mixed HTML content: headings, paragraphs, lists, blockquotes, code,
+       tables, figures, and horizontal rules.
+
+       This is the micro-layout complement to the macro-layout primitives. Where
+       region-layout / centered-layout / breakout-layout control the spatial
+       container of content, prose-layout governs the internal flow rhythm —
+       the vertical breathing between elements.
+
+       All rules use :where() for zero specificity. Every variable has a sensible
+       fallback that resolves to design system space tokens when possible.
+
+       Attributes (all optional — element works without any attributes):
+         measure="65ch"      max-inline-size (default 65ch; accepts any CSS length)
+         leading="1.65"      line-height on the container
+         compact             reduces all flow/gap values to tighter scale
+         flow="s-m"          block spacing between adjacent children
+         flow-heading="m-l"  extra top margin before headings
+         li-gap="xs-s"       spacing between list items
+         list-indent="1.5em" padding-inline-start on ul/ol
+         rule-gap="m-l"      margin-block around <hr>
+         pre-pad="s-m"       padding inside <pre>
+         pre-radius="xs"     border-radius on <pre>
+         heading-leading     line-height on headings (default 1.2)
+         dt-weight           font-weight on <dt> (default 600)
+
+       Print styles are always bundled. They activate only via @media print —
+       zero cost during normal rendering. Every prose-layout is print-ready
+       without any additional opt-in.
+    ────────────────────────────────────────────────────────────────────────── */
+
+    /* ── Box ───────────────────────────────────────────────────────────────── */
+
+    :where(prose-layout) {
+        display: block;
+        max-inline-size: var(--ds-prose-measure, 65ch);
+        line-height: var(--ds-prose-leading, 1.65);
+        overflow-wrap: break-word;
+        hyphens: auto;
+
+        /* Flow rhythm tokens — resolved once here, used throughout */
+        --ds-prose-flow:          var(--ds-space-s-m, 1rem);
+        --ds-prose-flow-heading:  var(--ds-space-m-l, 1.5rem);
+        --ds-prose-li-gap:        var(--ds-space-xs-s, 0.5rem);
+        --ds-prose-list-indent:   1.25em;
+        --ds-prose-rule-gap:      var(--ds-space-m-l, 1.5rem);
+    }
+
+    /* Coarse-pointer devices (touch screens): increase list item tap spacing */
+    @media (pointer: coarse) {
+        :where(prose-layout) {
+            --ds-prose-li-gap: var(--ds-space-s-m, 1rem);
+        }
+    }
+
+    /* ── Compact modifier ──────────────────────────────────────────────────── */
+
+    :where(prose-layout[compact]) {
+        --ds-prose-flow:         var(--ds-space-xs-s, 0.5rem);
+        --ds-prose-flow-heading: var(--ds-space-s-m, 1rem);
+        --ds-prose-li-gap:       var(--ds-space-xxs, 0.35rem);
+        --ds-prose-rule-gap:     var(--ds-space-s-m, 1rem);
+    }
+
+
+    /* ── Flow rhythm — direct children ─────────────────────────────────────
+       The lobotomized-owl pattern applied only to direct children, so nested
+       prose-layout instances don't inherit the outer element's flow token.
+    ────────────────────────────────────────────────────────────────────────── */
+
+    :where(prose-layout) > :where(* + *) {
+        margin-block-start: var(--ds-prose-flow);
+    }
+
+    /* Headings get extra breathing room above them */
+    :where(prose-layout) > :where(h1, h2, h3, h4, h5, h6) {
+        margin-block-start: var(--ds-prose-flow-heading);
+    }
+
+
+    /* ── Headings ───────────────────────────────────────────────────────────── */
+
+    :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
+        line-height: var(--ds-prose-heading-leading, 1.2);
+        text-wrap: balance;
+    }
+
+
+    /* ── Paragraphs ─────────────────────────────────────────────────────────── */
+
+    /* Reset UA margin — flow rhythm is handled by the owl selector above */
+    :where(prose-layout) :where(p) {
+        margin: 0;
+    }
+
+
+    /* ── Lists ──────────────────────────────────────────────────────────────── */
+
+    :where(prose-layout) :where(ul, ol) {
+        padding-inline-start: var(--ds-prose-list-indent);
+    }
+
+    :where(prose-layout) :where(li) {
+        margin: 0;
+    }
+
+    :where(prose-layout) :where(li + li) {
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+    /* Nested lists get the same gap as sibling items */
+    :where(prose-layout) :where(li > :where(ul, ol)) {
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+
+    /* ── Definition lists ───────────────────────────────────────────────────── */
+
+    :where(prose-layout) :where(dt) {
+        font-weight: var(--ds-prose-dt-weight, 600);
+    }
+
+    :where(prose-layout) :where(dd) {
+        margin-inline-start: 0;
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+    :where(prose-layout) :where(dd + dt) {
+        margin-block-start: var(--ds-prose-flow);
+    }
+
+
+    /* ── Links ──────────────────────────────────────────────────────────────── */
+
+    :where(prose-layout) :where(a) {
+        text-decoration-thickness: from-font;
+        text-underline-offset: 0.15em;
+    }
+
+
+    /* ── Inline code ─────────────────────────────────────────────────────────
+       System monospace stack — intentionally does not override font-size so
+       the author's type scale is respected. 0.95em prevents inline code from
+       making lines taller than normal text.
+    ────────────────────────────────────────────────────────────────────────── */
+
+    :where(prose-layout) :where(code, kbd, samp) {
+        font-family:
+            ui-monospace, sfmono-regular, menlo, consolas, "Liberation Mono",
+            monospace;
+        font-size: 0.95em;
+    }
+
+
+    /* ── Preformatted blocks ─────────────────────────────────────────────────── */
+
+    :where(prose-layout) :where(pre) {
+        overflow: auto;
+        padding: var(--ds-prose-pre-pad, var(--ds-space-s-m, 1rem));
+        border: 1px solid currentColor;
+        border-radius: var(--ds-prose-pre-radius, 0.5rem);
+    }
+
+    :where(prose-layout) :where(pre code) {
+        display: block;
+        white-space: pre;
+        /* Undo the 0.95em set on inline code — pre already sizes the block */
+        font-size: 1em;
+    }
+
+
+    /* ── Blockquote ─────────────────────────────────────────────────────────── */
+
+    :where(prose-layout) :where(blockquote) {
+        margin-inline: 0;
+        padding-inline-start: var(--ds-space-s, 0.75rem);
+        border-inline-start: 0.25rem solid currentColor;
+    }
+
+
+    /* ── Media ───────────────────────────────────────────────────────────────── */
+
+    :where(prose-layout) :where(img, video, svg, canvas) {
+        max-inline-size: 100%;
+        block-size: auto;
+    }
+
+    :where(prose-layout) :where(figure) {
+        margin-inline: 0;
+    }
+
+    :where(prose-layout) :where(figcaption) {
+        font-size: 0.9em;
+        line-height: 1.4;
+    }
+
+
+    /* ── Table ───────────────────────────────────────────────────────────────── */
+
+    :where(prose-layout) :where(table) {
+        inline-size: 100%;
+        border-collapse: collapse;
+    }
+
+    :where(prose-layout) :where(th, td) {
+        padding: var(--ds-space-xs, 0.5rem);
+        border: 1px solid currentColor;
+        text-align: start;
+        vertical-align: top;
+    }
+
+    :where(prose-layout) :where(th) {
+        font-weight: 600;
+    }
+
+
+    /* ── Horizontal rule ─────────────────────────────────────────────────────── */
+
+    :where(prose-layout) :where(hr) {
+        border: 0;
+        border-block-start: 1px solid currentColor;
+        margin-block: var(--ds-prose-rule-gap);
+    }
+
+}
+
+
+/* ── Print styles ─────────────────────────────────────────────────────────────
+   Always bundled — zero cost during screen rendering.
+   Activates only under @media print. No opt-in required.
+
+   Handles:
+   - Page break control (avoid splitting headings from their content)
+   - Orphan/widow control for readability on paper
+   - URL expansion for links (shows href after link text)
+   - Removes backgrounds / normalises colours for ink efficiency
+   - Unwraps pre overflow for paper (no scrollbar on paper)
+────────────────────────────────────────────────────────────────────────────── */
+
+@media print {
+    @layer ds.prose {
+
+        :where(prose-layout) {
+            max-inline-size: none;
+            line-height: 1.45;
+            hyphens: auto;
+        }
+
+        :where(prose-layout) :where(pre) {
+            overflow: visible;
+            white-space: pre-wrap;
+            border: 1px solid currentColor;
+        }
+
+        :where(prose-layout) :where(a) {
+            color: inherit;
+            text-decoration: underline;
+        }
+
+        /* Expand href values so links are useful on paper */
+        :where(prose-layout) :where(a[href]:not([href^="#"]):not([href^="javascript"]))::after {
+            content: " (" attr(href) ")";
+            font-size: 0.88em;
+            word-break: break-all;
+            opacity: 0.6;
+        }
+
+        /* Keep headings with the content that follows them */
+        :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
+            break-after: avoid-page;
+        }
+
+        /* Don't split these across pages */
+        :where(prose-layout) :where(blockquote, figure, table, pre) {
+            break-inside: avoid-page;
+        }
+
+        /* Orphan/widow control */
+        :where(prose-layout) :where(p, li) {
+            orphans: 3;
+            widows: 3;
+        }
+
+    }
+}

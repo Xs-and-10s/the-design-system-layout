@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gallery — @the-design-system/layout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+@layer ds.reset,ds.tokens,ds.base,ds.layout,ds.motion,ds.app;
+
+@layer ds.reset{:where(*,*::before,*::after){box-sizing:border-box;}:where(body){margin:0;}:where(h1,h2,h3,h4){margin:0;}:where(p){margin:0;}:where(a){text-decoration:none;color:inherit;}:where(button){cursor:pointer;border:none;background:none;color:inherit;font:inherit;}:where(:focus-visible){outline:2px solid rgba(48,100,220,.8);outline-offset:2px;}:where(:focus:not(:focus-visible)){outline:none;}}
+
+@layer ds.tokens{
+  :root{
+    --ds-ratio:1.333;--_r2:calc(var(--ds-ratio)*var(--ds-ratio));--_r3:calc(var(--_r2)*var(--ds-ratio));--_r-1:calc(1/var(--ds-ratio));--_r-2:calc(1/var(--_r2));
+    --ds-space-base:clamp(.875rem,.83rem + .2vw,1rem);
+    --ds-space-tiny:calc(var(--ds-space-base)*0.25);
+    --ds-space-xxs:calc(var(--ds-space-base)*var(--_r-2));
+    --ds-space-xs:calc(var(--ds-space-base)*var(--_r-1));
+    --ds-space-s:calc(var(--ds-space-base)*0.75);
+    --ds-space-m:var(--ds-space-base);
+    --ds-space-l:calc(var(--ds-space-base)*var(--ds-ratio));
+    --ds-space-xl:calc(var(--ds-space-base)*var(--_r2));
+    --ds-space-xxl:calc(var(--ds-space-base)*var(--_r3));
+    --ds-space-xs-s:calc((var(--ds-space-xs)+var(--ds-space-s))/2);
+    --ds-space-s-m:calc((var(--ds-space-s)+var(--ds-space-m))/2);
+    --ds-space-m-l:calc((var(--ds-space-m)+var(--ds-space-l))/2);
+    --ds-gap:var(--ds-space-m);
+    /* Blueprint palette — matches the rest of the design system */
+    --c-bg:#07111e;
+    --c-surface:#0b1929;
+    --c-surface-2:#0f2038;
+    --c-border:rgba(48,100,220,.2);
+    --c-border-hi:rgba(48,100,220,.5);
+    --c-blue:#3060dc;
+    --c-blue-dim:rgba(48,96,220,.15);
+    --c-blue-glow:rgba(48,100,220,.08);
+    --c-text:#a8c8f8;
+    --c-text-dim:#5a80a0;
+    --c-text-faint:#2a4060;
+    --c-grid-line:rgba(40,100,220,.18);
+  }
+}
+
+@layer ds.base{
+  html{
+    color-scheme:dark;
+    background-color:var(--c-bg);
+    background-image:
+      linear-gradient(var(--c-grid-line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--c-grid-line) 1px,transparent 1px);
+    background-size:35px 35px;
+    color:var(--c-text);
+    font-family:'Space Mono','Courier New',monospace;
+    font-size:var(--ds-space-m);
+    line-height:1.65;
+  }
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--c-border-hi);border-radius:2px;}
+}
+
+@layer ds.layout{
+  :where(stacked-layout){display:flex;flex-direction:column;gap:var(--ds-stacked-gap,var(--ds-gap));align-items:var(--ds-stacked-align,stretch);}
+  :where(stacked-layout>*){min-inline-size:0;}
+  :where(cluster-layout){display:flex;flex-wrap:wrap;gap:var(--ds-cluster-gap,var(--ds-gap));align-items:var(--ds-cluster-align,center);justify-content:var(--ds-cluster-justify,flex-start);}
+  :where(repel-layout){display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:var(--ds-repel-align,center);gap:var(--ds-repel-gap,var(--ds-gap));}
+  :where(repel-layout>*){min-inline-size:0;}
+  :where(fluid-grid-layout){display:grid;row-gap:var(--ds-fluid-grid-gap-block,var(--ds-fluid-grid-gap,var(--ds-gap)));column-gap:var(--ds-fluid-grid-gap-inline,var(--ds-fluid-grid-gap,var(--ds-gap)));--_fg:var(--ds-fluid-grid-columns,auto-fit);grid-template-columns:repeat(var(--_fg),minmax(min(100%,var(--ds-fluid-grid-min,16rem)),var(--ds-fluid-grid-max,1fr)));align-items:var(--ds-fluid-grid-align,start);}
+  :where(fluid-grid-layout>*){min-inline-size:0;}
+  :where(region-layout){display:block;--ds-region-pad-inline:var(--ds-space-xl);padding-block:var(--ds-region-pad-block,var(--ds-space-xl));padding-inline:var(--ds-region-pad-inline);background:var(--ds-region-bg,transparent);}
+  :where(sticky-layout){display:block;position:sticky;inset-block-start:var(--ds-sticky-bs,auto);z-index:var(--ds-sticky-z,20);}
+  :where(centered-layout){display:block;box-sizing:content-box;max-inline-size:var(--ds-centered-max,65ch);margin-inline:auto;padding-inline:var(--ds-centered-gutter,0px);}
+  :where(sandwich-layout){display:grid;grid-template-rows:auto 1fr auto;block-size:100dvh;overflow:hidden;}
+  :where(sandwich-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(icon-text-layout){display:inline-flex;align-items:var(--ds-icon-text-align,center);gap:var(--ds-icon-text-gap,var(--ds-space-xs-s,.5rem));}
+  :where(icon-text-layout>:first-child){display:block;inline-size:var(--ds-icon-size,1em);block-size:var(--ds-icon-size,1em);flex:0 0 auto;pointer-events:none;}
+  :where(icon-text-layout>:last-child){flex:1 1 auto;min-inline-size:0;}
+  :where(quadrilateral-layout){display:block;padding-block-start:var(--ds-quad-pbs,var(--ds-quad-pad-block,var(--ds-quad-pad,0)));padding-block-end:var(--ds-quad-pbe,var(--ds-quad-pad-block,var(--ds-quad-pad,0)));padding-inline-start:var(--ds-quad-pis,var(--ds-quad-pad-inline,var(--ds-quad-pad,0)));padding-inline-end:var(--ds-quad-pie,var(--ds-quad-pad-inline,var(--ds-quad-pad,0)));border-block-start:var(--ds-quad-border-bs,var(--ds-quad-border-block,var(--ds-quad-border,0)));border-block-end:var(--ds-quad-border-be,var(--ds-quad-border-block,var(--ds-quad-border,0)));border-inline-start:var(--ds-quad-border-is,var(--ds-quad-border-inline,var(--ds-quad-border,0)));border-inline-end:var(--ds-quad-border-ie,var(--ds-quad-border-inline,var(--ds-quad-border,0)));border-start-start-radius:var(--ds-quad-radius-ss,var(--ds-quad-radius,0));border-start-end-radius:var(--ds-quad-radius-se,var(--ds-quad-radius,0));border-end-start-radius:var(--ds-quad-radius-es,var(--ds-quad-radius,0));border-end-end-radius:var(--ds-quad-radius-ee,var(--ds-quad-radius,0));background:var(--ds-quad-bg,transparent);color:var(--ds-quad-fg,inherit);box-shadow:var(--ds-quad-shadow,none);}
+  :where(quadrilateral-layout){transform-origin:var(--ds-quad-origin,50% 50%);}
+  :where(quadrilateral-layout[skew-x],:where(quadrilateral-layout[skew-y])){transform:skewX(var(--ds-quad-skew-x,0deg)) skewY(var(--ds-quad-skew-y,0deg));}
+  :where(quadrilateral-layout[rotate]){rotate:var(--ds-quad-rotate);}
+  :where(quadrilateral-layout[scale]){scale:var(--ds-quad-scale);}
+  :where(quadrilateral-layout[translate]){translate:var(--ds-quad-translate);}
+}
+
+@layer ds.motion{
+  @keyframes modal-in  { from{opacity:0;scale:.97;translate:0 16px} to{opacity:1;scale:1;translate:0 0} }
+  @keyframes overlay-in{ from{opacity:0} to{opacity:1} }
+  @keyframes card-in   { from{opacity:0;translate:0 24px} to{opacity:1;translate:0 0} }
+  @media(prefers-reduced-motion:reduce){:where(*){animation:none!important;transition-duration:.01ms!important;}}
+}
+
+@layer ds.app{
+  /* ── Header ── */
+  .site-header{background:rgba(7,17,30,.92);backdrop-filter:blur(12px);border-block-end:1px dashed var(--c-border);}
+  .ds-logo{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.06em;color:#d0e8ff;}
+  .ds-logo span{color:var(--c-text-dim);}
+  .nav-link{font-size:.7rem;letter-spacing:.05em;color:var(--c-text-dim);transition:color .12s;}
+  .nav-link:hover{color:var(--c-text);}
+  .nav-link.active{color:#d0e8ff;}
+  .nav-pill{font-size:.6rem;letter-spacing:.08em;padding:2px 8px;border:1px dashed var(--c-border);border-radius:2px;color:var(--c-text-dim);}
+
+  /* ── Page hero ── */
+  .hero-num{font-family:'Barlow Condensed',sans-serif;font-size:clamp(4rem,14vw,9rem);font-weight:900;line-height:.85;letter-spacing:-.03em;color:var(--c-text-faint);user-select:none;}
+  .hero-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(1.8rem,4vw,3rem);font-weight:700;color:#d0e8ff;letter-spacing:-.01em;line-height:1;}
+  .hero-desc{font-size:.82rem;color:var(--c-text-dim);max-inline-size:60ch;line-height:1.7;}
+
+  /* ── Gallery cards ── */
+  .gallery-card{
+    position:relative;overflow:hidden;
+    background:var(--c-surface);
+    border:1px dashed var(--c-border);
+    border-radius:2px;
+    cursor:pointer;
+    transition:border-color .2s,box-shadow .2s;
+    animation:card-in .5s cubic-bezier(.16,1,.3,1) both;
+  }
+  .gallery-card:hover{border-color:var(--c-border-hi);box-shadow:0 0 0 1px var(--c-blue-dim),0 8px 32px rgba(0,0,0,.4);}
+  .gallery-card:hover .card-preview{scale:1.03;}
+  .gallery-card:hover .card-cta{opacity:1;translate:0 0;}
+  .gallery-card:focus-visible{outline:2px solid var(--c-border-hi);outline-offset:2px;}
+  .card-num{position:absolute;inset-block-start:var(--ds-space-m);inset-inline-start:var(--ds-space-m);font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.12em;color:var(--c-text-faint);z-index:2;user-select:none;}
+  .card-preview{
+    block-size:280px;display:block;
+    transition:scale .5s cubic-bezier(.16,1,.3,1);
+    position:relative;overflow:hidden;
+  }
+  .card-info{padding:var(--ds-space-m) var(--ds-space-l) var(--ds-space-l);}
+  .card-tag{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--c-text-faint);font-family:'Space Mono',monospace;}
+  .card-title{font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:700;color:#d0e8ff;letter-spacing:-.01em;line-height:1.1;margin-block:var(--ds-space-xs) var(--ds-space-s);}
+  .card-desc{font-size:.72rem;color:var(--c-text-dim);line-height:1.65;}
+  .card-primitives{display:flex;flex-wrap:wrap;gap:4px;margin-block-start:var(--ds-space-m);}
+  .pt{display:inline-block;font-size:.55rem;letter-spacing:.06em;padding:2px 7px;border:1px dashed var(--c-border);border-radius:1px;color:var(--c-text-faint);}
+  .card-cta{
+    display:inline-flex;align-items:center;gap:var(--ds-space-s);
+    margin-block-start:var(--ds-space-m);
+    font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:600;
+    letter-spacing:.08em;text-transform:uppercase;
+    color:var(--c-text);
+    border:1px dashed var(--c-border-hi);
+    padding:var(--ds-space-xs) var(--ds-space-m);
+    border-radius:2px;
+    opacity:0;
+    translate:0 6px;
+    transition:opacity .2s,translate .2s,background .15s,color .15s;
+  }
+  .card-cta:hover{background:var(--c-blue-dim);color:#d0e8ff;}
+  .gallery-card:hover .card-cta{opacity:1;translate:0 0;}
+
+  /* ── Transform showcase section ── */
+  .showcase-card{
+    background:var(--c-surface);border:1px dashed var(--c-border);border-radius:2px;
+    padding:var(--ds-space-l);overflow:hidden;position:relative;
+  }
+  .showcase-label{font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--c-text-faint);font-family:'Space Mono',monospace;margin-block-end:var(--ds-space-m);}
+  .attr-chip{display:inline-block;font-size:.6rem;letter-spacing:.04em;padding:2px 8px;background:var(--c-blue-dim);border:1px solid var(--c-border-hi);border-radius:1px;color:#80a8e8;font-family:'Space Mono',monospace;}
+
+  /* ── Modal overlay ── */
+  .modal-overlay{
+    position:fixed;inset:0;z-index:200;
+    background:rgba(4,10,20,.92);
+    backdrop-filter:blur(8px);
+    display:grid;place-items:center;
+    padding:var(--ds-space-m);
+    opacity:0;pointer-events:none;
+    transition:opacity .25s;
+  }
+  .modal-overlay.open{opacity:1;pointer-events:all;}
+  .modal-shell{
+    width:100%;height:100%;max-width:1280px;max-height:calc(100dvh - 2*var(--ds-space-m));
+    border:1px dashed var(--c-border-hi);border-radius:2px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column;
+    animation:modal-in .3s cubic-bezier(.16,1,.3,1) both;
+    box-shadow:0 24px 80px rgba(0,0,0,.6);
+  }
+  .modal-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:var(--ds-space-xs) var(--ds-space-m);
+    background:var(--c-surface-2);
+    border-block-end:1px dashed var(--c-border);
+    flex-shrink:0;
+  }
+  .modal-title{font-family:'Barlow Condensed',sans-serif;font-size:.9rem;font-weight:600;letter-spacing:.06em;color:#d0e8ff;}
+  .modal-close{
+    width:28px;height:28px;border-radius:2px;
+    border:1px dashed var(--c-border);
+    display:flex;align-items:center;justify-content:center;
+    font-size:1rem;color:var(--c-text-dim);
+    transition:border-color .12s,color .12s,background .12s;
+  }
+  .modal-close:hover{border-color:var(--c-border-hi);color:var(--c-text);background:var(--c-blue-dim);}
+  .modal-frame{flex:1;width:100%;border:none;display:block;background:var(--c-bg);}
+
+  /* ── Footer ── */
+  .site-footer{border-block-start:1px dashed var(--c-border);padding:var(--ds-space-l) var(--ds-space-xl);}
+}
+
+@layer ds.prose {
+
+
+
+
+
+    :where(prose-layout) {
+        display: block;
+        max-inline-size: var(--ds-prose-measure, 65ch);
+        line-height: var(--ds-prose-leading, 1.65);
+        overflow-wrap: break-word;
+        hyphens: auto;
+
+
+        --ds-prose-flow:          var(--ds-space-s-m, 1rem);
+        --ds-prose-flow-heading:  var(--ds-space-m-l, 1.5rem);
+        --ds-prose-li-gap:        var(--ds-space-xs-s, 0.5rem);
+        --ds-prose-list-indent:   1.25em;
+        --ds-prose-rule-gap:      var(--ds-space-m-l, 1.5rem);
+    }
+
+
+    @media (pointer: coarse) {
+        :where(prose-layout) {
+            --ds-prose-li-gap: var(--ds-space-s-m, 1rem);
+        }
+    }
+
+
+
+    :where(prose-layout[compact]) {
+        --ds-prose-flow:         var(--ds-space-xs-s, 0.5rem);
+        --ds-prose-flow-heading: var(--ds-space-s-m, 1rem);
+        --ds-prose-li-gap:       var(--ds-space-xxs, 0.35rem);
+        --ds-prose-rule-gap:     var(--ds-space-s-m, 1rem);
+    }
+
+
+
+    :where(prose-layout) > :where(* + *) {
+        margin-block-start: var(--ds-prose-flow);
+    }
+
+
+    :where(prose-layout) > :where(h1, h2, h3, h4, h5, h6) {
+        margin-block-start: var(--ds-prose-flow-heading);
+    }
+
+
+
+    :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
+        line-height: var(--ds-prose-heading-leading, 1.2);
+        text-wrap: balance;
+    }
+
+
+
+
+    :where(prose-layout) :where(p) {
+        margin: 0;
+    }
+
+
+
+    :where(prose-layout) :where(ul, ol) {
+        padding-inline-start: var(--ds-prose-list-indent);
+    }
+
+    :where(prose-layout) :where(li) {
+        margin: 0;
+    }
+
+    :where(prose-layout) :where(li + li) {
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+
+    :where(prose-layout) :where(li > :where(ul, ol)) {
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+
+
+    :where(prose-layout) :where(dt) {
+        font-weight: var(--ds-prose-dt-weight, 600);
+    }
+
+    :where(prose-layout) :where(dd) {
+        margin-inline-start: 0;
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+    :where(prose-layout) :where(dd + dt) {
+        margin-block-start: var(--ds-prose-flow);
+    }
+
+
+
+    :where(prose-layout) :where(a) {
+        text-decoration-thickness: from-font;
+        text-underline-offset: 0.15em;
+    }
+
+
+
+    :where(prose-layout) :where(code, kbd, samp) {
+        font-family:
+            ui-monospace, sfmono-regular, menlo, consolas, "Liberation Mono",
+            monospace;
+        font-size: 0.95em;
+    }
+
+
+
+    :where(prose-layout) :where(pre) {
+        overflow: auto;
+        padding: var(--ds-prose-pre-pad, var(--ds-space-s-m, 1rem));
+        border: 1px solid currentColor;
+        border-radius: var(--ds-prose-pre-radius, 0.5rem);
+    }
+
+    :where(prose-layout) :where(pre code) {
+        display: block;
+        white-space: pre;
+
+        font-size: 1em;
+    }
+
+
+
+    :where(prose-layout) :where(blockquote) {
+        margin-inline: 0;
+        padding-inline-start: var(--ds-space-s, 0.75rem);
+        border-inline-start: 0.25rem solid currentColor;
+    }
+
+
+
+    :where(prose-layout) :where(img, video, svg, canvas) {
+        max-inline-size: 100%;
+        block-size: auto;
+    }
+
+    :where(prose-layout) :where(figure) {
+        margin-inline: 0;
+    }
+
+    :where(prose-layout) :where(figcaption) {
+        font-size: 0.9em;
+        line-height: 1.4;
+    }
+
+
+
+    :where(prose-layout) :where(table) {
+        inline-size: 100%;
+        border-collapse: collapse;
+    }
+
+    :where(prose-layout) :where(th, td) {
+        padding: var(--ds-space-xs, 0.5rem);
+        border: 1px solid currentColor;
+        text-align: start;
+        vertical-align: top;
+    }
+
+    :where(prose-layout) :where(th) {
+        font-weight: 600;
+    }
+
+
+
+    :where(prose-layout) :where(hr) {
+        border: 0;
+        border-block-start: 1px solid currentColor;
+        margin-block: var(--ds-prose-rule-gap);
+    }
+
+}
+
+@media print {
+    @layer ds.prose {
+
+        :where(prose-layout) {
+            max-inline-size: none;
+            line-height: 1.45;
+            hyphens: auto;
+        }
+
+        :where(prose-layout) :where(pre) {
+            overflow: visible;
+            white-space: pre-wrap;
+            border: 1px solid currentColor;
+        }
+
+        :where(prose-layout) :where(a) {
+            color: inherit;
+            text-decoration: underline;
+        }
+
+
+        :where(prose-layout) :where(a[href]:not([href^="#"]):not([href^="javascript"]))::after {
+            content: " (" attr(href) ")";
+            font-size: 0.88em;
+            word-break: break-all;
+            opacity: 0.6;
+        }
+
+
+        :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
+            break-after: avoid-page;
+        }
+
+
+        :where(prose-layout) :where(blockquote, figure, table, pre) {
+            break-inside: avoid-page;
+        }
+
+
+        :where(prose-layout) :where(p, li) {
+            orphans: 3;
+            widows: 3;
+        }
+
+    }
+}
+</style>
+</head>
+<body>
+
+<!-- ── STICKY HEADER ─────────────────────────────────────────────── -->
+<sticky-layout data-layout="sticky-layout" bs="0" z="50">
+  <header class="site-header">
+    <region-layout data-layout="region-layout"
+      style="--ds-region-pad-block:var(--ds-space-s);--ds-region-pad-inline:var(--ds-space-xl)">
+      <repel-layout data-layout="repel-layout" gap="m">
+        <cluster-layout data-layout="cluster-layout" gap="m">
+          <a href="index.html" class="ds-logo">@the-design-system/<span>layout</span></a>
+          <span class="nav-pill">v0.1</span>
+        </cluster-layout>
+        <nav>
+          <cluster-layout data-layout="cluster-layout" gap="xl" style="--ds-cluster-gap:var(--ds-space-xl)">
+            <a href="index.html"              class="nav-link">Home</a>
+            <a href="layout-primitives.html"  class="nav-link">Primitives</a>
+            <a href="patterns.html"           class="nav-link">Patterns</a>
+            <a href="gallery.html"            class="nav-link active">Gallery</a>
+            <a href="#"                        class="nav-link">Changelog</a>
+          </cluster-layout>
+        </nav>
+      </repel-layout>
+    </region-layout>
+  </header>
+</sticky-layout>
+
+
+<!-- ── PAGE HERO ─────────────────────────────────────────────────── -->
+<region-layout data-layout="region-layout"
+  style="--ds-region-pad-block:var(--ds-space-xxl);--ds-region-pad-inline:var(--ds-space-xl);border-block-end:1px dashed var(--c-border);position:relative;overflow:hidden">
+
+  <!-- Large decorative numeral -->
+  <div class="hero-num" aria-hidden="true"
+    style="position:absolute;inset-block-start:-.1em;inset-inline-end:-.02em;user-select:none;line-height:1">
+    03
+  </div>
+
+  <!-- Oblique accent — skew showcase in the hero itself -->
+  <quadrilateral-layout data-layout="quadrilateral-layout"
+    skew-x="-4deg"
+    bg="rgba(48,96,220,.05)"
+    origin="center left"
+    style="position:absolute;inset-block:-80%;inset-inline:-5%;pointer-events:none;z-index:0">
+  </quadrilateral-layout>
+
+  <stacked-layout data-layout="stacked-layout" gap="l" style="position:relative;z-index:1;max-inline-size:56ch">
+    <div style="display:flex;align-items:center;gap:var(--ds-space-m)">
+      <div style="width:24px;height:1px;background:var(--c-border-hi)"></div>
+      <span style="font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--c-text-faint)">Gallery</span>
+    </div>
+    <div class="hero-title">Three complete pages.<br>One layout system.</div>
+    <prose-layout data-layout="prose-layout" measure="60ch" class="hero-desc">
+      <p class="hero-desc">
+      Each entry is a fully working page — professional SaaS, design-studio editorial, and all-out generative art — assembled exclusively from <code style="font-size:.8em;color:#80a8e8">@the-design-system/layout</code> primitives, and the new <code style="font-size:.8em;color:#80a8e8">quadrilateral-layout</code> transform API.
+    </p>
+    </prose-layout>
+  </stacked-layout>
+</region-layout>
+
+
+<!-- ── TRANSFORM CAPABILITY PREVIEW ─────────────────────────────── -->
+<region-layout data-layout="region-layout"
+  style="--ds-region-pad-block:var(--ds-space-xl);--ds-region-pad-inline:var(--ds-space-xl);border-block-end:1px dashed var(--c-border)">
+
+  <stacked-layout data-layout="stacked-layout" gap="l">
+
+    <repel-layout data-layout="repel-layout" gap="m">
+      <span style="font-family:'Barlow Condensed';font-size:1.1rem;font-weight:600;color:#d0e8ff;letter-spacing:-.01em">quadrilateral-layout — new transform API</span>
+      <a href="layout-primitives.html#quadrilateral" style="font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--c-text-faint);border:1px dashed var(--c-border);padding:2px 10px;border-radius:1px;transition:border-color .15s,color .15s" onmouseenter="this.style.borderColor='rgba(48,100,220,.5)';this.style.color='var(--c-text)'" onmouseleave="this.style.borderColor='';this.style.color=''">Docs →</a>
+    </repel-layout>
+
+    <fluid-grid-layout data-layout="fluid-grid-layout" min="200px" gap="m">
+
+      <!-- skew-x -->
+      <div class="showcase-card">
+        <div class="showcase-label">skew-x</div>
+        <div style="block-size:80px;overflow:hidden;position:relative;margin-block-end:var(--ds-space-m)">
+          <quadrilateral-layout data-layout="quadrilateral-layout"
+            skew-x="-10deg"
+            bg="rgba(48,96,220,.2)"
+            border="1px dashed rgba(48,96,220,.4)"
+            style="position:absolute;inset-block:-20%;inset-inline:10%;border-radius:1px">
+          </quadrilateral-layout>
+          <quadrilateral-layout data-layout="quadrilateral-layout"
+            skew-x="-10deg"
+            bg="rgba(48,96,220,.08)"
+            style="position:absolute;inset-block:-20%;inset-inline:30%;border-radius:1px">
+          </quadrilateral-layout>
+        </div>
+        <span class="attr-chip">skew-x="-10deg"</span>
+        <div style="font-size:.68rem;color:var(--c-text-dim);margin-block-start:var(--ds-space-xs)">Oblique stripes, parallelogram cards, diagonal accents.</div>
+      </div>
+
+      <!-- skew-y -->
+      <div class="showcase-card">
+        <div class="showcase-label">skew-y</div>
+        <div style="block-size:80px;overflow:hidden;position:relative;margin-block-end:var(--ds-space-m)">
+          <quadrilateral-layout data-layout="quadrilateral-layout"
+            skew-y="8deg"
+            bg="rgba(0,196,164,.15)"
+            border="1px dashed rgba(0,196,164,.35)"
+            style="position:absolute;inset-block:5%;inset-inline:15%;border-radius:1px">
+          </quadrilateral-layout>
+        </div>
+        <span class="attr-chip">skew-y="8deg"</span>
+        <div style="font-size:.68rem;color:var(--c-text-dim);margin-block-start:var(--ds-space-xs)">Vertical shear — diagonal section dividers.</div>
+      </div>
+
+      <!-- rotate -->
+      <div class="showcase-card">
+        <div class="showcase-label">rotate</div>
+        <div style="block-size:80px;display:grid;place-items:center;margin-block-end:var(--ds-space-m)">
+          <quadrilateral-layout data-layout="quadrilateral-layout"
+            rotate="45deg"
+            bg="rgba(212,98,42,.2)"
+            border="1px dashed rgba(212,98,42,.5)"
+            style="width:44px;height:44px;border-radius:2px">
+          </quadrilateral-layout>
+        </div>
+        <span class="attr-chip">rotate="45deg"</span>
+        <div style="font-size:.68rem;color:var(--c-text-dim);margin-block-start:var(--ds-space-xs)">2D and 3D rotation. Composes with scale &amp; translate.</div>
+      </div>
+
+      <!-- scale -->
+      <div class="showcase-card">
+        <div class="showcase-label">scale</div>
+        <div style="block-size:80px;display:grid;place-items:center;position:relative;overflow:hidden;margin-block-end:var(--ds-space-m)">
+          <quadrilateral-layout data-layout="quadrilateral-layout"
+            bg="rgba(139,92,246,.15)"
+            border="1px dashed rgba(139,92,246,.4)"
+            style="position:absolute;width:60%;height:60%;border-radius:1px;opacity:.4">
+          </quadrilateral-layout>
+          <quadrilateral-layout data-layout="quadrilateral-layout"
+            scale="1.25"
+            bg="rgba(139,92,246,.25)"
+            border="1px dashed rgba(139,92,246,.7)"
+            style="position:absolute;width:60%;height:60%;border-radius:1px">
+          </quadrilateral-layout>
+        </div>
+        <span class="attr-chip">scale="1.25"</span>
+        <div style="font-size:.68rem;color:var(--c-text-dim);margin-block-start:var(--ds-space-xs)">Uniform or x/y. Lift on hover, focal zoom, squeeze.</div>
+      </div>
+
+      <!-- translate -->
+      <div class="showcase-card">
+        <div class="showcase-label">translate</div>
+        <div style="block-size:80px;display:grid;place-items:center;position:relative;margin-block-end:var(--ds-space-m)">
+          <quadrilateral-layout data-layout="quadrilateral-layout"
+            bg="rgba(6,182,212,.1)"
+            border="1px dashed rgba(6,182,212,.3)"
+            style="position:absolute;width:60%;height:50%;border-radius:1px;top:30%">
+          </quadrilateral-layout>
+          <quadrilateral-layout data-layout="quadrilateral-layout"
+            translate="12px -10px"
+            bg="rgba(6,182,212,.3)"
+            border="1px dashed rgba(6,182,212,.7)"
+            style="position:absolute;width:60%;height:50%;border-radius:1px;top:30%">
+          </quadrilateral-layout>
+        </div>
+        <span class="attr-chip">translate="12px -10px"</span>
+        <div style="font-size:.68rem;color:var(--c-text-dim);margin-block-start:var(--ds-space-xs)">Independent x/y/z nudge. Float, parallax, 3D depth.</div>
+      </div>
+
+      <!-- compose all three -->
+      <div class="showcase-card" style="--c-border:rgba(48,100,220,.35)">
+        <div class="showcase-label" style="color:#80a8e8">All four composing</div>
+        <div style="block-size:80px;overflow:hidden;position:relative;margin-block-end:var(--ds-space-m)">
+          <quadrilateral-layout data-layout="quadrilateral-layout"
+            skew-x="-8deg" rotate="6deg" scale="1.1" translate="4px -6px"
+            bg="linear-gradient(135deg,rgba(139,92,246,.3),rgba(6,182,212,.2))"
+            border="1px dashed rgba(139,92,246,.6)"
+            style="position:absolute;inset:10%;border-radius:2px">
+          </quadrilateral-layout>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-block-end:var(--ds-space-xs)">
+          <span class="attr-chip">skew-x</span>
+          <span class="attr-chip">rotate</span>
+          <span class="attr-chip">scale</span>
+          <span class="attr-chip">translate</span>
+        </div>
+        <div style="font-size:.68rem;color:var(--c-text-dim)">All four compose multiplicatively — no overwrite.</div>
+      </div>
+
+    </fluid-grid-layout>
+  </stacked-layout>
+</region-layout>
+
+
+<!-- ── GALLERY CARDS ──────────────────────────────────────────────── -->
+<region-layout data-layout="region-layout"
+  style="--ds-region-pad-block:var(--ds-space-xxl);--ds-region-pad-inline:var(--ds-space-xl)">
+
+  <stacked-layout data-layout="stacked-layout" gap="xxl">
+
+    <repel-layout data-layout="repel-layout">
+      <span style="font-family:'Barlow Condensed';font-size:1.1rem;font-weight:600;color:#d0e8ff;letter-spacing:-.01em">Three Pages. One System.</span>
+      <span style="font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--c-text-faint)">Click any card to open</span>
+    </repel-layout>
+
+    <fluid-grid-layout data-layout="fluid-grid-layout" min="320px" gap="l">
+
+      <!-- ── CARD 1: MERIDIAN (Professional / SaaS) ── -->
+      <button class="gallery-card" onclick="openModal('gallery-meridian.html','Meridian Analytics Platform')" style="animation-delay:.05s" aria-label="Open Meridian Analytics page">
+        <span class="card-num">01</span>
+
+        <!-- Preview thumbnail — dark navy/teal SaaS feel -->
+        <div class="card-preview" style="background:#080e1a;border-block-end:1px dashed rgba(48,100,220,.2)">
+          <!-- Sidebar + topbar sketch -->
+          <div style="position:absolute;inset:0;display:grid;grid-template-columns:48px 1fr;grid-template-rows:28px 1fr">
+            <!-- Topbar -->
+            <div style="grid-column:1/-1;background:#0d1829;border-block-end:1px solid rgba(26,46,74,.8);display:flex;align-items:center;gap:8px;padding-inline:10px">
+              <div style="width:14px;height:14px;background:linear-gradient(135deg,#00c4a4,#0070d4);border-radius:3px"></div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:.65rem;font-weight:600;color:#d8eef8;letter-spacing:.05em">Meridian</div>
+              <div style="margin-inline-start:auto;font-size:.55rem;color:#304560;font-family:'Space Mono',monospace">UTC 14:32</div>
+            </div>
+            <!-- Sidebar -->
+            <div style="background:#0d1829;border-inline-end:1px solid rgba(26,46,74,.8);padding-block-start:8px">
+              <div style="width:28px;height:4px;background:rgba(0,196,164,.4);border-radius:1px;margin:3px auto;border-inline-start:2px solid #00c4a4"></div>
+              <div style="width:28px;height:4px;background:rgba(26,46,74,.4);border-radius:1px;margin:3px auto"></div>
+              <div style="width:28px;height:4px;background:rgba(26,46,74,.4);border-radius:1px;margin:3px auto"></div>
+              <div style="width:28px;height:4px;background:rgba(26,46,74,.4);border-radius:1px;margin:3px auto"></div>
+            </div>
+            <!-- Main: KPI + chart preview -->
+            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+                <div style="background:#0d1829;border:1px solid rgba(26,46,74,.8);border-radius:2px;padding:4px 6px">
+                  <div style="font-size:.5rem;color:#304560;font-family:'Space Mono',monospace;margin-block-end:2px">EVT</div>
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;color:#c8daf0">12.4B</div>
+                </div>
+                <div style="background:#0d1829;border:1px solid rgba(26,46,74,.8);border-radius:2px;padding:4px 6px">
+                  <div style="font-size:.5rem;color:#304560;font-family:'Space Mono',monospace;margin-block-end:2px">LAT</div>
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;color:#c8daf0">4.2ms</div>
+                </div>
+                <div style="background:#0d1829;border:1px solid rgba(26,46,74,.8);border-radius:2px;padding:4px 6px">
+                  <div style="font-size:.5rem;color:#304560;font-family:'Space Mono',monospace;margin-block-end:2px">ERR</div>
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;color:#c8daf0">.04%</div>
+                </div>
+                <div style="background:#0d1829;border:1px solid rgba(26,46,74,.8);border-radius:2px;padding:4px 6px">
+                  <div style="font-size:.5rem;color:#304560;font-family:'Space Mono',monospace;margin-block-end:2px">NOD</div>
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;color:#c8daf0">247</div>
+                </div>
+              </div>
+              <!-- Mini chart -->
+              <div style="flex:1;background:#0d1829;border:1px solid rgba(26,46,74,.8);border-radius:2px;overflow:hidden;min-block-size:60px">
+                <svg width="100%" height="100%" viewBox="0 0 200 60" preserveAspectRatio="none">
+                  <defs><linearGradient id="pg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00c4a4" stop-opacity=".4"/><stop offset="100%" stop-color="#00c4a4" stop-opacity="0"/></linearGradient></defs>
+                  <path d="M0,50 C20,46 40,38 60,32 C80,26 100,30 120,24 C140,18 160,12 200,6 L200,60 L0,60Z" fill="url(#pg1)"/>
+                  <path d="M0,50 C20,46 40,38 60,32 C80,26 100,30 120,24 C140,18 160,12 200,6" fill="none" stroke="#00c4a4" stroke-width="1.5"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-info">
+          <div class="card-tag">Professional · SaaS Dashboard</div>
+          <div class="card-title">Meridian Analytics</div>
+          <div class="card-desc">Full-featured observability dashboard. Sidebar navigation, KPI row, area chart, alert panel, and a data table — all in a dark navy/teal palette.</div>
+          <div class="card-primitives">
+            <span class="pt">sandwich-layout</span>
+            <span class="pt">split-pane-layout</span>
+            <span class="pt">columns-layout</span>
+            <span class="pt">split-layout</span>
+            <span class="pt">quadrilateral-layout</span>
+            <span class="pt">stacked-layout</span>
+            <span class="pt">repel-layout</span>
+          </div>
+          <div class="card-cta">
+            Open page
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </button>
+
+      <!-- ── CARD 2: FORMA (Design-Oriented / Editorial) ── -->
+      <button class="gallery-card" onclick="openModal('gallery-forma.html','Forma Design Studio')" style="animation-delay:.12s" aria-label="Open Forma Design Studio page">
+        <span class="card-num">02</span>
+
+        <!-- Preview thumbnail — near-black / orange editorial -->
+        <div class="card-preview" style="background:#0e0e0e;border-block-end:1px dashed rgba(240,235,224,.08)">
+          <div style="position:absolute;inset:0;overflow:hidden">
+            <!-- Oblique accent stripe -->
+            <quadrilateral-layout data-layout="quadrilateral-layout"
+              skew-x="-4deg"
+              bg="rgba(212,98,42,.12)"
+              style="position:absolute;inset-block:-20%;inset-inline:-5%;pointer-events:none">
+            </quadrilateral-layout>
+            <!-- Nav -->
+            <div style="position:relative;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-block-end:1px solid rgba(240,235,224,.08)">
+              <span style="font-family:'Barlow Condensed',sans-serif;font-size:.9rem;font-weight:900;letter-spacing:.06em;color:#f0ebe0">FORMA</span>
+              <div style="display:flex;gap:12px">
+                <span style="font-family:'Space Mono',monospace;font-size:.45rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(120,115,106,.8)">Work</span>
+                <span style="font-family:'Space Mono',monospace;font-size:.45rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(120,115,106,.8)">Studio</span>
+                <span style="font-family:'Space Mono',monospace;font-size:.45rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(120,115,106,.8)">Services</span>
+              </div>
+            </div>
+            <!-- Hero text -->
+            <div style="padding:12px 16px;position:relative">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2.6rem;line-height:.88;letter-spacing:-.03em;color:#f0ebe0">WE BUILD</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2.6rem;line-height:.88;letter-spacing:-.03em;color:#d4622a">WHAT OTHERS</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2.6rem;line-height:.88;letter-spacing:-.03em;color:#f0ebe0">IMAGINE</div>
+            </div>
+            <!-- Project list mini -->
+            <div style="padding:8px 16px;border-block-start:1px solid rgba(240,235,224,.08)">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-block:4px;border-block-end:1px solid rgba(240,235,224,.06)">
+                <span style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;color:#f0ebe0">Serenity Health App</span>
+                <span style="font-family:'Space Mono',monospace;font-size:.45rem;color:rgba(120,115,106,.7)">2024</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-block:4px;border-block-end:1px solid rgba(240,235,224,.06)">
+                <span style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;color:#f0ebe0">Apex Branding Identity</span>
+                <span style="font-family:'Space Mono',monospace;font-size:.45rem;color:rgba(120,115,106,.7)">2023</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-info">
+          <div class="card-tag">Design-Oriented · Studio Site</div>
+          <div class="card-title">Forma Studio</div>
+          <div class="card-desc">Condensed-type editorial identity for a design studio. Hero with skewed oblique accent, project list, service offerings, and a bold full-bleed CTA.</div>
+          <div class="card-primitives">
+            <span class="pt">region-layout</span>
+            <span class="pt">breakout-layout</span>
+            <span class="pt">centered-layout</span>
+            <span class="pt">split-layout</span>
+            <span class="pt">repel-layout</span>
+            <span class="pt">quadrilateral-layout[skew-x]</span>
+          </div>
+          <div class="card-cta">
+            Open page
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </button>
+
+      <!-- ── CARD 3: PRISM (All-Out Creative / Generative Art) ── -->
+      <button class="gallery-card" onclick="openModal('gallery-prism.html','Prism Generative Art Studio')" style="animation-delay:.19s" aria-label="Open Prism Generative Art page">
+        <span class="card-num">03</span>
+
+        <!-- Preview thumbnail — void-black / gradient -->
+        <div class="card-preview" style="background:#030305;border-block-end:1px dashed rgba(255,255,255,.06)">
+          <div style="position:absolute;inset:0;overflow:hidden">
+            <!-- Animated gradient bands via quad skew -->
+            <quadrilateral-layout data-layout="quadrilateral-layout"
+              skew-x="-12deg"
+              bg="linear-gradient(90deg,transparent,rgba(139,92,246,.25),transparent)"
+              style="position:absolute;inset-block:-50%;inset-inline:-20%">
+            </quadrilateral-layout>
+            <quadrilateral-layout data-layout="quadrilateral-layout"
+              skew-x="6deg"
+              bg="linear-gradient(90deg,transparent,rgba(236,72,153,.15),transparent)"
+              style="position:absolute;inset-block:-50%;inset-inline:-20%">
+            </quadrilateral-layout>
+            <!-- Rotating quad ornaments -->
+            <quadrilateral-layout data-layout="quadrilateral-layout"
+              rotate="35deg"
+              bg="rgba(139,92,246,.25)"
+              style="position:absolute;inset-block-start:15%;inset-inline-end:12%;width:40px;height:40px;border-radius:3px">
+            </quadrilateral-layout>
+            <quadrilateral-layout data-layout="quadrilateral-layout"
+              rotate="-20deg"
+              bg="rgba(6,182,212,.2)"
+              style="position:absolute;inset-block-start:45%;inset-inline-start:10%;width:28px;height:28px;border-radius:2px">
+            </quadrilateral-layout>
+            <!-- Nav -->
+            <div style="position:relative;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:rgba(3,3,5,.6);backdrop-filter:blur(8px);border-block-end:1px solid rgba(255,255,255,.06)">
+              <span style="font-family:'Barlow Condensed',sans-serif;font-size:.9rem;font-weight:900;background:linear-gradient(90deg,#8b5cf6,#ec4899,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">PRISM</span>
+            </div>
+            <!-- Hero text -->
+            <div style="padding:14px 16px;position:relative;z-index:2">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-style:italic;font-size:2.8rem;line-height:.84;letter-spacing:-.03em;background:linear-gradient(90deg,#8b5cf6,#ec4899,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">MAKE</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-style:italic;font-size:2.8rem;line-height:.84;letter-spacing:-.03em;color:#f0f0ff">SOME</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-style:italic;font-size:2.8rem;line-height:.84;letter-spacing:-.03em;-webkit-text-stroke:1.5px rgba(255,255,255,.25);color:transparent">THING</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-info">
+          <div class="card-tag">All-Out Creative · Generative Art</div>
+          <div class="card-title">Prism Studio</div>
+          <div class="card-desc">Void-black generative art portfolio with rotating/skewing quads as living background elements. Masonry work grid, composition statement, commission form.</div>
+          <div class="card-primitives">
+            <span class="pt">masonry-layout</span>
+            <span class="pt">z-axis-layout</span>
+            <span class="pt">aspect-ratio-layout</span>
+            <span class="pt">centered-layout</span>
+            <span class="pt">quadrilateral-layout[rotate]</span>
+            <span class="pt">quadrilateral-layout[skew-x]</span>
+          </div>
+          <div class="card-cta">
+            Open page
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </div>
+        </div>
+      </button>
+
+    </fluid-grid-layout>
+  </stacked-layout>
+</region-layout>
+
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────── -->
+<footer class="site-footer">
+  <repel-layout data-layout="repel-layout" wrap gap="m">
+    <span style="font-size:.65rem;color:var(--c-text-faint);letter-spacing:.06em">@the-design-system/layout · Gallery</span>
+    <cluster-layout data-layout="cluster-layout" gap="xl" style="--ds-cluster-gap:var(--ds-space-xl)">
+      <a href="index.html"             class="nav-link">Home</a>
+      <a href="layout-primitives.html" class="nav-link">Primitives</a>
+      <a href="patterns.html"          class="nav-link">Patterns</a>
+    </cluster-layout>
+    <span style="font-size:.65rem;color:var(--c-text-faint);letter-spacing:.06em">MIT License</span>
+  </repel-layout>
+</footer>
+
+
+<!-- ── MODAL ──────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"
+  onclick="if(event.target===this)closeModal()">
+  <div class="modal-shell">
+    <div class="modal-bar">
+      <span class="modal-title" id="modal-title">Gallery</span>
+      <cluster-layout data-layout="cluster-layout" gap="s">
+        <a id="modal-open-link" href="#" target="_blank" rel="noopener"
+          style="display:inline-flex;align-items:center;gap:6px;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--c-text-dim);border:1px dashed var(--c-border);padding:3px 10px;border-radius:1px;transition:border-color .12s,color .12s"
+          onmouseenter="this.style.borderColor='rgba(48,100,220,.5)';this.style.color='var(--c-text)'"
+          onmouseleave="this.style.borderColor='';this.style.color=''">
+          Open in tab
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+        </a>
+        <button class="modal-close" onclick="closeModal()" aria-label="Close gallery modal">✕</button>
+      </cluster-layout>
+    </div>
+    <iframe class="modal-frame" id="modal-frame" title="Gallery page" src="" loading="lazy"></iframe>
+  </div>
+</div>
+
+
+<script>
+/* ── Layout primitives factory ─────────────────────────────────── */
+function aV(e,n,v){v===''||v==null?e.style.removeProperty(n):e.style.setProperty(n,v);}
+function aP(e,n,v){v===''||v==null?e.style.removeProperty(n):e.style.setProperty(n,v);}
+const ST=new Set(['tiny','xxs','xs','s','m','l','xl','xxl','xs-s','s-m','m-l','l-xl']);
+function ns(v){const s=String(v||'').trim();if(!s)return'';if(s==='0')return'0';if(ST.has(s))return`var(--ds-space-${s})`;return s;}
+function nr(v){return String(v||'').trim();}
+function el(map){
+  const e=Object.entries(map);
+  return class extends HTMLElement{
+    static get observedAttributes(){return Object.keys(map);}
+    connectedCallback(){this._a();}attributeChangedCallback(){this._a();}
+    _a(){for(const[a,spec]of e){const raw=this.getAttribute(a)??'';const val=spec.type==='space'?ns(raw):nr(raw);if(spec.var)aV(this,spec.var,val);if(spec.prop)aP(this,spec.prop,val);}aV(this,'--ds-vt-name',(this.getAttribute('vt-name')||'').trim());}
+  };
+}
+function def(t,c){if(!customElements.get(t))customElements.define(t,c);}
+
+def('stacked-layout',el({gap:{type:'space',var:'--ds-stacked-gap'},align:{type:'raw',var:'--ds-stacked-align'}}));
+def('cluster-layout',el({gap:{type:'space',var:'--ds-cluster-gap'},align:{type:'raw',var:'--ds-cluster-align'},justify:{type:'raw',var:'--ds-cluster-justify'}}));
+def('repel-layout',el({gap:{type:'space',var:'--ds-repel-gap'},align:{type:'raw',var:'--ds-repel-align'}}));
+def('fluid-grid-layout',el({min:{type:'space',var:'--ds-fluid-grid-min'},max:{type:'space',var:'--ds-fluid-grid-max'},gap:{type:'space',var:'--ds-fluid-grid-gap'},columns:{type:'raw',var:'--ds-fluid-grid-columns'},align:{type:'raw',var:'--ds-fluid-grid-align'}}));
+def('region-layout',el({'pad-block':{type:'space',var:'--ds-region-pad-block'},'pad-inline':{type:'space',var:'--ds-region-pad-inline'},bg:{type:'raw',var:'--ds-region-bg'}}));
+def('sticky-layout',el({bs:{type:'space',var:'--ds-sticky-bs'},z:{type:'raw',var:'--ds-sticky-z'}}));
+def('icon-text-layout',el({gap:{type:'space',var:'--ds-icon-text-gap'},size:{type:'space',var:'--ds-icon-size'},align:{type:'raw',var:'--ds-icon-text-align'}}));
+
+const _QB=el({'pad':{type:'space',var:'--ds-quad-pad'},'pad-block':{type:'space',var:'--ds-quad-pad-block'},'pad-inline':{type:'space',var:'--ds-quad-pad-inline'},pbs:{type:'space',var:'--ds-quad-pbs'},pbe:{type:'space',var:'--ds-quad-pbe'},pis:{type:'space',var:'--ds-quad-pis'},pie:{type:'space',var:'--ds-quad-pie'},border:{type:'raw',var:'--ds-quad-border'},'border-bs':{type:'raw',var:'--ds-quad-border-bs'},'border-be':{type:'raw',var:'--ds-quad-border-be'},'border-is':{type:'raw',var:'--ds-quad-border-is'},'border-ie':{type:'raw',var:'--ds-quad-border-ie'},radius:{type:'space',var:'--ds-quad-radius'},bg:{type:'raw',var:'--ds-quad-bg'},fg:{type:'raw',var:'--ds-quad-fg'},shadow:{type:'raw',var:'--ds-quad-shadow'},'skew-x':{type:'raw',var:'--ds-quad-skew-x'},'skew-y':{type:'raw',var:'--ds-quad-skew-y'},rotate:{type:'raw',var:'--ds-quad-rotate'},scale:{type:'raw',var:'--ds-quad-scale'},translate:{type:'raw',var:'--ds-quad-translate'},origin:{type:'raw',var:'--ds-quad-origin'},perspective:{type:'raw',prop:'perspective'}});
+class _QE extends _QB{
+  static get observedAttributes(){return[...super.observedAttributes,'preserve-3d','backface','flip-x','flip-y'];}
+  connectedCallback(){super.connectedCallback();this._qt();}
+  attributeChangedCallback(n,o,v){super.attributeChangedCallback(n,o,v);this._qt();}
+  _qt(){
+    const p3d=this.hasAttribute('preserve-3d'),bf=this.hasAttribute('backface');
+    const fx=this.hasAttribute('flip-x'),fy=this.hasAttribute('flip-y');
+    p3d?this.style.setProperty('transform-style','preserve-3d'):this.style.removeProperty('transform-style');
+    bf?this.style.setProperty('backface-visibility','hidden'):this.style.removeProperty('backface-visibility');
+    if(fx||fy)this.style.setProperty('scale',`${fx?-1:1} ${fy?-1:1}`);
+  }
+}
+def('quadrilateral-layout',_QE);
+
+/* ── Modal logic ───────────────────────────────────────────────── */
+const overlay = document.getElementById('modal');
+const frame   = document.getElementById('modal-frame');
+const title   = document.getElementById('modal-title');
+const openLink= document.getElementById('modal-open-link');
+
+function openModal(src, label) {
+  frame.src = src;
+  title.textContent = label;
+  openLink.href = src;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Move focus into modal for accessibility
+  overlay.querySelector('.modal-close').focus();
+}
+
+function closeModal() {
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  // Blank the iframe after the CSS transition to avoid flash on reopen
+  setTimeout(() => { frame.src = ''; }, 260);
+}
+
+// Keyboard: Escape closes
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+});
+
+// prose-layout — flow rhythm for mixed HTML content
+const _PLBase = el({
+  measure:{type:'raw',var:'--ds-prose-measure'},
+  leading:{type:'raw',var:'--ds-prose-leading'},
+  flow:{type:'space',var:'--ds-prose-flow'},
+  'flow-heading':{type:'space',var:'--ds-prose-flow-heading'},
+  'li-gap':{type:'space',var:'--ds-prose-li-gap'},
+  'list-indent':{type:'raw',var:'--ds-prose-list-indent'},
+  'rule-gap':{type:'space',var:'--ds-prose-rule-gap'},
+  'pre-pad':{type:'space',var:'--ds-prose-pre-pad'},
+  'pre-radius':{type:'space',var:'--ds-prose-pre-radius'},
+  'heading-leading':{type:'raw',var:'--ds-prose-heading-leading'},
+  'dt-weight':{type:'raw',var:'--ds-prose-dt-weight'}
+});
+class _PLEl extends _PLBase {
+  static get observedAttributes(){return[...super.observedAttributes,'compact'];}
+}
+def('prose-layout',_PLEl);
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+[build]
+# Tell Railway to use the Dockerfile instead of auto-detecting
+builder = "dockerfile"
+
+[deploy]
+# Railway injects $PORT at runtime; nginx reads it via envsubst in the Dockerfile CMD
+# Healthcheck: Railway pings / to confirm the service is up after deploy
+healthcheckPath = "/"
+healthcheckTimeout = 30
+
+# Optional: restart on crash (unlikely for nginx, but good practice)
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

@@ -1,0 +1,160 @@
+@layer ds.layout {
+
+    /* ── aspect-ratio-layout ─────────────────────────────────
+       A constrained frame that enforces a fixed aspect ratio and
+       fills its primary child (typically a media element) to cover
+       that frame.
+
+       This element is a viewport, not a flow container. It is
+       designed to hold exactly one primary child — an image, video,
+       iframe, canvas, or arbitrary content block. If you provide
+       multiple children, they will stack (z-order by DOM order) in
+       the same space. Captions and overlays belong outside this
+       element, or use overlay-layout inside it with z-index control.
+
+       Attributes:
+         ratio="W/H | W / H | N"
+           The aspect ratio. Accepts CSS aspect-ratio syntax:
+             ratio="16/9"     → widescreen video
+             ratio="4/3"      → classic photo/video
+             ratio="1"        → square
+             ratio="3/2"      → standard photo
+           Note: use "/" as the separator, not ":".
+           Defaults to --ds-aspect-ratio-default (16 / 9).
+
+         fit="cover | contain | fill | none | scale-down"
+           object-fit for img, video, canvas, and picture > img children.
+           Defaults to "cover" (crop to fill, preserve aspect ratio).
+
+         position="<CSS position value>"
+           object-position for the same children as fit.
+           Accepts any CSS position value: "50% 50%", "top left",
+           "center", "0% 100%", etc.
+           Defaults to "50% 50%" (centered).
+
+         overflow="<CSS overflow value>"
+           Controls overflow clipping of children that extend beyond
+           the frame. Defaults to "clip" (where supported, else "hidden").
+           Override with overflow="visible" to allow children to bleed
+           outside the frame boundary (e.g. for decorative overflow).
+    ──────────────────────────────────────────────────────────── */
+
+    :where(aspect-ratio-layout) {
+        display: block;
+
+        /*
+            position: relative creates the containing block for the
+            absolutely-positioned children. This is structural — the
+            fill behavior of children depends on it. Do not remove.
+            A consumer who needs a different position value on the
+            host element should wrap it rather than override this.
+        */
+        position: relative;
+
+        /*
+            Aspect ratio: reads from the attribute-set custom property,
+            then a project-level default token (set once in :root to
+            change the default for all aspect-ratio-layout instances),
+            then falls back to 16 / 9.
+        */
+        aspect-ratio: var(
+            --ds-aspect-ratio,
+            var(--ds-aspect-ratio-default, 16 / 9)
+        );
+
+        /*
+            overflow: hidden is the safe default — clips children that
+            extend beyond the frame boundary and is universally supported.
+        */
+        overflow: var(--ds-aspect-overflow, hidden);
+    }
+
+    /*
+        Progressive enhancement: overflow: clip is preferred over hidden
+        where supported (Chrome 90+, Firefox 81+, Safari 15.4+).
+
+        The difference matters:
+        - overflow: hidden creates a new BFC and a scroll container,
+          which can affect how fixed-position descendants behave.
+        - overflow: clip does not create a scroll container. It simply
+          clips painting at the border box, which is what we want for
+          a pure frame with no scrolling intent.
+
+        When the consumer sets the overflow attribute, --ds-aspect-overflow
+        is set to their value (e.g. "visible"). Both this rule and the
+        base rule above then resolve to that value — the @supports block
+        does not override consumer intent, it only changes the *default*.
+    */
+    @supports (overflow: clip) {
+        :where(aspect-ratio-layout) {
+            overflow: var(--ds-aspect-overflow, clip);
+        }
+    }
+
+
+    /* ── Child fill rules ────────────────────────────────────
+       All direct children are absolutely positioned and stretched
+       to fill the frame. This is the defining behavior of this
+       element — it is a frame, not a flow container.
+
+       Multiple children overlap in z-order (last child on top).
+       This is intentional and useful for layered compositions:
+         <aspect-ratio-layout>
+           <img src="hero.jpg" alt="…">
+           <overlay-layout>…caption or gradient…</overlay-layout>
+         </aspect-ratio-layout>
+
+       Captions that should appear BELOW the frame (not inside it)
+       must be placed OUTSIDE of aspect-ratio-layout.
+    ──────────────────────────────────────────────────────────── */
+    :where(aspect-ratio-layout > *) {
+        position: absolute;
+        inset: 0;
+    }
+
+    /*
+        picture must be block (not inline) to respond to
+        position: absolute + inset: 0 correctly. Also explicitly
+        sized to fill its absolutely-positioned box — without this,
+        the img inside may not have a reliable 100% to resolve against.
+    */
+    :where(aspect-ratio-layout > picture) {
+        display: block;
+        inline-size: 100%;
+        block-size: 100%;
+    }
+
+    /*
+        Media elements and canvas get object-fit / object-position
+        to control how their intrinsic content fills the frame.
+        All are set to display: block to suppress inline descender gap.
+
+        Includes:
+          img      — photographs, illustrations
+          video    — video content
+          iframe   — embedded documents, maps, players
+          canvas   — WebGL scenes, procedural graphics, games
+          picture > img — responsive image sets
+    */
+    :where(aspect-ratio-layout > img),
+    :where(aspect-ratio-layout > video),
+    :where(aspect-ratio-layout > canvas),
+    :where(aspect-ratio-layout > iframe),
+    :where(aspect-ratio-layout > picture > img) {
+        display: block;
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit:      var(--ds-aspect-fit,      cover);
+        object-position: var(--ds-aspect-position, 50% 50%);
+    }
+
+    /*
+        iframe: reset the UA default border that some browsers still apply.
+        We use border: 0 rather than border: none so it works in all
+        border shorthand contexts.
+    */
+    :where(aspect-ratio-layout > iframe) {
+        border: 0;
+    }
+
+}

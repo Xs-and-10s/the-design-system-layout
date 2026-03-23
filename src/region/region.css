@@ -1,0 +1,126 @@
+@layer ds.layout {
+
+    /* ── region-layout ───────────────────────────────────────
+       A page section container. The fundamental building block
+       for page structure: a distinct visual section with vertical
+       spacing, an optional background, and optional scroll snap.
+
+       region-layout is intentionally composable. Common compositions:
+         - As the middle child of sandwich-layout (gets header/footer rows)
+         - As the middle child of bookend-layout (gets inline gutters)
+         - As a child of split-layout (gets dividers between siblings)
+         - As the direct parent of breakout-layout and breakin-layout
+
+       THE CRITICAL DESIGN DECISION — --ds-region-pad-inline:
+       This element sets --ds-region-pad-inline as a CSS custom property
+       on itself (in the cascade rule, not just reads it). This means
+       the value is defined in this element's scope and inherits to ALL
+       descendants, no matter how deeply nested.
+
+       breakout-layout reads this inherited value to compute its negative
+       margin. breakin-layout can also read it if needed.
+
+       This inheritance chain works because CSS custom properties inherit
+       through the DOM tree by default. If there is no region-layout
+       ancestor, --ds-region-pad-inline is undefined and breakout-layout
+       falls back to 0px (no bleed).
+
+       Linking behavior:
+       Sections link naturally via HTML `id` attributes — no special
+       handling needed. Use scroll-margin to offset for sticky headers:
+         :root { --ds-region-scroll-margin: 4rem; }
+       or set it per-instance via the `scroll-margin` attribute.
+
+       Attributes:
+         pad-block="<token | length>"
+           Block-axis (top/bottom) padding. Defaults to --ds-space-l-xl.
+
+         pad-inline="<token | length>"
+           Inline-axis (left/right) padding.
+           Also sets --ds-region-pad-inline for breakout-layout children
+           to read. Defaults to --ds-gap (from core tokens).
+
+         bg="<CSS background value>"
+           Background color, gradient, or image for the section.
+
+         scroll-margin="<length>"
+           scroll-margin-block-start offset to compensate for sticky
+           headers when scrolling to this section via anchor links.
+           Override --ds-region-scroll-margin on :root for a global
+           sticky header height:
+             :root { --ds-region-scroll-margin: var(--header-height); }
+
+         snap
+           Boolean. Sets scroll-snap-align: start so this section
+           snaps into view when the scroll container has
+           scroll-snap-type set.
+           The scroll container (usually body or a scroll wrapper)
+           must also have scroll-snap-type and overflow/scroll
+           configured for this to take effect.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(region-layout) {
+        display: block;
+
+        /*
+            Set --ds-region-pad-inline as an inheritable custom property.
+
+            This is the most important rule in this file. By setting the
+            property here (not just reading it with padding-inline), we
+            make the inline padding value available to all descendants
+            via CSS inheritance.
+
+            When pad-inline is set via attribute:
+              The JS element applies an inline style:
+                --ds-region-pad-inline: var(--ds-space-m)
+              This overrides the cascade rule below.
+
+            When pad-inline is NOT set via attribute:
+              The JS element applies no inline style.
+              This cascade rule provides the default value.
+              Descendants still inherit the default.
+
+            In both cases, breakout-layout (and other descendants) can
+            read the current region padding via:
+              var(--ds-region-pad-inline, 0px)
+        */
+        --ds-region-pad-inline: var(--ds-gap, 1rem);
+
+        padding-block:  var(--ds-region-pad-block,  var(--ds-space-l-xl, 2rem));
+        padding-inline: var(--ds-region-pad-inline);
+
+        background: var(--ds-region-bg, transparent);
+
+        /*
+            scroll-margin-block-start:
+            When a user clicks a link to this section (e.g. href="#contact"),
+            the browser scrolls so the section's top edge is at the viewport
+            top. If there's a sticky header, the section top hides behind it.
+            scroll-margin adds an offset so the section appears below the
+            sticky header.
+
+            Set --ds-region-scroll-margin on :root to match your
+            sticky header height. Or use the scroll-margin attribute
+            for per-section overrides.
+        */
+        scroll-margin-block-start: var(--ds-region-scroll-margin, 0px);
+    }
+
+    /*
+        [snap]: scroll snap alignment.
+
+        When the scroll container has scroll-snap-type (e.g.
+        `scroll-snap-type: y mandatory` on the <body> or a scroll
+        wrapper), adding [snap] to a region-layout makes that section
+        snap to the top of the viewport when scrolled into view.
+
+        Without a configured scroll container this attribute has no
+        visible effect. That is intentional — snap is opt-in at both
+        the container (scroll-snap-type) and item (scroll-snap-align)
+        levels.
+    */
+    :where(region-layout[snap]) {
+        scroll-snap-align: start;
+    }
+
+}

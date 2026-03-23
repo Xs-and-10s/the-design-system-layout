@@ -1,0 +1,124 @@
+@layer ds.layout {
+
+    /* ── columns-layout ──────────────────────────────────────
+       A CSS grid with an explicit column track definition. The
+       number of columns is fixed — you decide how many, and
+       optionally how wide each one is.
+
+       Distinct from fluid-grid-layout:
+         fluid-grid-layout: column COUNT emerges from a minimum width
+           (variable, responsive, no breakpoints needed)
+         columns-layout: column COUNT is explicit; track SIZES are
+           optionally explicit (fixed, predictable, author-controlled)
+
+       Distinct from split-pane-layout:
+         split-pane-layout: areas are NAMED and placed by a panes string;
+           the layout topology is explicit
+         columns-layout: areas are UNNAMED; children flow into tracks
+           in DOM order (or with span overrides via pane-layout)
+
+       Subgrid:
+       When [subgrid] is present, this element participates in its
+       parent grid's column tracks instead of defining its own. This
+       allows columns-layout to be a transparent pass-through that
+       aligns its children to an ancestor grid. Must be a direct
+       child of a grid container for subgrid to take effect.
+
+       Attributes:
+         cols="<integer | track list>"
+           Column track definitions. Two forms:
+             Integer: "3" → repeat(3, 1fr) — N equal-width columns
+             Track list: "1fr 2fr 1fr" — explicit per-column widths
+           Accepts any valid CSS grid track list: auto, fr, px, ch,
+           minmax(), fit-content(), etc.
+           Default: repeat(3, 1fr)
+
+         rows="<integer | track list>"
+           Row track definitions. Same forms as cols.
+             Integer: "3" → repeat(3, auto) — N auto-height rows
+             Track list: "auto 1fr auto" — explicit per-row heights
+           Default: auto (browser-determined row heights)
+
+         gap="<token | length>"
+           Gap on both axes. Default: --ds-gap.
+
+         gap-block="<token | length>"
+           Row gap. Overrides gap on the row axis.
+
+         gap-inline="<token | length>"
+           Column gap. Overrides gap on the column axis.
+
+         align="<align-items value>"
+           Block-axis (vertical) alignment of items in each cell.
+           stretch (default), start, end, center, baseline.
+
+         justify="<justify-items value>"
+           Inline-axis (horizontal) alignment of items in each cell.
+           stretch (default), start, end, center.
+
+       BOOLEAN ATTRIBUTES (CSS-only):
+         [dense]
+           grid-auto-flow: dense — fills holes left by spanning items.
+           Visual order may differ from DOM order. Avoid when DOM order
+           is meaningful for accessibility.
+
+         [subgrid]
+           grid-template-columns: subgrid — participates in parent
+           grid's column tracks. Element must be a direct grid child.
+           Use [rows] to also subgrid the row axis.
+
+         [rows]
+           When combined with [subgrid]: also subgrids the row axis.
+           grid-template-rows: subgrid.
+           Ignored when [subgrid] is absent.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(columns-layout) {
+        display: grid;
+
+        grid-template-columns: var(--ds-columns-cols, repeat(3, 1fr));
+        grid-template-rows:    var(--ds-columns-rows, auto);
+
+        row-gap:    var(--ds-columns-gap-block,  var(--ds-columns-gap, var(--ds-gap, 1rem)));
+        column-gap: var(--ds-columns-gap-inline, var(--ds-columns-gap, var(--ds-gap, 1rem)));
+
+        align-items:   var(--ds-columns-align,   stretch);
+        justify-items: var(--ds-columns-justify, stretch);
+    }
+
+    /*
+        min-inline-size: 0 prevents grid blowout.
+        Without it, a grid item with wide unbreakable content expands
+        its column beyond the computed track size. min-block-size: 0
+        prevents content from expanding explicit row tracks.
+    */
+    :where(columns-layout > *) {
+        min-inline-size: 0;
+        min-block-size:  0;
+    }
+
+
+    /* ── [dense] ─────────────────────────────────────────────
+       grid-auto-flow: dense backfills gaps from spanning items.
+       Only use when visual order ≠ DOM order is acceptable.
+    ──────────────────────────────────────────────────────────── */
+    :where(columns-layout[dense]) {
+        grid-auto-flow: dense;
+    }
+
+
+    /* ── [subgrid] ───────────────────────────────────────────
+       Participates in the parent grid's column tracks.
+       The element must be a direct child of a grid container.
+       Subgrid is baseline 2023 (Chrome 117+, Firefox 71+, Safari 16+).
+    ──────────────────────────────────────────────────────────── */
+    :where(columns-layout[subgrid]) {
+        grid-template-columns: subgrid;
+    }
+
+    /* [subgrid][rows]: also subgrid the row axis */
+    :where(columns-layout[subgrid][rows]) {
+        grid-template-rows: subgrid;
+    }
+
+}

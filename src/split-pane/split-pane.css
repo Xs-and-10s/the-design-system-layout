@@ -1,0 +1,97 @@
+@layer ds.layout {
+
+    /* ── split-pane-layout ───────────────────────────────────
+       A CSS grid whose topology is defined by a named-area string.
+       Directly analogous to CSS grid-template-areas, but expressed
+       as an HTML attribute for colocation with markup.
+
+       The JS element parses the `panes` attribute and sets
+       grid-template-areas, grid-template-columns, and
+       grid-template-rows directly as inline styles. This CSS file
+       handles display, gap, and optional responsive collapse.
+
+       PANES STRING FORMAT:
+       Rows are separated by "/" (forward slash).
+       Cells within a row are separated by whitespace.
+       Area names must be valid CSS custom-ident (letters, digits,
+       hyphens, underscores — no spaces, no reserved words like "none").
+
+       Example:
+         panes="A A B / C D B / C E E"
+         → grid-template-areas: "A A B" "C D B" "C E E"
+         → 3 columns, 3 rows inferred
+         → 5 named areas: A, B, C, D, E
+
+       Multiline HTML attribute form is also valid:
+         panes="A A B
+                C D B
+                C E E"
+
+       IMPORTANT: Each pane-layout child must declare its area
+       explicitly via area="X". DOM order alone does not determine
+       placement. Children without a matching area declaration will
+       flow into auto-placement (the first available grid cell).
+
+       Gap attributes:
+         gap, gap-block, gap-inline — same semantics as all grid
+         layout primitives in this system.
+
+       See split-pane.ts for full attribute documentation.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(split-pane-layout) {
+        display: grid;
+
+        /*
+            grid-template-areas, grid-template-columns, and
+            grid-template-rows are ALL set as inline styles by the JS
+            element — they do not appear here. This CSS only provides
+            the display type and the gap resolution chain.
+        */
+
+        row-gap:    var(--ds-split-pane-gap-block,  var(--ds-split-pane-gap, var(--ds-gap, 1rem)));
+        column-gap: var(--ds-split-pane-gap-inline, var(--ds-split-pane-gap, var(--ds-gap, 1rem)));
+    }
+
+    :where(split-pane-layout > *) {
+        min-inline-size: 0;
+        min-block-size:  0;
+    }
+
+
+    /* ── pane-layout ─────────────────────────────────────────
+       A direct child of split-pane-layout (or any grid) that
+       declares its grid placement via the `area` attribute.
+
+       The area attribute accepts:
+         Named area:   area="A" → grid-area: A
+         Line-based:   area="1 / 2 / 3 / 4" → grid-area: 1 / 2 / 3 / 4
+         Mixed:        area="header" → grid-area: header
+
+       Using CSS grid-area shorthand: all four placement lines are
+       set in one value. This means:
+         area="A"         — named area from grid-template-areas
+         area="1 / 1 / 2 / 3" — row-start / col-start / row-end / col-end
+         area="span 2"   — NOT VALID; use col-span or row-span instead
+
+       pane-layout can also be used inside columns-layout, rows-layout,
+       or any other grid container — it is not exclusive to split-pane.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(pane-layout) {
+        display: block;
+
+        /*
+            grid-area: var(--ds-pane-area) where --ds-pane-area is set
+            by the JS element from the area attribute.
+            When area is not set, --ds-pane-area is undefined and this
+            property resolves to its initial value (auto / auto / auto / auto),
+            falling back to normal auto-placement in the grid.
+        */
+        grid-area: var(--ds-pane-area);
+
+        min-inline-size: 0;
+        min-block-size:  0;
+    }
+
+}

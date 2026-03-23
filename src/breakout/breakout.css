@@ -1,0 +1,120 @@
+@layer ds.layout {
+
+    /* ── breakout-layout ─────────────────────────────────────
+       A full-bleed child of region-layout. Breaks out of its
+       containing region's inline padding, stretching edge-to-edge
+       within the scroll container.
+
+       HOW IT WORKS — the region-layout bridge:
+
+       region-layout sets --ds-region-pad-inline as an inheritable CSS
+       custom property on itself. All descendants inherit this value
+       through the DOM tree, regardless of nesting depth.
+
+       breakout-layout reads the inherited value and applies a negative
+       margin equal to the region's inline padding:
+
+         margin-inline: calc(-1 × --ds-region-pad-inline)
+
+       This exactly cancels the region's padding, stretching the
+       breakout element to the region's edge — which is the scroll
+       container edge when region-layout has no extra containment.
+
+       If there is no region-layout ancestor, --ds-region-pad-inline
+       is undefined and falls back to 0px → no bleed, normal block.
+
+       PARTIAL BREAKOUT — the `size` attribute:
+
+       When size is set, the element breaks out by that amount instead
+       of the full region padding:
+
+         margin-inline: calc(-1 × size)
+
+       Use partial breakout when you want the element to extend slightly
+       beyond its text column but not go full-bleed — for example, an
+       image that "pops" from a prose column by a small amount.
+
+       REPADDING — the `pad` attribute:
+
+       By default, breakout-layout has no padding of its own. Content
+       inside fills edge-to-edge. This is correct for images, videos,
+       and banners.
+
+       When the breakout element contains text or other content that
+       needs breathing room from the scroll container edges, use the
+       `pad` attribute to re-apply inline padding:
+
+         <breakout-layout pad="m">
+           <p>This text has its own padding inside the breakout</p>
+         </breakout-layout>
+
+       Setting pad to the same value as the parent region's pad-inline
+       exactly restores the original text column — making breakout +
+       repad a zero-net-change wrapper that lets specific CHILDREN
+       of the breakout (like an absolutely positioned overlay) reach
+       the edges while keeping the text in column.
+
+       COMPOSED USAGE:
+
+         <!-- Full-bleed image inside a padded region -->
+         <region-layout id="hero" pad-inline="l">
+           <h1>Hero Title</h1>
+           <breakout-layout>
+             <img src="hero.jpg" alt="…">
+           </breakout-layout>
+           <p>This paragraph is back in the padded column</p>
+         </region-layout>
+
+         <!-- Partial breakout (pops slightly from text column) -->
+         <region-layout pad-inline="xl">
+           <p>Prose text in column</p>
+           <breakout-layout size="m">
+             <figure>…wider image…</figure>
+           </breakout-layout>
+         </region-layout>
+
+         <!-- Breakout with repadded text content inside -->
+         <region-layout pad-inline="m">
+           <breakout-layout pad="m">
+             <div style="background: var(--brand-surface)">
+               <p>Background goes full-bleed; text stays in column</p>
+             </div>
+           </breakout-layout>
+         </region-layout>
+
+       Attributes:
+         size="<token | length>"
+           Amount of breakout on each side. Default: full region padding
+           (--ds-region-pad-inline). Space tokens and CSS lengths accepted.
+
+         pad="<token | length>"
+           Inline padding to re-apply inside the breakout element.
+           Useful when content inside should maintain breathing room
+           from the container edges.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(breakout-layout) {
+        display: block;
+
+        /*
+            Negative margin equal to the breakout size (default: full
+            region padding). This pulls the element's edges outward,
+            beyond the region's content box.
+
+            --ds-breakout-size: set by the `size` attribute when present.
+            If absent, falls back to --ds-region-pad-inline (inherited
+            from the nearest region-layout ancestor).
+            If no region-layout ancestor exists, falls back to 0px.
+        */
+        margin-inline: calc(
+            -1 * var(--ds-breakout-size, var(--ds-region-pad-inline, 0px))
+        );
+
+        /*
+            padding-inline: set by the `pad` attribute when present.
+            Default: 0px (no padding — full edge-to-edge content).
+        */
+        padding-inline: var(--ds-breakout-pad, 0px);
+    }
+
+}

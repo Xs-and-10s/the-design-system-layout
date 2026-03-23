@@ -1,0 +1,96 @@
+@layer ds.layout {
+
+    /* ── breakin-layout ──────────────────────────────────────
+       A containment primitive. Constrains its content to a maximum
+       inline width and centers it within whatever space is available.
+       The complement of breakout-layout.
+
+       WHERE BREAKOUT WIDENS, BREAKIN NARROWS.
+
+       Primary use cases:
+
+       1. NARROW CONTENT INSIDE A WIDE REGION
+          When a region-layout has no padding (or a full-bleed layout),
+          breakin-layout creates a safe, readable text column inside it:
+
+            <region-layout pad-inline="0">
+              <breakin-layout max="65ch" gutter="m">
+                <h2>Title in a safe column</h2>
+                <p>Prose text, comfortably narrow</p>
+              </breakin-layout>
+            </region-layout>
+
+       2. NARROW CONTENT INSIDE A BREAKOUT
+          When a breakout-layout contains both full-bleed visuals AND
+          text, breakin-layout creates a safe zone for the text:
+
+            <region-layout pad-inline="l">
+              <breakout-layout>
+                <img src="background.jpg" alt="" style="position:absolute;inset:0;…">
+                <breakin-layout gutter="l">
+                  <h2>Overlay title in a safe column</h2>
+                </breakin-layout>
+              </breakout-layout>
+            </region-layout>
+
+       3. NARROWING WITHIN AN ALREADY-PADDED REGION
+          Further constraining content inside a region that already
+          has its own padding — for pull quotes, callouts, or
+          extra-narrow prose within a wider body column:
+
+            <region-layout pad-inline="m">
+              <p>Normal prose width</p>
+              <breakin-layout max="45ch">
+                <blockquote>…extra narrow pull quote…</blockquote>
+              </breakin-layout>
+              <p>Back to normal width</p>
+            </region-layout>
+
+       HOW IT DIFFERS FROM centered-layout:
+       Both use max-inline-size + margin-inline: auto + content-box.
+       The semantic distinction:
+         - centered-layout is a PAGE-LEVEL centering container,
+           typically at or near the root of the content tree.
+         - breakin-layout is a LOCAL containment constraint,
+           used inside regions, breakouts, and other layout contexts
+           where you want to pull content back from the available width.
+
+       Attributes:
+         max="<token | length>"
+           Maximum inline width of the content. Accepts space tokens
+           or any CSS length (65ch, 80ch, 960px, etc.).
+           Default: --ds-measure (65ch)
+
+         gutter="<token | length>"
+           Inline padding for minimum breathing room when the container
+           is narrower than max. Prevents content from touching the
+           scroll container edges on small screens, or touching the
+           edges of a breakout-layout parent.
+           Default: 0px
+    ──────────────────────────────────────────────────────────── */
+
+    :where(breakin-layout) {
+        display: block;
+
+        /*
+            content-box: max applies to CONTENT width, gutter is additive.
+            Same reasoning as centered-layout — see centered.css.
+        */
+        box-sizing: content-box;
+
+        max-inline-size: var(--ds-breakin-max, var(--ds-measure, 65ch));
+
+        /*
+            margin-inline: auto centers within available space.
+            When content + gutter is wider than the available space, both
+            margins collapse to 0 — no negative margins, no overflow.
+        */
+        margin-inline: auto;
+
+        padding-inline: var(--ds-breakin-gutter, 0px);
+
+        /* Prevents content-box + gutter from overflowing the container. */
+        min-inline-size: 0;
+    }
+
+}

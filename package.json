@@ -1,0 +1,143 @@
+{
+    "name": "@the-design-system/layout",
+    "version": "0.1.0",
+    "description": "Layout primitives as composable custom elements — no build step required for consumers.",
+    "license": "MIT",
+
+    "type": "module",
+
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Xs-and-10s/the-design-system-layout",
+        "directory": "packages/layout"
+    },
+    "homepage": "https://design-system.dev/layout",
+    "bugs": {
+        "url": "https://github.com/Xs-and-10s/the-design-system-layout/issues"
+    },
+    "keywords": [
+        "css",
+        "the-design-system",
+        "design-system",
+        "design-tokens",
+        "layout",
+        "custom-elements",
+        "web-components",
+        "no-build",
+        "fluid",
+        "musical-ratio",
+        "metallic-ratio",
+        "type-scale"
+    ],
+
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md",
+        "LICENSE"
+    ],
+
+    /*
+        sideEffects declares which files have import-time side effects,
+        so bundlers know what is safe to tree-shake and what must be kept.
+
+        - CSS files always have side effects (they apply styles globally).
+        - register-all.js calls every define() on import — that's intentional,
+          but it means a bundler must not drop it if it is imported.
+        - All individual module JS files (stacked.js, centered.js, …) have NO
+          side effects — they only export a define() function. Bundlers may
+          safely tree-shake them if define() is never called.
+    */
+    "sideEffects": [
+        "dist/**/*.css",
+        "dist/register-all.js",
+        "dist/register-all.min.js"
+    ],
+
+    /*
+        Subpath exports map.
+        Conditions are checked in order; bundlers typically resolve "import"
+        and "types". CDN consumers reference paths directly.
+
+        Naming convention for module subpaths:
+          @design-system/layout/<slug>          → JS entry
+          @design-system/layout/<slug>/<slug>.css     → module CSS
+          @design-system/layout/<slug>/<slug>.min.css → minified module CSS
+
+        CDN usage (no build system needed):
+          <link rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@design-system/layout@VERSION/dist/core.min.css">
+          <link rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@design-system/layout@VERSION/dist/stacked/stacked.min.css">
+          <script type="module"
+            src="https://cdn.jsdelivr.net/npm/@design-system/layout@VERSION/dist/stacked/stacked.min.js">
+          </script>
+
+        Bundler usage (webpack, Vite, esbuild, Bun, etc.):
+          import { define as defineStacked } from '@design-system/layout/stacked';
+          import '@design-system/layout/stacked/stacked.css';
+          defineStacked();
+    */
+    "exports": {
+        ".": {
+            "types":  "./dist/core.d.ts",
+            "import": "./dist/core.js"
+        },
+        "./core.css":       "./dist/core.css",
+        "./core.min.css":   "./dist/core.min.css",
+
+        "./register-all": {
+            "import": "./dist/register-all.js"
+        },
+        "./register-all.min.js": "./dist/register-all.min.js",
+
+        "./stacked": {
+            "types":  "./dist/stacked/stacked.d.ts",
+            "import": "./dist/stacked/stacked.js"
+        },
+        "./stacked/stacked.css":     "./dist/stacked/stacked.css",
+        "./stacked/stacked.min.css": "./dist/stacked/stacked.min.css",
+        "./stacked/stacked.min.js":  "./dist/stacked/stacked.min.js",
+
+        /*
+            Add further module entries below as you implement them.
+            Pattern:
+            "./<slug>": {
+                "types":  "./dist/<slug>/<slug>.d.ts",
+                "import": "./dist/<slug>/<slug>.js"
+            },
+            "./<slug>/<slug>.css":     "./dist/<slug>/<slug>.css",
+            "./<slug>/<slug>.min.css": "./dist/<slug>/<slug>.min.css",
+            "./<slug>/<slug>.min.js":  "./dist/<slug>/<slug>.min.js",
+        */
+
+        "./package.json": "./package.json"
+    },
+
+    "types": "./dist/core.d.ts",
+    "style": "./dist/core.css",
+
+    "scripts": {
+        "build":       "bun run scripts/build.ts",
+        "build:css":   "bun run scripts/build.ts --css-only",
+        "build:js":    "bun run scripts/build.ts --js-only",
+        "build:types": "bun run scripts/build.ts --types-only",
+        "dev":         "bun run scripts/build.ts --watch",
+        "typecheck":   "tsc --noEmit",
+        "prepublishOnly": "bun run build"
+    },
+
+    "devDependencies": {
+        "lightningcss": "^1.30.0",
+        "typescript":   "^5.7.0"
+    },
+
+    "engines": {
+        "bun":  ">=1.1.0",
+        "node": ">=20.0.0"
+    },
+
+    "publishConfig": {
+        "access": "public"
+    }
+}

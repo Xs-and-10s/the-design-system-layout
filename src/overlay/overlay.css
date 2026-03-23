@@ -1,0 +1,176 @@
+@layer ds.layout {
+
+    /* ── overlay-layout ──────────────────────────────────────
+       A positioning and centering frame. Covers its containing
+       block and places content within it. The structural shell
+       for dialogs, drawers, lightboxes, loading spinners, image
+       captions, and any content that floats above other content.
+
+       WHAT THIS ELEMENT IS:
+       A layout primitive. It handles:
+         - Covering the containing block (or viewport with [fixed])
+         - Centering or otherwise placing content within the frame
+         - Z-index management
+         - Multi-child stacking (with [stack])
+
+       WHAT THIS ELEMENT IS NOT:
+       A modal dialog component. Accessibility concerns — focus
+       trapping, aria-modal, Escape key dismissal, scroll lock,
+       return-focus — belong in @design-system/ui, not here.
+
+       ── DEFAULT BEHAVIOR ──────────────────────────────────────
+
+       Without attributes: position: absolute, covers its nearest
+       positioned ancestor, centers one child, z-index from the
+       --ds-z-overlay token (30).
+
+       The containing block must be positioned (position: relative,
+       absolute, fixed, or sticky) for position: absolute to work
+       as expected. If the containing block is not positioned, the
+       overlay will cover the nearest positioned ancestor instead,
+       which may not be the intended parent.
+
+       ── STACKING CHILDREN ─────────────────────────────────────
+
+       By default, children are placed in separate auto-generated
+       grid rows (grid auto-placement). Multiple children stack
+       vertically, each centered in its own row.
+
+       For the canonical "backdrop + content" pattern — where children
+       should OVERLAP in the same space — use [stack]:
+
+         <overlay-layout fixed stack>
+           <div class="backdrop">…</div>   ← fills the overlay
+           <dialog>…</dialog>              ← centered, on top
+         </overlay-layout>
+
+       With [stack], all children share a single grid cell
+       (grid-area: 1 / 1). They overlap in DOM/z order. The last
+       child in the DOM is visually on top (highest stacking context).
+
+       ── ALIGN / JUSTIFY ───────────────────────────────────────
+
+       align and justify control where children land within the
+       overlay frame (or within the shared stack cell with [stack]).
+
+       Common patterns:
+         align="start" justify="end"    → top-right corner
+         align="end"   justify="center" → bottom-center (toasts)
+         align="end"   justify="start"  → bottom-left
+         align="center" justify="center" → center (default)
+
+       ── INSET ─────────────────────────────────────────────────
+
+       Default: inset: 0 — flush to the containing block edges.
+       Set the inset attribute to create a frame that doesn't
+       touch the edges:
+
+         <overlay-layout fixed inset="xl">
+           <dialog>…</dialog>
+         </overlay-layout>
+
+       Accepts space tokens (xs, m, l, etc.) or any CSS value.
+       An inset of "0" explicitly sets flush-edge behavior.
+
+       ── ATTRIBUTES ────────────────────────────────────────────
+
+         inset="<token | length>"
+           Distance from each edge of the containing block.
+           Default: 0 (flush to all edges).
+           Accepts space tokens or any CSS inset value.
+
+         align="<align-items value>"
+           Block-axis (vertical) placement of children.
+           center (default), start, end, stretch, baseline.
+
+         justify="<justify-items value>"
+           Inline-axis (horizontal) placement of children.
+           center (default), start, end, stretch.
+
+         z="<integer>"
+           z-index. Default: --ds-z-overlay (30).
+
+       BOOLEAN ATTRIBUTES (CSS-only):
+         [fixed]
+           position: fixed — covers the viewport rather than the
+           nearest positioned ancestor. Use for full-screen overlays:
+           dialogs, drawers, lightboxes, full-screen menus.
+
+         [stack]
+           Forces all children into a single grid cell so they
+           overlap. Essential for "backdrop + content" compositions.
+           Children are layered in DOM order (last child on top).
+
+         [no-events]
+           pointer-events: none on the overlay itself. Useful when
+           the overlay provides visual layering (a tint, a vignette)
+           without intercepting pointer input to elements below it.
+           Note: children will still receive events unless they also
+           have pointer-events: none.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(overlay-layout) {
+        position: absolute;
+        inset: var(--ds-overlay-inset, 0);
+
+        display: grid;
+        align-items:   var(--ds-overlay-align,   center);
+        justify-items: var(--ds-overlay-justify, center);
+
+        z-index: var(--ds-overlay-z, var(--ds-z-overlay, 30));
+    }
+
+
+    /* ── [fixed] — viewport-covering overlay ─────────────────
+       Switches from position: absolute (covers containing block)
+       to position: fixed (covers the viewport).
+
+       Note on containing block interaction:
+       position: fixed creates a new containing block for absolutely
+       positioned descendants. If the overlay or any ancestor has
+       a CSS transform, filter, or will-change: transform applied,
+       the fixed position will be relative to that transformed
+       ancestor rather than the viewport. This is a browser behavior,
+       not a bug in this element.
+    ──────────────────────────────────────────────────────────── */
+    :where(overlay-layout[fixed]) {
+        position: fixed;
+    }
+
+
+    /* ── [stack] — multi-child overlap mode ──────────────────
+       Forces all children into the same grid cell so they overlap.
+
+       How it works:
+       1. grid-template: 1fr / 1fr creates a single 1×1 grid cell
+          that fills the entire overlay.
+       2. grid-area: 1 / 1 on all children puts every child into
+          that same cell, causing them to overlap.
+       3. Children stack in DOM order: later children appear on top.
+       4. align-items / justify-items from the base rule still apply,
+          centering all children within the shared cell.
+
+       Use for: backdrop + dialog, image + caption overlay,
+       loading spinner over content, etc.
+    ──────────────────────────────────────────────────────────── */
+    :where(overlay-layout[stack]) {
+        grid-template: 1fr / 1fr;
+    }
+
+    :where(overlay-layout[stack] > *) {
+        grid-area: 1 / 1;
+        min-inline-size: 0;
+        min-block-size:  0;
+    }
+
+
+    /* ── [no-events] — pointer pass-through ──────────────────
+       The overlay element itself does not receive pointer events,
+       allowing them to pass through to elements below.
+       Children are unaffected — they still receive pointer events.
+    ──────────────────────────────────────────────────────────── */
+    :where(overlay-layout[no-events]) {
+        pointer-events: none;
+    }
+
+}

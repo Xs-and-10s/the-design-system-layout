@@ -1,0 +1,117 @@
+@layer ds.layout {
+
+    /* ── cluster-layout ────────────────────────────────────
+       A wrapping flex row. Children flow inline and wrap onto
+       new lines when they run out of space. The canonical
+       primitive for tag clouds, badge groups, button toolbars,
+       navigation pill sets, and any collection of inline-ish
+       items that should reflow naturally.
+
+       Default behavior: wraps, layout gap, center-aligned on
+       the cross-axis, left-aligned on the main axis.
+
+       Attributes:
+         gap="<token | css-value>"
+           Sets --ds-cluster-gap. Accepts any named space token
+           (tiny, xxxs, xxs, xs, s, m, l, xl, xxl, xxxl, huge,
+           or any adjacent pair like s-m) or an arbitrary CSS length.
+           Always wins over the [ui] gap mode when explicitly set.
+
+         align="<align-items value>"
+           Sets cross-axis (vertical) alignment of children.
+           Any valid align-items keyword: center (default), start,
+           end, stretch, baseline.
+
+         justify="<justify-content value>"
+           Sets main-axis (horizontal) distribution of children.
+           Any valid justify-content keyword: flex-start (default),
+           flex-end, center, space-between, space-around, space-evenly.
+
+         ui
+           Boolean. Switches the default gap from the layout gap
+           (--ds-gap) to the pointer-aware UI gap (--ds-gap-ui),
+           which automatically grows on coarse-pointer (touch)
+           devices.
+           Use for interactive element clusters: button toolbars,
+           tag editors, chip groups — anywhere touch target spacing
+           matters.
+           Setting the gap attribute explicitly always overrides
+           this mode.
+
+         no-wrap
+           Boolean. Disables wrapping (flex-wrap: nowrap).
+           Children will overflow or be clipped rather than wrapping.
+           Combine with overflow-x: auto on a parent to create a
+           horizontal scroll strip.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(cluster-layout) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--ds-cluster-gap, var(--ds-gap, 1rem));
+        align-items:     var(--ds-cluster-align,   center);
+        justify-content: var(--ds-cluster-justify, flex-start);
+    }
+
+    /*
+        Defensive flex child rule.
+        Without min-inline-size: 0, a child whose content has a wide
+        intrinsic minimum (a long URL, a fixed-width element, a <pre>)
+        can overflow the container rather than being constrained by it.
+        This is less common in wrapping flex than in non-wrapping flex
+        (items can wrap rather than shrink), but remains a real failure
+        mode for non-text children that cannot wrap their own content.
+    */
+    :where(cluster-layout > *) {
+        min-inline-size: 0;
+    }
+
+
+    /* ── [ui] mode ───────────────────────────────────────────
+       Switches the default gap from --ds-gap (layout spacing)
+       to --ds-gap-ui (pointer-aware UI spacing).
+
+       --ds-gap-ui is defined in core.css and automatically increases
+       on coarse-pointer (touch) devices via a @media (pointer: coarse)
+       rule. This means clusters of interactive elements automatically
+       get more breathing room on touchscreens — no extra media query
+       needed in any component.
+
+       Cascade interaction with the gap attribute:
+       When a consumer sets gap="xl" AND [ui] is present:
+         - The JS element sets inline style --ds-cluster-gap = var(--ds-space-xl)
+         - This CSS rule also tries to set --ds-cluster-gap
+         - Inline styles win over stylesheet rules in the CSS cascade
+         - Result: gap is var(--ds-space-xl) — the explicit value wins ✓
+       This means [ui] only affects the *default* gap, never an
+       explicitly-set gap attribute.
+
+       When [ui] is present but gap is not set:
+         - The inline style for --ds-cluster-gap is absent
+         - This rule fires: --ds-cluster-gap = var(--ds-gap-ui, ...)
+         - The base rule reads var(--ds-cluster-gap, ...) → UI gap ✓
+    ──────────────────────────────────────────────────────────── */
+    :where(cluster-layout[ui]) {
+        --ds-cluster-gap: var(--ds-gap-ui, var(--ds-gap, 1rem));
+    }
+
+
+    /* ── [no-wrap] mode ──────────────────────────────────────
+       Disables wrapping. Children overflow inline rather than
+       wrapping to a new line.
+
+       Typical use: a horizontal scroll container.
+         <div style="overflow-x: auto">
+           <cluster-layout no-wrap>
+             <chip>…</chip> <chip>…</chip> …
+           </cluster-layout>
+         </div>
+
+       Note: [no-wrap] is purely a CSS attribute selector — no JS
+       side effects are needed, so it is not in the TS varMap.
+    ──────────────────────────────────────────────────────────── */
+    :where(cluster-layout[no-wrap]) {
+        flex-wrap: nowrap;
+    }
+
+}

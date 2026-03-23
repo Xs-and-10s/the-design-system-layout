@@ -1,0 +1,194 @@
+@layer ds.layout {
+
+    /* ── split-layout ────────────────────────────────────────
+       A responsive row that automatically switches between horizontal
+       and vertical layouts based on available space. Evolved from the
+       original (unimplemented) `switching` module.
+
+       DEFAULT MODE — the Switcher:
+       Children are placed in a flex row with wrapping. The flex-basis
+       of each child is computed by a CSS math trick (the "Switcher"
+       from Every Layout):
+
+         flex-basis: calc((threshold - 100%) * 999)
+
+       When the container is WIDER than the threshold:
+         (threshold - 100%) → negative
+         × 999 → very negative → flex-basis clamps to 0
+         flex-grow: 1 distributes space equally → HORIZONTAL ROW
+
+       When the container is NARROWER than the threshold:
+         (threshold - 100%) → positive
+         × 999 → very large → each child takes a full line → VERTICAL STACK
+
+       All children switch simultaneously at the same breakpoint — there
+       is no "first child fits, second doesn't" intermediate state.
+
+       Note on gap and the threshold calculation:
+       The threshold comparison uses 100% = flex container inline-size,
+       which does not account for gap between children. At N children
+       with gap G, the actual content budget is (container - (N-1)×G).
+       The threshold is intentionally approximate — treat it as a
+       "switches somewhere around this width" control, not an exact
+       breakpoint.
+
+       FIXED MODES:
+
+       [horizontally] — force horizontal row regardless of container width.
+         Children stay in a row and SHRINK proportionally when the
+         container is too narrow to fit them at natural size. No wrapping
+         — overflow is prevented by flex-shrink rather than wrapping.
+         Use when item ordering must remain horizontal (e.g. a step
+         indicator, a timeline, a score comparison).
+
+       [vertically] — force vertical stack regardless of container width.
+         Children are stacked in a column. They shrink if the container
+         is shorter than their combined content height.
+         Use when the layout should never go horizontal.
+
+       DIVIDERS:
+
+       The [divider] attribute adds visual separators between children.
+       It accepts 5 values:
+         absent       (default) — no divider, no space
+         invisible    — takes up 1px of space, no color (layout spacer)
+         transparent  — 1px rule, fully transparent (space + invisible)
+         translucent  — 1px rule, ~40% opacity (subtle visual separator)
+         opaque       — 1px rule, full opacity (strong separator)
+
+       Divider direction:
+         In default and [vertically] mode → border-block-start (horizontal rule)
+         In [horizontally] mode           → border-inline-start (vertical rule)
+
+       In auto-switch mode, dividers use block-start (horizontal rules)
+       in both horizontal and vertical layout. This is intentional for
+       the common case: in horizontal rows, the gap attribute provides
+       visual separation; dividers are most meaningful in vertical stacks.
+       Use [horizontally] if you need vertical-rule dividers in a row.
+
+       Divider color:
+       By default uses --ds-color-border (from core tokens). Override
+       with the divider-color attribute for a custom separator color.
+
+       ATTRIBUTES:
+
+         gap="<token | length>"
+           Gap between children. Default: --ds-gap.
+
+         threshold="<length>"
+           Width at which the layout switches between horizontal and
+           vertical in default (auto-switch) mode.
+           Default: --ds-threshold (45rem from core tokens).
+           Only affects default mode — ignored by [horizontally] and
+           [vertically].
+
+         divider="absent | invisible | transparent | translucent | opaque"
+           Separator between children. See above.
+
+         divider-color="<CSS color value>"
+           Color of the divider rule. Default: --ds-color-border.
+
+       BOOLEAN ATTRIBUTES (CSS-only, no JS):
+
+         horizontally  — force horizontal row with proportional shrinking
+         vertically    — force vertical stack
+    ──────────────────────────────────────────────────────────── */
+
+    /* ── Base: auto-switch (Switcher) ────────────────────────── */
+
+    :where(split-layout) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--ds-split-gap, var(--ds-gap, 1rem));
+    }
+
+    :where(split-layout > *) {
+        /*
+            The Switcher flex-basis calculation.
+            See the module header comment for the math explanation.
+        */
+        flex-grow:  1;
+        flex-basis: calc(
+            (var(--ds-split-threshold, var(--ds-threshold, 45rem)) - 100%) * 999
+        );
+        min-inline-size: 0;
+    }
+
+
+    /* ── [horizontally]: fixed horizontal row ────────────────── */
+
+    :where(split-layout[horizontally]) {
+        flex-wrap: nowrap;
+    }
+
+    :where(split-layout[horizontally] > *) {
+        flex-basis: auto;   /* use content/intrinsic size as starting point  */
+        flex-grow:  1;      /* distribute remaining space equally             */
+        flex-shrink: 1;     /* allow proportional shrinking when too narrow   */
+        min-inline-size: 0; /* allow shrinking below intrinsic content width  */
+    }
+
+
+    /* ── [vertically]: fixed vertical stack ──────────────────── */
+
+    :where(split-layout[vertically]) {
+        flex-direction: column;
+        flex-wrap: nowrap;
+    }
+
+    :where(split-layout[vertically] > *) {
+        flex-basis:  auto;
+        flex-grow:   0;     /* children do not expand to fill available height */
+        flex-shrink: 1;     /* children shrink if the container is height-constrained */
+        min-block-size: 0;  /* allow shrinking below intrinsic content height  */
+    }
+
+
+    /* ── [divider]: separators between children ──────────────── */
+    /*
+        Dividers are applied to * + * (every child except the first).
+        The direction is determined by the layout mode.
+    */
+
+    /* Default and [vertically]: block-start (horizontal rule) */
+    :where(split-layout:not([divider="absent"]):not([horizontally])[divider] > * + *) {
+        border-block-start: 1px solid
+            var(--ds-split-divider-color, var(--ds-color-border, currentColor));
+        border-inline-start: none;
+    }
+
+    /* [horizontally]: inline-start (vertical rule) */
+    :where(split-layout[horizontally]:not([divider="absent"])[divider] > * + *) {
+        border-inline-start: 1px solid
+            var(--ds-split-divider-color, var(--ds-color-border, currentColor));
+        border-block-start: none;
+    }
+
+    /* Divider type overrides */
+
+    /* invisible / transparent: 1px transparent border (takes up space, no color) */
+    :where(split-layout[divider="invisible"] > * + *),
+    :where(split-layout[divider="transparent"] > * + *) {
+        border-color: transparent;
+    }
+
+    /* translucent: ~40% opacity separator using color-mix() */
+    /* color-mix: Chrome 111+, Firefox 113+, Safari 16.2+ */
+    @supports (border-color: color-mix(in oklch, red 40%, transparent)) {
+        :where(split-layout[divider="translucent"] > * + *) {
+            border-color: color-mix(
+                in oklch,
+                var(--ds-split-divider-color, var(--ds-color-border, currentColor)) 40%,
+                transparent
+            );
+        }
+    }
+
+    /* Fallback for translucent when color-mix is unsupported: use opacity */
+    @supports not (border-color: color-mix(in oklch, red 40%, transparent)) {
+        :where(split-layout[divider="translucent"] > * + *) {
+            opacity: 0.4;
+        }
+    }
+
+}

@@ -1,0 +1,20 @@
+# Keep the build context small — Railway only needs poc/ and config files
+
+# Source TypeScript (compiled output isn't needed; we serve poc/ directly)
+src/
+node_modules/
+*.ts
+tsconfig*.json
+jsr.json
+scripts/
+
+# Dev tools
+.git/
+.gitignore
+*.md
+.DS_Store
+Thumbs.db
+
+# Claude working files (if any ended up here)
+*.pyc
+__pycache__/

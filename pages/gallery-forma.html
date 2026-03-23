@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forma — Design Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900;1,300;1,700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+@layer ds.reset,ds.tokens,ds.base,ds.layout,ds.motion,ds.app;
+
+@layer ds.reset{:where(*,*::before,*::after){box-sizing:border-box;}:where(body){margin:0;}:where(button){cursor:pointer;border:none;background:none;}:where(h1,h2,h3,h4,h5,h6){margin:0;}:where(p){margin:0;}:where(a){text-decoration:none;color:inherit;}:where(:focus-visible){outline:2px solid #d4622a;outline-offset:2px;}:where(:focus:not(:focus-visible)){outline:none;}}
+
+@layer ds.tokens{
+  :root{
+    --ds-ratio:1.333;--_r2:calc(var(--ds-ratio)*var(--ds-ratio));--_r3:calc(var(--_r2)*var(--ds-ratio));--_r4:calc(var(--_r3)*var(--ds-ratio));--_r5:calc(var(--_r4)*var(--ds-ratio));--_r-1:calc(1/var(--ds-ratio));--_r-2:calc(1/var(--_r2));--_r-3:calc(1/var(--_r3));
+    --ds-space-base:clamp(0.9rem,.83rem + .35vw,1.1rem);
+    --ds-space-tiny:calc(var(--ds-space-base)*var(--_r-3));
+    --ds-space-xxs:calc(var(--ds-space-base)*var(--_r-2));
+    --ds-space-xs:calc(var(--ds-space-base)*var(--_r-1));
+    --ds-space-s:calc(var(--ds-space-base)*0.75);
+    --ds-space-m:var(--ds-space-base);
+    --ds-space-l:calc(var(--ds-space-base)*var(--ds-ratio));
+    --ds-space-xl:calc(var(--ds-space-base)*var(--_r2));
+    --ds-space-xxl:calc(var(--ds-space-base)*var(--_r3));
+    --ds-space-xxxl:calc(var(--ds-space-base)*var(--_r4));
+    --ds-space-huge:calc(var(--ds-space-base)*var(--_r5));
+    --ds-space-s-m:calc((var(--ds-space-s)+var(--ds-space-m))/2);
+    --ds-space-m-l:calc((var(--ds-space-m)+var(--ds-space-l))/2);
+    --ds-space-l-xl:calc((var(--ds-space-l)+var(--ds-space-xl))/2);
+    --ds-space-xl-xxl:calc((var(--ds-space-xl)+var(--ds-space-xxl))/2);
+    --ds-gap:var(--ds-space-m);
+    --ds-region-pad-inline:var(--ds-space-xxl);
+    /* Brand */
+    --c-bg:#0e0e0e;
+    --c-fg:#f0ebe0;
+    --c-orange:#d4622a;
+    --c-orange-dim:rgba(212,98,42,.15);
+    --c-muted:#7a736a;
+    --c-border:rgba(240,235,224,.1);
+  }
+}
+
+@layer ds.base{
+  html{color-scheme:dark;background:var(--c-bg);color:var(--c-fg);font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:var(--ds-space-m);}
+  ::-webkit-scrollbar{width:3px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(240,235,224,.15);border-radius:2px;}
+}
+
+@layer ds.layout{
+  :where(stacked-layout){display:flex;flex-direction:column;gap:var(--ds-stacked-gap,var(--ds-gap));align-items:var(--ds-stacked-align,stretch);}
+  :where(stacked-layout>*){min-inline-size:0;}
+  :where(cluster-layout){display:flex;flex-wrap:wrap;gap:var(--ds-cluster-gap,var(--ds-gap));align-items:var(--ds-cluster-align,center);justify-content:var(--ds-cluster-justify,flex-start);}
+  :where(repel-layout){display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:var(--ds-repel-align,center);gap:var(--ds-repel-gap,var(--ds-gap));}
+  :where(repel-layout>*){min-inline-size:0;}
+  :where(repel-layout[wrap]){flex-wrap:wrap;}
+  :where(split-layout){display:flex;flex-wrap:wrap;gap:var(--ds-split-gap,var(--ds-gap));}
+  :where(split-layout>*){flex-grow:1;flex-basis:calc((var(--ds-split-threshold,45rem)-100%)*999);min-inline-size:0;}
+  :where(columns-layout){display:grid;grid-template-columns:var(--ds-columns-cols,repeat(3,1fr));grid-template-rows:var(--ds-columns-rows,auto);row-gap:var(--ds-columns-gap-block,var(--ds-columns-gap,var(--ds-gap)));column-gap:var(--ds-columns-gap-inline,var(--ds-columns-gap,var(--ds-gap)));align-items:var(--ds-columns-align,stretch);}
+  :where(columns-layout>*){min-inline-size:0;min-block-size:0;}
+  :where(fluid-grid-layout){display:grid;row-gap:var(--ds-fluid-grid-gap-block,var(--ds-fluid-grid-gap,var(--ds-gap)));column-gap:var(--ds-fluid-grid-gap-inline,var(--ds-fluid-grid-gap,var(--ds-gap)));--_fg:var(--ds-fluid-grid-columns,auto-fit);grid-template-columns:repeat(var(--_fg),minmax(min(100%,var(--ds-fluid-grid-min,16rem)),var(--ds-fluid-grid-max,1fr)));}
+  :where(fluid-grid-layout>*){min-inline-size:0;}
+  :where(region-layout){display:block;--ds-region-pad-inline:var(--ds-space-xxl,4rem);padding-block:var(--ds-region-pad-block,var(--ds-space-xxl));padding-inline:var(--ds-region-pad-inline);background:var(--ds-region-bg,transparent);}
+  :where(centered-layout){display:block;box-sizing:content-box;max-inline-size:var(--ds-centered-max,65ch);margin-inline:auto;padding-inline:var(--ds-centered-gutter,0px);}
+  :where(breakout-layout){display:block;margin-inline:calc(-1*var(--ds-breakout-size,var(--ds-region-pad-inline,0px)));}
+  :where(quadrilateral-layout){display:block;padding-block-start:var(--ds-quad-pbs,var(--ds-quad-pad-block,var(--ds-quad-pad,0)));padding-block-end:var(--ds-quad-pbe,var(--ds-quad-pad-block,var(--ds-quad-pad,0)));padding-inline-start:var(--ds-quad-pis,var(--ds-quad-pad-inline,var(--ds-quad-pad,0)));padding-inline-end:var(--ds-quad-pie,var(--ds-quad-pad-inline,var(--ds-quad-pad,0)));border-block-start:var(--ds-quad-border-bs,var(--ds-quad-border-block,var(--ds-quad-border,0)));border-block-end:var(--ds-quad-border-be,var(--ds-quad-border-block,var(--ds-quad-border,0)));border-inline-start:var(--ds-quad-border-is,var(--ds-quad-border-inline,var(--ds-quad-border,0)));border-inline-end:var(--ds-quad-border-ie,var(--ds-quad-border-inline,var(--ds-quad-border,0)));border-start-start-radius:var(--ds-quad-radius-ss,var(--ds-quad-radius,0));border-start-end-radius:var(--ds-quad-radius-se,var(--ds-quad-radius,0));border-end-start-radius:var(--ds-quad-radius-es,var(--ds-quad-radius,0));border-end-end-radius:var(--ds-quad-radius-ee,var(--ds-quad-radius,0));background:var(--ds-quad-bg,transparent);color:var(--ds-quad-fg,inherit);box-shadow:var(--ds-quad-shadow,none);}
+  :where(quadrilateral-layout){transform-origin:var(--ds-quad-origin,50% 50%);}
+  :where(quadrilateral-layout[skew-x],:where(quadrilateral-layout[skew-y])){transform:skewX(var(--ds-quad-skew-x,0deg)) skewY(var(--ds-quad-skew-y,0deg));}
+  :where(quadrilateral-layout[rotate]){rotate:var(--ds-quad-rotate);}
+  :where(quadrilateral-layout[scale]){scale:var(--ds-quad-scale);}
+  :where(quadrilateral-layout[translate]){translate:var(--ds-quad-translate);}
+}
+
+@layer ds.motion{@media(prefers-reduced-motion:reduce){:where(*){transition-duration:.01ms!important;animation-duration:.01ms!important;}}}
+
+@layer ds.app{
+  /* Typographic scale */
+  .display { font-family:'Barlow Condensed',sans-serif; font-weight:900; line-height:.92; letter-spacing:-.02em; color:var(--c-fg); }
+  .display-xl { font-size:clamp(4rem,12vw,10rem); }
+  .display-l  { font-size:clamp(2.5rem,6vw,5rem); }
+  .display-m  { font-size:clamp(1.6rem,3.5vw,2.8rem); }
+  .heading    { font-family:'Barlow Condensed',sans-serif; font-weight:600; letter-spacing:-.01em; color:var(--c-fg); font-size:clamp(1.2rem,2.5vw,1.8rem); line-height:1.1; }
+  .body-text  { font-family:'Space Mono',monospace; font-size:.78rem; color:var(--c-muted); line-height:1.7; }
+  .label-sm   { font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--c-muted); }
+  .orange-text{ color:var(--c-orange); }
+
+  /* Nav */
+  .site-nav { position:fixed; inset-block-start:0; inset-inline:0; z-index:50; display:flex; align-items:center; justify-content:space-between; padding:var(--ds-space-m) var(--ds-space-xxl); mix-blend-mode:normal; }
+  .nav-bg { position:absolute; inset:0; background:rgba(14,14,14,.85); backdrop-filter:blur(12px); border-block-end:1px solid var(--c-border); }
+  .nav-content { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; width:100%; }
+  .nav-logo { font-family:'Barlow Condensed',sans-serif; font-size:1.3rem; font-weight:800; letter-spacing:.04em; }
+  .nav-links { display:flex; gap:var(--ds-space-xl); }
+  .nav-link { font-family:'Space Mono',monospace; font-size:.65rem; letter-spacing:.15em; text-transform:uppercase; color:var(--c-muted); transition:color .15s; }
+  .nav-link:hover { color:var(--c-fg); }
+  .nav-cta { border:1px solid var(--c-orange); padding:var(--ds-space-xs) var(--ds-space-m); font-family:'Barlow Condensed',sans-serif; font-size:.9rem; letter-spacing:.08em; text-transform:uppercase; color:var(--c-orange); transition:all .15s; cursor:pointer; }
+  .nav-cta:hover { background:var(--c-orange); color:#0e0e0e; }
+
+  /* Sections */
+  .hr-rule { border:none; border-block-start:1px solid var(--c-border); }
+  .project-card:hover .project-num { color:var(--c-orange); }
+  .project-card:hover .project-title { color:var(--c-fg); }
+  .service-item { padding-block:var(--ds-space-m); border-block-end:1px solid var(--c-border); transition:padding-inline .2s; cursor:pointer; }
+  .service-item:hover { padding-inline-start:var(--ds-space-m); }
+  .service-item:hover .service-num { color:var(--c-orange); }
+}
+
+@layer ds.prose {
+
+
+
+
+
+    :where(prose-layout) {
+        display: block;
+        max-inline-size: var(--ds-prose-measure, 65ch);
+        line-height: var(--ds-prose-leading, 1.65);
+        overflow-wrap: break-word;
+        hyphens: auto;
+
+
+        --ds-prose-flow:          var(--ds-space-s-m, 1rem);
+        --ds-prose-flow-heading:  var(--ds-space-m-l, 1.5rem);
+        --ds-prose-li-gap:        var(--ds-space-xs-s, 0.5rem);
+        --ds-prose-list-indent:   1.25em;
+        --ds-prose-rule-gap:      var(--ds-space-m-l, 1.5rem);
+    }
+
+
+    @media (pointer: coarse) {
+        :where(prose-layout) {
+            --ds-prose-li-gap: var(--ds-space-s-m, 1rem);
+        }
+    }
+
+
+
+    :where(prose-layout[compact]) {
+        --ds-prose-flow:         var(--ds-space-xs-s, 0.5rem);
+        --ds-prose-flow-heading: var(--ds-space-s-m, 1rem);
+        --ds-prose-li-gap:       var(--ds-space-xxs, 0.35rem);
+        --ds-prose-rule-gap:     var(--ds-space-s-m, 1rem);
+    }
+
+
+
+    :where(prose-layout) > :where(* + *) {
+        margin-block-start: var(--ds-prose-flow);
+    }
+
+
+    :where(prose-layout) > :where(h1, h2, h3, h4, h5, h6) {
+        margin-block-start: var(--ds-prose-flow-heading);
+    }
+
+
+
+    :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
+        line-height: var(--ds-prose-heading-leading, 1.2);
+        text-wrap: balance;
+    }
+
+
+
+
+    :where(prose-layout) :where(p) {
+        margin: 0;
+    }
+
+
+
+    :where(prose-layout) :where(ul, ol) {
+        padding-inline-start: var(--ds-prose-list-indent);
+    }
+
+    :where(prose-layout) :where(li) {
+        margin: 0;
+    }
+
+    :where(prose-layout) :where(li + li) {
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+
+    :where(prose-layout) :where(li > :where(ul, ol)) {
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+
+
+    :where(prose-layout) :where(dt) {
+        font-weight: var(--ds-prose-dt-weight, 600);
+    }
+
+    :where(prose-layout) :where(dd) {
+        margin-inline-start: 0;
+        margin-block-start: var(--ds-prose-li-gap);
+    }
+
+    :where(prose-layout) :where(dd + dt) {
+        margin-block-start: var(--ds-prose-flow);
+    }
+
+
+
+    :where(prose-layout) :where(a) {
+        text-decoration-thickness: from-font;
+        text-underline-offset: 0.15em;
+    }
+
+
+
+    :where(prose-layout) :where(code, kbd, samp) {
+        font-family:
+            ui-monospace, sfmono-regular, menlo, consolas, "Liberation Mono",
+            monospace;
+        font-size: 0.95em;
+    }
+
+
+
+    :where(prose-layout) :where(pre) {
+        overflow: auto;
+        padding: var(--ds-prose-pre-pad, var(--ds-space-s-m, 1rem));
+        border: 1px solid currentColor;
+        border-radius: var(--ds-prose-pre-radius, 0.5rem);
+    }
+
+    :where(prose-layout) :where(pre code) {
+        display: block;
+        white-space: pre;
+
+        font-size: 1em;
+    }
+
+
+
+    :where(prose-layout) :where(blockquote) {
+        margin-inline: 0;
+        padding-inline-start: var(--ds-space-s, 0.75rem);
+        border-inline-start: 0.25rem solid currentColor;
+    }
+
+
+
+    :where(prose-layout) :where(img, video, svg, canvas) {
+        max-inline-size: 100%;
+        block-size: auto;
+    }
+
+    :where(prose-layout) :where(figure) {
+        margin-inline: 0;
+    }
+
+    :where(prose-layout) :where(figcaption) {
+        font-size: 0.9em;
+        line-height: 1.4;
+    }
+
+
+
+    :where(prose-layout) :where(table) {
+        inline-size: 100%;
+        border-collapse: collapse;
+    }
+
+    :where(prose-layout) :where(th, td) {
+        padding: var(--ds-space-xs, 0.5rem);
+        border: 1px solid currentColor;
+        text-align: start;
+        vertical-align: top;
+    }
+
+    :where(prose-layout) :where(th) {
+        font-weight: 600;
+    }
+
+
+
+    :where(prose-layout) :where(hr) {
+        border: 0;
+        border-block-start: 1px solid currentColor;
+        margin-block: var(--ds-prose-rule-gap);
+    }
+
+}
+
+@media print {
+    @layer ds.prose {
+
+        :where(prose-layout) {
+            max-inline-size: none;
+            line-height: 1.45;
+            hyphens: auto;
+        }
+
+        :where(prose-layout) :where(pre) {
+            overflow: visible;
+            white-space: pre-wrap;
+            border: 1px solid currentColor;
+        }
+
+        :where(prose-layout) :where(a) {
+            color: inherit;
+            text-decoration: underline;
+        }
+
+
+        :where(prose-layout) :where(a[href]:not([href^="#"]):not([href^="javascript"]))::after {
+            content: " (" attr(href) ")";
+            font-size: 0.88em;
+            word-break: break-all;
+            opacity: 0.6;
+        }
+
+
+        :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
+            break-after: avoid-page;
+        }
+
+
+        :where(prose-layout) :where(blockquote, figure, table, pre) {
+            break-inside: avoid-page;
+        }
+
+
+        :where(prose-layout) :where(p, li) {
+            orphans: 3;
+            widows: 3;
+        }
+
+    }
+}
+</style>
+</head>
+<body>
+
+<!-- Fixed nav -->
+<nav class="site-nav" aria-label="Primary navigation">
+  <div class="nav-bg" aria-hidden="true"></div>
+  <div class="nav-content">
+    <span class="nav-logo">FORMA</span>
+    <div class="nav-links">
+      <a class="nav-link" href="#">Work</a>
+      <a class="nav-link" href="#">Studio</a>
+      <a class="nav-link" href="#">Services</a>
+      <a class="nav-link" href="#">Journal</a>
+    </div>
+    <a class="nav-cta" href="#">Start a project</a>
+  </div>
+</nav>
+
+<!-- ─── HERO ──────────────────────────────────────────────────────── -->
+<section style="padding-block-start:calc(var(--ds-space-huge) + 48px);padding-block-end:0;overflow:hidden;position:relative">
+  <region-layout data-layout="region-layout" style="--ds-region-pad-block:0;padding-block-end:var(--ds-space-huge)">
+
+    <!-- Oblique accent band — the skew-x showcase -->
+    <breakout-layout data-layout="breakout-layout" style="position:absolute;inset-block-start:30%;inset-block-end:0;pointer-events:none;overflow:hidden;z-index:0">
+      <quadrilateral-layout data-layout="quadrilateral-layout"
+        skew-x="-4deg"
+        origin="center left"
+        bg="rgba(212,98,42,.06)"
+        style="block-size:200%;margin-block-start:-50%">
+      </quadrilateral-layout>
+    </breakout-layout>
+
+    <stacked-layout data-layout="stacked-layout" gap="xl" style="position:relative;z-index:1">
+
+      <!-- Label -->
+      <div style="display:flex;align-items:center;gap:var(--ds-space-m)">
+        <div style="width:32px;height:1px;background:var(--c-orange)"></div>
+        <span class="label-sm orange-text">Design studio · Est. 2018</span>
+      </div>
+
+      <!-- Main headline with orange accent -->
+      <div>
+        <div class="display display-xl">WE BUILD</div>
+        <div class="display display-xl" style="color:var(--c-orange)">WHAT OTHERS</div>
+        <div class="display display-xl">IMAGINE</div>
+      </div>
+
+      <!-- Sub copy + CTA -->
+      <repel-layout data-layout="repel-layout" wrap gap="xl" style="--ds-repel-align:flex-end">
+        <prose-layout data-layout="prose-layout" measure="42ch" leading="1.7" style="font-family:'Space Mono',monospace;font-size:.85rem;color:var(--c-muted)">
+          <p>Forma is a design studio focused on the intersection of rigorous craft and expressive vision. We work with founders, agencies, and cultural institutions on identity, interface, and systems.</p>
+        </prose-layout>
+        <a class="nav-cta" href="#" style="flex-shrink:0;display:inline-block">View selected work ↓</a>
+      </repel-layout>
+
+    </stacked-layout>
+
+  </region-layout>
+
+  <!-- Full-bleed ruled line -->
+  <breakout-layout data-layout="breakout-layout">
+    <hr class="hr-rule">
+  </breakout-layout>
+</section>
+
+
+<!-- ─── NUMBERS ─────────────────────────────────────────────────────── -->
+<region-layout data-layout="region-layout" style="--ds-region-pad-block:var(--ds-space-xl)">
+  <columns-layout data-layout="columns-layout" style="--ds-columns-cols:repeat(4,1fr);--ds-columns-gap:1px;border:1px solid var(--c-border)">
+    <div style="padding:var(--ds-space-l);border-inline-end:1px solid var(--c-border)">
+      <div class="display display-l" style="color:var(--c-orange)">47</div>
+      <div class="label-sm" style="margin-block-start:var(--ds-space-xs)">Projects delivered</div>
+    </div>
+    <div style="padding:var(--ds-space-l);border-inline-end:1px solid var(--c-border)">
+      <div class="display display-l">6</div>
+      <div class="label-sm" style="margin-block-start:var(--ds-space-xs)">Years operating</div>
+    </div>
+    <div style="padding:var(--ds-space-l);border-inline-end:1px solid var(--c-border)">
+      <div class="display display-l" style="color:var(--c-orange)">12</div>
+      <div class="label-sm" style="margin-block-start:var(--ds-space-xs)">Industry awards</div>
+    </div>
+    <div style="padding:var(--ds-space-l)">
+      <div class="display display-l">3</div>
+      <div class="label-sm" style="margin-block-start:var(--ds-space-xs)">Studio locations</div>
+    </div>
+  </columns-layout>
+</region-layout>
+
+<breakout-layout data-layout="breakout-layout"><hr class="hr-rule"></breakout-layout>
+
+
+<!-- ─── SELECTED WORK ─────────────────────────────────────────────────── -->
+<region-layout data-layout="region-layout" style="--ds-region-pad-block:var(--ds-space-xxl)">
+  <stacked-layout data-layout="stacked-layout" gap="xxl">
+
+    <repel-layout data-layout="repel-layout">
+      <div class="heading">Selected Work</div>
+      <a class="label-sm" href="#" style="color:var(--c-orange)">All projects →</a>
+    </repel-layout>
+
+    <!-- Project grid -->
+    <stacked-layout data-layout="stacked-layout" gap="0">
+
+      <div class="project-card" style="padding-block:var(--ds-space-xl);border-block-start:1px solid var(--c-border);cursor:pointer">
+        <repel-layout data-layout="repel-layout" align="start">
+          <stacked-layout data-layout="stacked-layout" gap="s">
+            <cluster-layout data-layout="cluster-layout" gap="m">
+              <span class="label-sm project-num" style="transition:color .15s">001</span>
+              <span class="label-sm">Brand Identity · Interface Design</span>
+            </cluster-layout>
+            <div class="display display-m project-title" style="transition:color .15s">Serenity Health App</div>
+          </stacked-layout>
+          <!-- Skewed accent tile -->
+          <div style="inline-size:140px;block-size:90px;overflow:hidden;border:1px solid var(--c-border);flex-shrink:0;position:relative">
+            <quadrilateral-layout data-layout="quadrilateral-layout"
+              skew-x="-8deg" origin="center"
+              bg="linear-gradient(135deg,rgba(212,98,42,.3),rgba(212,98,42,.05))"
+              style="position:absolute;inset:-20%;inline-size:140%;block-size:140%">
+            </quadrilateral-layout>
+            <div style="position:relative;padding:var(--ds-space-m)">
+              <span class="label-sm orange-text">2024</span>
+            </div>
+          </div>
+        </repel-layout>
+      </div>
+
+      <div class="project-card" style="padding-block:var(--ds-space-xl);border-block-start:1px solid var(--c-border);cursor:pointer">
+        <repel-layout data-layout="repel-layout" align="start">
+          <stacked-layout data-layout="stacked-layout" gap="s">
+            <cluster-layout data-layout="cluster-layout" gap="m">
+              <span class="label-sm project-num" style="transition:color .15s">002</span>
+              <span class="label-sm">Motion · Design System</span>
+            </cluster-layout>
+            <div class="display display-m project-title" style="transition:color .15s">Apex Branding Identity</div>
+          </stacked-layout>
+          <div style="inline-size:140px;block-size:90px;overflow:hidden;border:1px solid var(--c-border);flex-shrink:0;position:relative">
+            <quadrilateral-layout data-layout="quadrilateral-layout"
+              skew-x="-8deg" origin="center"
+              bg="linear-gradient(135deg,rgba(240,235,224,.08),rgba(240,235,224,.02))"
+              style="position:absolute;inset:-20%;inline-size:140%;block-size:140%">
+            </quadrilateral-layout>
+            <div style="position:relative;padding:var(--ds-space-m)">
+              <span class="label-sm">2023</span>
+            </div>
+          </div>
+        </repel-layout>
+      </div>
+
+      <div class="project-card" style="padding-block:var(--ds-space-xl);border-block-start:1px solid var(--c-border);cursor:pointer">
+        <repel-layout data-layout="repel-layout" align="start">
+          <stacked-layout data-layout="stacked-layout" gap="s">
+            <cluster-layout data-layout="cluster-layout" gap="m">
+              <span class="label-sm project-num" style="transition:color .15s">003</span>
+              <span class="label-sm">Editorial · Print · Web</span>
+            </cluster-layout>
+            <div class="display display-m project-title" style="transition:color .15s">Noir Collection Campaign</div>
+          </stacked-layout>
+          <div style="inline-size:140px;block-size:90px;overflow:hidden;border:1px solid var(--c-border);flex-shrink:0;position:relative">
+            <quadrilateral-layout data-layout="quadrilateral-layout"
+              skew-x="-8deg" origin="center"
+              bg="linear-gradient(135deg,rgba(212,98,42,.2),transparent)"
+              style="position:absolute;inset:-20%;inline-size:140%;block-size:140%">
+            </quadrilateral-layout>
+            <div style="position:relative;padding:var(--ds-space-m)">
+              <span class="label-sm orange-text">2023</span>
+            </div>
+          </div>
+        </repel-layout>
+      </div>
+
+      <div class="project-card" style="padding-block:var(--ds-space-xl);border-block-start:1px solid var(--c-border);border-block-end:1px solid var(--c-border);cursor:pointer">
+        <repel-layout data-layout="repel-layout" align="start">
+          <stacked-layout data-layout="stacked-layout" gap="s">
+            <cluster-layout data-layout="cluster-layout" gap="m">
+              <span class="label-sm project-num" style="transition:color .15s">004</span>
+              <span class="label-sm">Interface · Design System · Tokens</span>
+            </cluster-layout>
+            <div class="display display-m project-title" style="transition:color .15s">Lattice Design Platform</div>
+          </stacked-layout>
+          <div style="inline-size:140px;block-size:90px;overflow:hidden;border:1px solid var(--c-border);flex-shrink:0;position:relative">
+            <quadrilateral-layout data-layout="quadrilateral-layout"
+              skew-x="-8deg" origin="center"
+              bg="linear-gradient(135deg,rgba(212,98,42,.25),rgba(240,235,224,.05))"
+              style="position:absolute;inset:-20%;inline-size:140%;block-size:140%">
+            </quadrilateral-layout>
+            <div style="position:relative;padding:var(--ds-space-m)">
+              <span class="label-sm orange-text">2022</span>
+            </div>
+          </div>
+        </repel-layout>
+      </div>
+
+    </stacked-layout>
+  </stacked-layout>
+</region-layout>
+
+
+<!-- ─── OBLIQUE INTERLUDE ─────────────────────────────────────────────── -->
+<div style="overflow:hidden;position:relative;padding-block:var(--ds-space-huge)">
+  <!-- Skewed background band -->
+  <quadrilateral-layout data-layout="quadrilateral-layout"
+    skew-x="-3deg"
+    bg="rgba(212,98,42,.08)"
+    origin="center"
+    style="position:absolute;inset-block:-40%;inset-inline:-5%;z-index:0">
+  </quadrilateral-layout>
+  <!-- Secondary skew for depth -->
+  <quadrilateral-layout data-layout="quadrilateral-layout"
+    skew-x="-3deg"
+    bg="rgba(212,98,42,.04)"
+    origin="center"
+    style="position:absolute;inset-block:-40%;inset-inline:-5%;transform:translateY(40%) skewX(-3deg);z-index:0">
+  </quadrilateral-layout>
+  <centered-layout data-layout="centered-layout" style="--ds-centered-max:38ch;position:relative;z-index:1;text-align:center;padding-inline:var(--ds-space-xxl)">
+    <stacked-layout data-layout="stacked-layout" gap="l">
+      <div class="display display-l" style="line-height:.95">
+        Design is the distance between what is and what could be.
+      </div>
+      <div style="width:40px;height:2px;background:var(--c-orange);margin:0 auto"></div>
+      <span class="label-sm">Forma Studio Manifesto</span>
+    </stacked-layout>
+  </centered-layout>
+</div>
+
+
+<!-- ─── SERVICES ─────────────────────────────────────────────────────── -->
+<region-layout data-layout="region-layout" style="--ds-region-pad-block:var(--ds-space-xxl)">
+  <stacked-layout data-layout="stacked-layout" gap="xxl">
+
+    <split-layout data-layout="split-layout" threshold="36rem" gap="xxl">
+      <div>
+        <div class="heading">What we do</div>
+      </div>
+      <prose-layout data-layout="prose-layout" measure="48ch" leading="1.7" style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--c-muted)">
+        <p>We partner with teams to define visual language, design systems, and the interfaces that carry them — from brand fundamentals through production-ready components.</p>
+      </prose-layout>
+    </split-layout>
+
+    <stacked-layout data-layout="stacked-layout" gap="0">
+
+      <div class="service-item">
+        <repel-layout data-layout="repel-layout">
+          <cluster-layout data-layout="cluster-layout" gap="l">
+            <span class="label-sm service-num" style="transition:color .15s;width:3ch">01</span>
+            <span class="display" style="font-size:1.4rem">Brand Identity</span>
+          </cluster-layout>
+          <span class="label-sm">Strategy · Mark · Type · Color</span>
+        </repel-layout>
+      </div>
+
+      <div class="service-item">
+        <repel-layout data-layout="repel-layout">
+          <cluster-layout data-layout="cluster-layout" gap="l">
+            <span class="label-sm service-num" style="transition:color .15s;width:3ch">02</span>
+            <span class="display" style="font-size:1.4rem">Interface Design</span>
+          </cluster-layout>
+          <span class="label-sm">Product · Web · Motion</span>
+        </repel-layout>
+      </div>
+
+      <div class="service-item">
+        <repel-layout data-layout="repel-layout">
+          <cluster-layout data-layout="cluster-layout" gap="l">
+            <span class="label-sm service-num" style="transition:color .15s;width:3ch">03</span>
+            <span class="display" style="font-size:1.4rem">Design Systems</span>
+          </cluster-layout>
+          <span class="label-sm">Tokens · Components · Docs</span>
+        </repel-layout>
+      </div>
+
+      <div class="service-item" style="border-block-end:1px solid var(--c-border)">
+        <repel-layout data-layout="repel-layout">
+          <cluster-layout data-layout="cluster-layout" gap="l">
+            <span class="label-sm service-num" style="transition:color .15s;width:3ch">04</span>
+            <span class="display" style="font-size:1.4rem">Editorial Direction</span>
+          </cluster-layout>
+          <span class="label-sm">Print · Campaign · Spatial</span>
+        </repel-layout>
+      </div>
+
+    </stacked-layout>
+  </stacked-layout>
+</region-layout>
+
+
+<!-- ─── CTA ─────────────────────────────────────────────────────── -->
+<region-layout data-layout="region-layout" style="--ds-region-pad-block:var(--ds-space-huge);border-block-start:1px solid var(--c-border)">
+  <stacked-layout data-layout="stacked-layout" gap="l" style="--ds-stacked-align:center;text-align:center">
+    <div class="display display-xl" style="line-height:.9">LET'S WORK<br><span class="orange-text">TOGETHER</span></div>
+    <prose-layout data-layout="prose-layout" measure="44ch" leading="1.7" style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--c-muted)">
+      <p>We take on a small number of projects each year. If you have something worth making, we want to hear about it.</p>
+    </prose-layout>
+    <a class="nav-cta" href="#" style="display:inline-block;font-size:1.1rem;padding:var(--ds-space-m) var(--ds-space-xxl)">Start a conversation</a>
+  </stacked-layout>
+</region-layout>
+
+
+<!-- ─── FOOTER ─────────────────────────────────────────────────────── -->
+<footer style="padding:var(--ds-space-l) var(--ds-space-xxl);border-block-start:1px solid var(--c-border)">
+  <repel-layout data-layout="repel-layout" wrap>
+    <span class="label-sm">FORMA Studio · London · New York · Tokyo</span>
+    <cluster-layout data-layout="cluster-layout" gap="xl">
+      <a class="label-sm" href="#">Instagram</a>
+      <a class="label-sm" href="#">Behance</a>
+      <a class="label-sm" href="#">LinkedIn</a>
+    </cluster-layout>
+    <span class="label-sm">© 2026 Forma Studio Ltd</span>
+  </repel-layout>
+</footer>
+
+<script>
+function aV(e,n,v){v===''||v==null?e.style.removeProperty(n):e.style.setProperty(n,v);}
+function aP(e,n,v){v===''||v==null?e.style.removeProperty(n):e.style.setProperty(n,v);}
+const ST=new Set(['tiny','xxxs','xxs','xs','s','m','l','xl','xxl','xxxl','huge','xs-s','s-m','m-l','l-xl','xl-xxl']);
+function ns(v){const s=String(v||'').trim();if(!s)return'';if(s==='0')return'0';if(ST.has(s))return`var(--ds-space-${s})`;return s;}
+function nr(v){return String(v||'').trim();}
+function el(map){const e=Object.entries(map);return class extends HTMLElement{static get observedAttributes(){return Object.keys(map);}connectedCallback(){this._a();}attributeChangedCallback(){this._a();}_a(){for(const[attr,spec]of e){const raw=this.getAttribute(attr)??'';const val=spec.type==='space'?ns(raw):nr(raw);if(spec.var)aV(this,spec.var,val);if(spec.prop)aP(this,spec.prop,val);}}};}
+function def(t,c){if(!customElements.get(t))customElements.define(t,c);}
+
+def('stacked-layout',el({gap:{type:'space',var:'--ds-stacked-gap'},align:{type:'raw',var:'--ds-stacked-align'}}));
+def('cluster-layout',el({gap:{type:'space',var:'--ds-cluster-gap'},align:{type:'raw',var:'--ds-cluster-align'},justify:{type:'raw',var:'--ds-cluster-justify'}}));
+def('repel-layout',el({gap:{type:'space',var:'--ds-repel-gap'},align:{type:'raw',var:'--ds-repel-align'}}));
+def('split-layout',el({gap:{type:'space',var:'--ds-split-gap'},threshold:{type:'space',var:'--ds-split-threshold'}}));
+def('columns-layout',el({cols:{type:'raw',var:'--ds-columns-cols'},rows:{type:'raw',var:'--ds-columns-rows'},gap:{type:'space',var:'--ds-columns-gap'},'gap-block':{type:'space',var:'--ds-columns-gap-block'},'gap-inline':{type:'space',var:'--ds-columns-gap-inline'}}));
+def('fluid-grid-layout',el({min:{type:'space',var:'--ds-fluid-grid-min'},max:{type:'space',var:'--ds-fluid-grid-max'},gap:{type:'space',var:'--ds-fluid-grid-gap'}}));
+def('region-layout',el({'pad-block':{type:'space',var:'--ds-region-pad-block'},'pad-inline':{type:'space',var:'--ds-region-pad-inline'},bg:{type:'raw',var:'--ds-region-bg'}}));
+def('centered-layout',el({max:{type:'space',var:'--ds-centered-max'},gutter:{type:'space',var:'--ds-centered-gutter'}}));
+def('breakout-layout',el({size:{type:'space',var:'--ds-breakout-size'}}));
+
+const _QB=el({'pad':{type:'space',var:'--ds-quad-pad'},'pad-block':{type:'space',var:'--ds-quad-pad-block'},'pad-inline':{type:'space',var:'--ds-quad-pad-inline'},pbs:{type:'space',var:'--ds-quad-pbs'},pbe:{type:'space',var:'--ds-quad-pbe'},pis:{type:'space',var:'--ds-quad-pis'},pie:{type:'space',var:'--ds-quad-pie'},border:{type:'raw',var:'--ds-quad-border'},'border-bs':{type:'raw',var:'--ds-quad-border-bs'},'border-be':{type:'raw',var:'--ds-quad-border-be'},'border-is':{type:'raw',var:'--ds-quad-border-is'},'border-ie':{type:'raw',var:'--ds-quad-border-ie'},radius:{type:'space',var:'--ds-quad-radius'},bg:{type:'raw',var:'--ds-quad-bg'},fg:{type:'raw',var:'--ds-quad-fg'},shadow:{type:'raw',var:'--ds-quad-shadow'},'skew-x':{type:'raw',var:'--ds-quad-skew-x'},'skew-y':{type:'raw',var:'--ds-quad-skew-y'},rotate:{type:'raw',var:'--ds-quad-rotate'},scale:{type:'raw',var:'--ds-quad-scale'},translate:{type:'raw',var:'--ds-quad-translate'},origin:{type:'raw',var:'--ds-quad-origin'},perspective:{type:'raw',prop:'perspective'}});
+class _QE extends _QB{static get observedAttributes(){return[...super.observedAttributes,'preserve-3d','backface','flip-x','flip-y'];}connectedCallback(){super.connectedCallback();this._qt();}attributeChangedCallback(n,o,v){super.attributeChangedCallback(n,o,v);this._qt();}_qt(){const p3d=this.hasAttribute('preserve-3d'),bf=this.hasAttribute('backface'),fx=this.hasAttribute('flip-x'),fy=this.hasAttribute('flip-y');p3d?this.style.setProperty('transform-style','preserve-3d'):this.style.removeProperty('transform-style');bf?this.style.setProperty('backface-visibility','hidden'):this.style.removeProperty('backface-visibility');if(fx||fy)this.style.setProperty('scale',`${fx?-1:1} ${fy?-1:1}`);}}
+def('quadrilateral-layout',_QE);
+
+// Hover interactions
+document.querySelectorAll('.project-card').forEach(card => {
+  const num = card.querySelector('.project-num');
+  const title = card.querySelector('.project-title');
+  card.addEventListener('mouseenter', () => {
+    if (num) num.style.color = 'var(--c-orange)';
+    if (title) title.style.color = 'var(--c-fg)';
+  });
+  card.addEventListener('mouseleave', () => {
+    if (num) num.style.color = '';
+    if (title) title.style.color = '';
+  });
+});
+
+document.querySelectorAll('.service-item').forEach(item => {
+  const num = item.querySelector('.service-num');
+  item.addEventListener('mouseenter', () => {
+    item.style.paddingInlineStart = 'var(--ds-space-m)';
+    if (num) num.style.color = 'var(--c-orange)';
+  });
+  item.addEventListener('mouseleave', () => {
+    item.style.paddingInlineStart = '';
+    if (num) num.style.color = '';
+  });
+});
+
+// prose-layout — flow rhythm for mixed HTML content
+const _PLBase = el({
+  measure:{type:'raw',var:'--ds-prose-measure'},
+  leading:{type:'raw',var:'--ds-prose-leading'},
+  flow:{type:'space',var:'--ds-prose-flow'},
+  'flow-heading':{type:'space',var:'--ds-prose-flow-heading'},
+  'li-gap':{type:'space',var:'--ds-prose-li-gap'},
+  'list-indent':{type:'raw',var:'--ds-prose-list-indent'},
+  'rule-gap':{type:'space',var:'--ds-prose-rule-gap'},
+  'pre-pad':{type:'space',var:'--ds-prose-pre-pad'},
+  'pre-radius':{type:'space',var:'--ds-prose-pre-radius'},
+  'heading-leading':{type:'raw',var:'--ds-prose-heading-leading'},
+  'dt-weight':{type:'raw',var:'--ds-prose-dt-weight'}
+});
+class _PLEl extends _PLBase {
+  static get observedAttributes(){return[...super.observedAttributes,'compact'];}
+}
+def('prose-layout',_PLEl);
+</script>
+</body>
+</html>

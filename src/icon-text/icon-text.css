@@ -1,0 +1,136 @@
+@layer ds.layout {
+
+    /* ── icon-text-layout ────────────────────────────────────
+       An inline flex container pairing an icon with a text label.
+       The first child is treated as the icon; the second (last)
+       child is treated as the text.
+
+       STRUCTURE CONTRACT:
+       This element expects exactly 2 direct children:
+         1. The icon — an <svg>, <img>, or icon component.
+            Sized to a square by --ds-icon-size (default: 1em,
+            inherently tracking the surrounding text size).
+         2. The text label — any inline content.
+            Grows to fill remaining space when the element is
+            stretched by a parent flex/grid container.
+
+       Why :first-child / :last-child and not a slot mechanism:
+       Custom elements without shadow DOM cannot use <slot>. The
+       first/last child targeting is intentional and documented.
+       If you need icon-after-text, use [reverse]. If you need
+       icon-above-text, use [vertical]. For other compositions,
+       use your own layout.
+
+       Attributes:
+         gap="<token | length>"
+           Gap between icon and text. Default: --ds-space-xs-s
+           (a tight gap appropriate for inline icon-text pairs,
+           tighter than layout gap).
+
+         size="<token | length>"
+           Icon size (both inline-size and block-size, keeping icons
+           square). Accepts space tokens for a size from the design
+           system scale, or any CSS dimension: 24px, 1.5em, etc.
+           Default: 1em (tracks the surrounding font size — the icon
+           is always as tall as the current line height cap height).
+           For text-scale sizing, pass the token directly as a value:
+             size="var(--ds-text-xl)"
+
+         align="<align-items value>"
+           Cross-axis alignment of icon and text.
+           For horizontal mode (default and [reverse]):
+             center     — vertically centered (default; for single-line text)
+             baseline   — align to text baseline (useful for mixed sizes)
+             flex-start — align to top (useful for multi-line text labels)
+           For [vertical] mode:
+             center     — horizontally centered (default)
+             flex-start — align to inline-start edge
+
+       BOOLEAN ATTRIBUTES (CSS-only):
+
+         reverse
+           Reverses the visual order: text appears before icon.
+           The DOM order is unchanged — icon is still first in markup
+           (which is correct for screen readers and tab order).
+           Achieved with flex-direction: row-reverse.
+
+         vertical
+           Stacks icon above text. Gap becomes vertical space.
+           Useful for tab bar items, icon buttons with labels.
+           align="center" (the default) centers both horizontally.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(icon-text-layout) {
+        display: inline-flex;
+        align-items: var(--ds-icon-text-align, center);
+        gap: var(--ds-icon-text-gap, var(--ds-space-xs-s, 0.5rem));
+    }
+
+
+    /* ── Icon child (first child) ────────────────────────────
+       - Square sizing: both dimensions use --ds-icon-size.
+       - flex: 0 0 auto prevents the icon from growing or shrinking
+         with flex layout — it always stays at its declared size.
+         Without this, a flex-grow or flex-shrink on a parent can
+         distort the icon dimensions.
+       - display: block prevents SVG and img elements from having
+         the inline descender gap added by the browser.
+       - pointer-events: none on the icon prevents it from
+         capturing mouse/touch events independently of the label —
+         icon-text-layout as a whole should be the interaction target.
+    ──────────────────────────────────────────────────────────── */
+    :where(icon-text-layout > :first-child) {
+        display: block;
+        inline-size: var(--ds-icon-size, 1em);
+        block-size:  var(--ds-icon-size, 1em);
+        flex: 0 0 auto;
+        pointer-events: none;
+    }
+
+
+    /* ── Text child (last child) ─────────────────────────────
+       - flex: 1 1 auto: the text grows to fill available space
+         when icon-text-layout is itself a flex/grid child stretched
+         by its parent (toolbar, nav item, etc.). Without flex-grow,
+         the icon fills the extra space instead.
+       - min-inline-size: 0: allows the text to shrink below its
+         intrinsic content width when space is tight. Without this,
+         a long unbreakable label overflows the container.
+    ──────────────────────────────────────────────────────────── */
+    :where(icon-text-layout > :last-child) {
+        flex: 1 1 auto;
+        min-inline-size: 0;
+    }
+
+
+    /* ── [reverse] — icon after text ─────────────────────────
+       Reverses visual order only. DOM/tab order is unchanged.
+       Icon is still first in markup for correct screen reader
+       and keyboard navigation order.
+    ──────────────────────────────────────────────────────────── */
+    :where(icon-text-layout[reverse]) {
+        flex-direction: row-reverse;
+    }
+
+
+    /* ── [vertical] — icon above text ───────────────────────
+       Stacks children vertically: icon on top, text below.
+       Sets align-items: center as the cross-axis default
+       (horizontal centering in column direction).
+       The gap attribute provides vertical spacing.
+    ──────────────────────────────────────────────────────────── */
+    :where(icon-text-layout[vertical]) {
+        flex-direction: column;
+    }
+
+    /*
+        In [vertical] mode the text child should not grow vertically.
+        Reset flex: 1 1 auto back to flex: 0 0 auto in column direction
+        to prevent the text from stretching taller than its content.
+    */
+    :where(icon-text-layout[vertical] > :last-child) {
+        flex: 0 0 auto;
+        min-inline-size: 0;
+    }
+
+}

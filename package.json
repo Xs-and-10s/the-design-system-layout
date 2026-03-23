@@ -118,11 +118,11 @@
     "style": "./dist/core.css",
 
     "scripts": {
-        "build":       "bun run scripts/build.ts",
-        "build:css":   "bun run scripts/build.ts --css-only",
-        "build:js":    "bun run scripts/build.ts --js-only",
-        "build:types": "bun run scripts/build.ts --types-only",
-        "dev":         "bun run scripts/build.ts --watch",
+        "build":       "npm run scripts/build.ts",
+        "build:css":   "npm run scripts/build.ts --css-only",
+        "build:js":    "npm run scripts/build.ts --js-only",
+        "build:types": "npm run scripts/build.ts --types-only",
+        "dev":         "npm run scripts/build.ts --watch",
         "typecheck":   "tsc --noEmit",
         "prepublishOnly": "bun run build"
     },

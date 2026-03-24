@@ -14,7 +14,7 @@ RUN bun run build
 FROM nginx:1.27-alpine
 
 COPY --from=builder /app/dist/ /usr/share/nginx/html/dist/
-COPY poc/ /usr/share/nginx/html/
+COPY pages/ /usr/share/nginx/html/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 CMD ["/bin/sh", "-c", \

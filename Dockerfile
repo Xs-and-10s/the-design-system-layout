@@ -1,32 +1,20 @@
-# ── Build stage ───────────────────────────────────────────────────────────────
+# ── Build stage ───────────────────────────────────────────
 FROM oven/bun:1 AS builder
-
 WORKDIR /app
 
-# Install dependencies first (layer-cached unless lockfile changes)
-COPY package.json package-lock.json ./
-RUN bun install
+# bun uses bun.lockb, not package-lock.json
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile
 
-# Copy source and build
 COPY . .
 RUN bun run build
 
-# ── Runtime stage ──────────────────────────────────────────────────────────────
+# ── Runtime stage ──────────────────────────────────────────
 FROM nginx:1.27-alpine
-
-# Copy the compiled dist/ output from the build stage
-COPY --from=builder /app/dist/ /usr/share/nginx/html/
-
-# Copy the static gallery pages
-COPY pages/ /usr/share/nginx/html/
-
-# Copy our custom nginx config
+COPY --from=builder /app/dist/ /usr/share/nginx/html/dist/
+COPY poc/ /usr/share/nginx/html/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Railway injects the PORT environment variable at runtime.
-# nginx needs to listen on that port, not the hardcoded 80.
-# We do a runtime substitution via the entrypoint below.
 CMD ["/bin/sh", "-c", \
-  "envsubst '$PORT' < /etc/nginx/conf.d/default.conf > /tmp/nginx.conf \
-   && cp /tmp/nginx.conf /etc/nginx/conf.d/default.conf \
+  "envsubst '$PORT' < /etc/nginx/conf.d/default.conf > /tmp/default.conf \
+   && mv /tmp/default.conf /etc/nginx/conf.d/default.conf \
    && nginx -g 'daemon off;'"]

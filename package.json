@@ -1,6 +1,6 @@
 {
   "name": "@the-design-system/layout",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Layout primitives as composable custom elements with multiple ratios per any given subtree — no build step required for consumers, whether human or agent",
   "license": "MIT",
   "type": "module",

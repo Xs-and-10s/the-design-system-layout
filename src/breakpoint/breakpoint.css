@@ -1,459 +1,159 @@
-/**
- * @design-system/layout — presence-layout
- *
- * A visibility management wrapper with an animated 3-step state machine
- * (absent ↔ invisible ↔ visible), exponential easing, and View Transitions
- * API integration.
- *
- * The element is BEHAVIORLESS by default — state is driven by setting
- * `data-state` from your application layer (Datastar signals, React state,
- * vanilla JS). The JS element adds devtools recognition, event dispatch,
- * and the orchestrated transition methods.
- *
- * ── THE 3-STEP STATE MACHINE ─────────────────────────────────
- *
- *   absent      display: none       not in layout or a11y tree
- *      ↕ (discrete transition or instant)
- *   invisible   visibility: hidden  in layout, not painted
- *      ↕ (opacity + transform transition)
- *   visible     fully painted       in layout, accessible
- *
- *   hidden = absent (semantic alias: "I'm hiding this" vs "this isn't here")
- *
- * Why 3 steps?
- *   You cannot animate `display: none → display: block` in one step without
- *   the element jumping into existence (or out of existence) visually. The
- *   `invisible` step is the bridge:
- *     - Going in:  absent → invisible (instant) → visible (animated)
- *     - Going out: visible → invisible (animated) → absent (instant)
- *   The JS orchestration methods (.show(), .hide(), .transitionTo()) handle
- *   this automatically. Direct `data-state` manipulation bypasses it.
- *
- * ── SCALE TOKEN ─────────────────────────────────────────
- *
- * --ds-presence-scale-from (default: 0.85) controls the scale value
- * at the start of entry (and end of exit). Set on the element or :root:
- *   0.85   subtle, professional (iOS-style)   ← default
- *   0      "scale to a literal point"          (dramatic, app-like)
- *   0.95   barely perceptible                  (tooltips, menus)
- *   1      no scale; pure opacity + translate
- *
- * ── USAGE ────────────────────────────────────────────────────
- *
- *   <!-- Simplest: CSS-driven state -->
- *   <presence-layout box animate="entry" data-state="absent">
- *     <dialog>…</dialog>
- *   </presence-layout>
- *
- *   // JS: animated 3-step reveal
- *   const el = document.querySelector('presence-layout');
- *   await el.show();         // absent → invisible → visible
- *   await el.hide();         // visible → invisible → absent
- *
- *   // JS: with View Transition (if API available, falls back gracefully)
- *   await el.transitionTo('visible');
- *
- *   <!-- View transition hook (unique name required) -->
- *   <presence-layout box vt-name="hero-panel">
- *     <section>…</section>
- *   </presence-layout>
- *   <!-- In your CSS: -->
- *   <!-- ::view-transition-old(hero-panel) { animation: ds-presence-fade-out … } -->
- *   <!-- ::view-transition-new(hero-panel) { animation: ds-presence-fade-in … } -->
- *
- *   <!-- Any layout primitive can also carry vt-name -->
- *   <region-layout vt-name="about-section">…</region-layout>
- *   <columns-layout vt-name="product-grid" cols="3">…</columns-layout>
- *
- * ── VIEW TRANSITIONS ON ANY LAYOUT PRIMITIVE ─────────────────
- *
- * The factory in core.ts universally observes `vt-name` on every layout
- * element and sets `--ds-vt-name` as an inline custom property. The CSS
- * rule in ds.layout reads `view-transition-name: var(--ds-vt-name)`.
- *
- * So: add vt-name="my-unique-id" to ANY layout primitive to make it a
- * named view transition participant. Wrap DOM changes in:
- *   document.startViewTransition(() => { /* your DOM change *\/ })
- *
- * Requirements:
- *   1. Each element's vt-name must be UNIQUE in the document.
- *   2. Elements with display: contents (presence-layout without [box])
- *      cannot receive view-transition-name — add [box].
- *   3. document.startViewTransition() must be called by your code.
- *      The library never calls it automatically (it doesn't know when
- *      you want a transition vs. a side-effect state change).
- *
- * @module @design-system/layout/presence
- */
+@layer ds.layout {
+    /* ── breakpoint-layout + at-breakpoint ───────────────────
+       A viewport-breakpoint conditional rendering primitive.
+       An escape hatch for cases where intrinsic layout, container
+       queries, and fluid scaling cannot achieve the desired result.
 
-import {
-    defineElement,
-    normalizeRaw,
-    applyVar,
-} from '../core.js';
+       ── PHILOSOPHY: USE THIS LAST ─────────────────────────────
 
+       @design-system/layout is built around intrinsic design —
+       layouts that respond to available space without explicit
+       breakpoints. The proper tools, in order of preference:
 
-/* ── Types ───────────────────────────────────────────────────── */
+         1. split-layout          — auto-switches at a threshold
+         2. fluid-grid-layout     — columns emerge from minimum width
+         3. containment-layout    — @container queries for component scope
+         4. split-pane-layout     — named-area topology
+         5. scrolling-layout      — overflow and snap
+         6. breakpoint-layout     ← you are here (last resort)
 
-/** The four visibility states managed by presence-layout. */
-export type PresenceState = 'visible' | 'invisible' | 'hidden' | 'absent';
+       Use breakpoint-layout when:
+         - A specific structural change must happen at an exact
+           pixel boundary that intrinsic layouts cannot express
+         - Different markup structure (not just different styling)
+           is needed for different viewport sizes
+         - A third-party component requires completely different
+           markup between mobile and desktop contexts
+         - You're polishing a layout to pixel-perfection and the
+           intrinsic tools leave a gap
 
-/** Event detail for the `ds:presence` custom event. */
-export interface PresenceChangeDetail {
-    /** The current state after the change. */
-    state: PresenceState;
-    /** The previous state. Null on first observation. */
-    previous: PresenceState | null;
-}
+       ── HOW IT WORKS ──────────────────────────────────────────
 
-/** The `ds:presence` event type. */
-export type PresenceChangeEvent = CustomEvent<PresenceChangeDetail>;
+       breakpoint-layout is a transparent container (display: contents).
+       Its direct children must be at-breakpoint elements.
+       Each at-breakpoint element declares its viewport conditions via
+       `min`, `max`, and/or `orientation` attributes.
+       The JS element evaluates `window.matchMedia()` for each child
+       and shows/hides children reactively as the viewport changes.
 
-/** View Transition API — TypeScript's lib.dom doesn't include it yet. */
-interface ViewTransition {
-    readonly finished: Promise<void>;
-    readonly ready: Promise<void>;
-    readonly updateCallbackDone: Promise<void>;
-    skipTransition(): void;
-}
+       Only one at-breakpoint child is visible at a time.
+       If multiple children match simultaneously, ALL matching children
+       are shown. To avoid this, ensure your min/max ranges are mutually
+       exclusive.
 
-declare global {
-    interface Document {
-        startViewTransition?(callback: () => void | Promise<void>): ViewTransition;
-    }
-}
+       ── PROGRESSIVE ENHANCEMENT ───────────────────────────────
 
+       Before the custom elements are registered (before JS runs):
+         breakpoint-layout:not(:defined) shows the first at-breakpoint
+         child as a fallback. This ensures content is visible even
+         without JS or while the script is loading.
 
-/* ── Helpers ─────────────────────────────────────────────────── */
+       After registration:
+         JS takes over and shows only the appropriate child(ren).
 
-/**
- * Returns true if the element has [animate~="entry"] set.
- * Only when entry animations are opted into does the JS need to
- * orchestrate the intermediate invisible step.
- */
-function hasEntryAnimation(el: HTMLElement): boolean {
-    const animate = el.getAttribute('animate') ?? '';
-    return animate.split(/\s+/).includes('entry');
-}
+       ── ACCESSIBILITY ─────────────────────────────────────────
 
-/**
- * Waits for the next two animation frames, ensuring the browser has
- * had a chance to apply a style change before the next one fires.
- * (One rAF is enough in most browsers; two is defensive.)
- */
-function nextFrames(): Promise<void> {
-    return new Promise(resolve => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
-}
+       Hidden at-breakpoint children have display: none, which removes
+       them from the accessibility tree entirely. Screen readers only
+       see the currently active child. This is intentional — providing
+       duplicate content to screen readers would be confusing.
 
-/**
- * Returns a Promise that resolves when all `transitionend` events have
- * fired on the element (debounced 20ms), or after `maxWait` ms.
- *
- * WHY DEBOUNCE: When multiple CSS properties transition simultaneously
- * (opacity, transform, visibility), `transitionend` fires once per
- * property. Resolving on the first event means remaining transitions are
- * still in-flight when we proceed — setting `data-state="absent"` while
- * a transform transition runs can cause a brief flash because
- * `allow-discrete` holds `display: block` for the transition duration.
- * Debouncing waits until all properties have genuinely completed.
- */
-function transitionEnd(el: HTMLElement, maxWait = 600): Promise<void> {
-    return new Promise(resolve => {
-        let debounceTimer: ReturnType<typeof setTimeout>;
-        const guard = setTimeout(() => {
-            el.removeEventListener('transitionend', onEnd);
-            resolve();
-        }, maxWait);
+       Ensure that the content across all at-breakpoint variants is
+       semantically equivalent. Do not place interactive elements
+       (buttons, links, form controls) in hidden variants and rely on
+       them being "unreachable" — they are removed from tab order by
+       display: none, but this is fragile. Prefer having interactive
+       elements in the DOM once and using layout to reposition them.
 
-        const onEnd = (): void => {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                clearTimeout(guard);
-                el.removeEventListener('transitionend', onEnd);
-                resolve();
-            }, 20);
-        };
+       ── PERFORMANCE ───────────────────────────────────────────
 
-        el.addEventListener('transitionend', onEnd);
-    });
-}
+       All at-breakpoint children are parsed and present in the DOM.
+       Resources (images, scripts) inside hidden children:
+         - Images: will NOT load while display: none (lazy loading
+           behavior — browsers skip images inside display: none)
+         - Scripts: will execute regardless of display state
+         - Fonts: may or may not load, depending on browser
 
+       For heavy content (large images, videos) that should only load
+       on specific viewport sizes, use the native <picture> element
+       (for images) or conditional rendering in your framework.
 
-/* ── Element ─────────────────────────────────────────────────── */
+       ── ATTRIBUTES ────────────────────────────────────────────
 
-/**
- * Custom element for `<presence-layout>`.
- *
- * A full custom class (not factory-generated) because it:
- * 1. Observes `data-state` (a data attribute, outside the varMap pattern)
- * 2. Dispatches `ds:presence` events on every state change
- * 3. Bridges `vt-name` → `--ds-vt-name` (same as the factory does,
- *    reimplemented here since this is a full class, not factory-built)
- * 4. Provides .show() / .hide() / .transitionTo() orchestration methods
- */
-export class PresenceLayoutElement extends HTMLElement {
+       breakpoint-layout:
+         (no attributes)  transparent container; manages children
 
-    static get observedAttributes(): string[] {
-        return ['data-state', 'vt-name'];
-    }
+       at-breakpoint:
+         min="<length>"
+           Minimum viewport width condition.
+           Show this child when viewport width ≥ min.
+           Accepts any CSS length: 768px, 48rem, 48em.
+           Note: em values in media queries are relative to the
+           browser default font size (16px), not the root element
+           font size. 48em = 768px at default browser settings.
 
-    connectedCallback(): void {
-        this.#applyVtName();
-    }
+         max="<length>"
+           Maximum viewport width condition.
+           Show this child when viewport width ≤ max.
+           Note: to avoid a 1px overlap with a sibling that has
+           min="48rem", use max="47.9375rem" (1px below 48rem).
 
-    attributeChangedCallback(
-        name: string,
-        oldValue: string | null,
-        newValue: string | null,
-    ): void {
-        if (name === 'data-state') {
-            this.#dispatchPresenceEvent(oldValue, newValue);
-        } else if (name === 'vt-name') {
-            this.#applyVtName();
-        }
-    }
+         orientation="any | portrait | landscape"
+           Viewport orientation condition. Optional.
+           "any" (default): no orientation condition
+           "portrait":  show when viewport height ≥ width
+           "landscape": show when viewport width > height
 
+         Both min and max can be combined:
+           <at-breakpoint min="30rem" max="47.9375rem">
+             tablet range
+           </at-breakpoint>
 
-    /* ── State getter / setter ───────────────────────────────
-       The setter is DIRECT — no orchestration, no side effects.
-       It simply sets data-state, which triggers attributeChangedCallback.
-       Use .show(), .hide(), and .transitionTo() for orchestrated
-       animated transitions.
+         Omitting min: matches from 0 up to max
+         Omitting max: matches from min upward
+         Omitting both: always shown (a default/fallback variant)
     ──────────────────────────────────────────────────────────── */
 
-    /** The current visibility state. Returns 'visible' when data-state is absent. */
-    get state(): PresenceState {
-        return this.#normalizeState(this.getAttribute('data-state'));
-    }
-
-    /**
-     * Sets data-state directly, without orchestration.
-     * The ds:presence event fires via attributeChangedCallback.
-     * For animated 3-step transitions, use .show() / .hide() instead.
-     */
-    set state(value: PresenceState) {
-        this.setAttribute('data-state', value);
-    }
-
-
-    /* ── Orchestrated transition methods ─────────────────────
-       These methods handle the 3-step state machine automatically:
-         show:  absent/hidden → invisible → visible
-         hide:  visible → invisible → absent
-
-       Both respect the [animate~="entry"] attribute. If entry animation
-       is not opted into, they perform a direct state change.
+    /* ── breakpoint-layout ───────────────────────────────────
+       display: contents — fully transparent to layout.
+       Children participate directly in the parent formatting context.
+       A grid cell, a flex row, a block flow — all unaffected by
+       breakpoint-layout's presence.
     ──────────────────────────────────────────────────────────── */
 
-    /**
-     * Animated entry: absent/hidden → invisible → visible.
-     *
-     * Step 1: Set data-state="invisible" (removes display: none,
-     *         element enters layout at opacity 0)
-     * Step 2: After two rAFs (browser paints the invisible state),
-     *         set data-state="visible" (transition fires)
-     *
-     * Without entry animation ([animate~="entry"] absent):
-     *   Sets data-state="visible" directly.
-     *
-     * Returns a Promise that resolves when the transition completes.
-     * Safe to call when already visible — no-op.
-     */
-    async show(): Promise<void> {
-        if (this.state === 'visible') return;
-
-        if (!hasEntryAnimation(this)) {
-            this.state = 'visible';
-            return;
-        }
-
-        // Step 1: remove display:none by moving to invisible
-        if (this.state === 'absent' || this.state === 'hidden') {
-            this.state = 'invisible';
-            // Wait two frames so the browser paints the invisible state
-            // before we trigger the transition to visible
-            await nextFrames();
-        }
-
-        // Step 2: transition to visible
-        this.state = 'visible';
-        await transitionEnd(this);
+    :where(breakpoint-layout) {
+        display: contents;
     }
 
-    /**
-     * Animated exit: visible → invisible → absent.
-     *
-     * Step 1: Set data-state="invisible" (transition fires: fades out)
-     * Step 2: After transitionend, set data-state="absent" (display: none)
-     *
-     * Without entry animation ([animate~="entry"] absent):
-     *   Sets data-state="absent" directly.
-     *
-     * Returns a Promise that resolves when the element is display: none.
-     * Safe to call when already absent — no-op.
-     */
-    async hide(to: 'absent' | 'hidden' = 'absent'): Promise<void> {
-        if (this.state === 'absent' || this.state === 'hidden') return;
+    /* ── at-breakpoint ───────────────────────────────────────
+       Hidden by default. The JS element shows the appropriate
+       child(ren) based on matchMedia evaluation.
 
-        if (!hasEntryAnimation(this)) {
-            this.state = to;
-            return;
-        }
-
-        // Step 1: animate to invisible (scale + fade out)
-        this.state = 'invisible';
-        await transitionEnd(this);
-
-        // Step 2: suppress transitions before applying display: none.
-        //
-        // The element is already visually gone (opacity: 0, scale(0.88)).
-        // Setting data-state="absent" with active transitions can cause a
-        // brief flash: allow-discrete holds display: block for the full
-        // transition duration while the browser re-evaluates property values,
-        // potentially landing on an intermediate or initial-style state.
-        //
-        // Since the element is already invisible, the absent step is pure
-        // DOM bookkeeping — no animation is needed. Slam it immediately.
-        this.style.setProperty('transition', 'none');
-        this.style.setProperty('transition-duration', '0s');
-        this.state = to;
-
-        // Restore transitions on the next frame (after display:none has painted)
-        requestAnimationFrame(() => {
-            this.style.removeProperty('transition');
-            this.style.removeProperty('transition-duration');
-        });
-    }
-
-
-    /* ── View Transition integration ─────────────────────────
-       .transitionTo() wraps the orchestrated state change in
-       document.startViewTransition() when the API is available.
-
-       When wrapped in a view transition:
-         - Elements with vt-name set on themselves or ancestor layout
-           primitives get captured and cross-faded
-         - The presence-layout's own opacity/transform animation and the
-           view transition run simultaneously — the one that looks better
-           wins (the view transition captures the old state BEFORE the
-           CSS transition fires, so they don't conflict)
-
-       Falls back to .show() / .hide() / direct state change when
-       startViewTransition is not available (all non-Chromium browsers
-       before Baseline 2025).
+       display: block is what the JS restores when showing.
+       Could be overridden per at-breakpoint by setting a different
+       display value via inline style if the child needs to be
+       flex or grid.
     ──────────────────────────────────────────────────────────── */
 
-    /**
-     * Transitions to a new state, wrapping in document.startViewTransition()
-     * if the View Transitions API is available.
-     *
-     * For 'visible': uses .show() (3-step orchestration).
-     * For 'absent'/'hidden': uses .hide() (3-step orchestration).
-     * For 'invisible': direct state change (visibility: hidden is instant).
-     *
-     * @param state - Target PresenceState
-     * @param useViewTransition - Force-disable VT even when API is available.
-     *   Defaults to true (use VT when available).
-     *
-     * @example
-     * // Show with view transition if supported
-     * await presenceEl.transitionTo('visible');
-     *
-     * // Show without view transition
-     * await presenceEl.transitionTo('visible', false);
-     */
-    async transitionTo(
-        state: PresenceState,
-        useViewTransition = true,
-    ): Promise<void> {
-        const canVT = useViewTransition && typeof document.startViewTransition === 'function';
-
-        if (!canVT) {
-            return this.#directTransition(state);
-        }
-
-        // Wrap the DOM state change in a view transition.
-        // startViewTransition captures the OLD state, then calls the
-        // callback to apply the NEW state, then animates between them.
-        const transition = document.startViewTransition!(
-            () => this.#directTransition(state)
-        );
-
-        await transition.finished;
+    :where(at-breakpoint) {
+        display: none;
     }
 
-    /**
-     * Performs the appropriate state transition without view transition wrapping.
-     */
-    async #directTransition(state: PresenceState): Promise<void> {
-        if (state === 'visible') {
-            return this.show();
-        } else if (state === 'absent' || state === 'hidden') {
-            return this.hide(state);
-        } else {
-            this.state = state;
-        }
+    /* ── Progressive enhancement: show first child before JS ─────
+       :not(:defined) matches elements whose custom element class
+       has not yet been registered. While JS is loading (or if JS
+       fails), the first at-breakpoint child is shown as a fallback.
+
+       This rule is overridden once the element is defined, because
+       :not(:defined) no longer matches and the `display: none` rule
+       above takes over — then JS shows the correct child.
+
+       Why the first child? It should be the most conservative variant
+       (smallest screen / most broadly compatible). Place the mobile or
+       fallback content in the first at-breakpoint element.
+    ──────────────────────────────────────────────────────────── */
+
+    :where(breakpoint-layout:not(:defined) > at-breakpoint:first-child) {
+        display: block;
     }
-
-
-    /* ── Event dispatch ──────────────────────────────────────── */
-
-    #dispatchPresenceEvent(
-        oldRaw: string | null,
-        newRaw: string | null,
-    ): void {
-        const next     = this.#normalizeState(newRaw);
-        const previous = oldRaw === null ? null : this.#normalizeState(oldRaw);
-
-        this.dispatchEvent(
-            new CustomEvent<PresenceChangeDetail>('ds:presence', {
-                bubbles:  true,
-                composed: true,
-                detail: { state: next, previous },
-            })
-        );
-    }
-
-    #normalizeState(raw: string | null): PresenceState {
-        if (
-            raw === 'invisible' ||
-            raw === 'hidden'    ||
-            raw === 'absent'
-        ) {
-            return raw;
-        }
-        return 'visible';
-    }
-
-
-    /* ── vt-name bridge ──────────────────────────────────────── */
-
-    /**
-     * Bridges vt-name → --ds-vt-name for the CSS view-transition-name rule.
-     * (Same mechanism as the factory, reimplemented here for the full class.)
-     *
-     * Note: view-transition-name has no effect on display: contents elements.
-     * Add [box] to presence-layout when using vt-name.
-     */
-    #applyVtName(): void {
-        const raw = this.getAttribute('vt-name');
-        applyVar(this, '--ds-vt-name', normalizeRaw(raw));
-    }
-}
-
-
-/* ── Registration ─────────────────────────────────────────────── */
-
-/**
- * Registers the `<presence-layout>` custom element.
- * Safe to call multiple times — skips registration if already defined.
- *
- * @example
- * import { define } from '@design-system/layout/presence';
- * define();
- */
-export function define(): void {
-    defineElement('presence-layout', PresenceLayoutElement);
 }

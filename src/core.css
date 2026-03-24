@@ -10,7 +10,6 @@
      import '@design-system/layout/register-all';
    ============================================================ */
 
-
 /* ── 1. Layer declaration ────────────────────────────────────
    Establish the full cascade order up front, even for layers
    whose contents live in separate module files. This ensures
@@ -20,14 +19,12 @@
 @layer ds.reset, ds.tokens, ds.base, ds.presence,
     ds.layout, ds.prose, ds.motion, ds.components, ds.compat;
 
-
 /* ── 2. Reset ────────────────────────────────────────────────
    Minimal, opinionated-only-where-it-matters reset.
    All rules are wrapped in :where() to carry zero specificity,
    so any consumer style wins without needing !important.
 ──────────────────────────────────────────────────────────── */
 @layer ds.reset {
-
     :where(*, *::before, *::after) {
         box-sizing: border-box;
     }
@@ -105,7 +102,8 @@
     }
 
     :where(:focus-visible) {
-        outline: var(--ds-focus-width, 2px) solid var(--ds-focus-color, Highlight);
+        outline: var(--ds-focus-width, 2px) solid
+            var(--ds-focus-color, Highlight);
         outline-offset: var(--ds-focus-offset, 2px);
     }
 
@@ -114,51 +112,43 @@
     }
 }
 
-
 /* ── 3. Tokens ───────────────────────────────────────────────
 ──────────────────────────────────────────────────────────── */
 @layer ds.tokens {
-
     :root {
-
         /* ── 3a. Platform integration ── */
         --ds-color-scheme: light dark;
-        --ds-accent:       Highlight;
-
+        --ds-accent: Highlight;
 
         /* ── 3b. Focus ring ── */
-        --ds-focus-width:  2px;
+        --ds-focus-width: 2px;
         --ds-focus-offset: 2px;
-        --ds-focus-color:  Highlight;
-
+        --ds-focus-color: Highlight;
 
         /* ── 3c. Layout defaults ── */
-        --ds-measure:   65ch;   /* comfortable max prose line length   */
-        --ds-threshold: 45rem;  /* default layout breakpoint for modules */
-
+        --ds-measure: 65ch; /* comfortable max prose line length   */
+        --ds-threshold: 45rem; /* default layout breakpoint for modules */
 
         /* ── 3d. Safe-area insets ──────────────────────────────
            Ready-made for notched-device–aware sticky UI, drawers,
            toasts, and bottom nav bars.
         ─────────────────────────────────────────────────────── */
-        --ds-safe-top:    env(safe-area-inset-top,    0px);
-        --ds-safe-right:  env(safe-area-inset-right,  0px);
+        --ds-safe-top: env(safe-area-inset-top, 0px);
+        --ds-safe-right: env(safe-area-inset-right, 0px);
         --ds-safe-bottom: env(safe-area-inset-bottom, 0px);
-        --ds-safe-left:   env(safe-area-inset-left,   0px);
-
+        --ds-safe-left: env(safe-area-inset-left, 0px);
 
         /* ── 3e. Z-index scale ─────────────────────────────────
            Semantic slots. Override per-project; reference these tokens
            in module code rather than using raw integers.
         ─────────────────────────────────────────────────────── */
-        --ds-z-base:     0;
-        --ds-z-raised:   1;
+        --ds-z-base: 0;
+        --ds-z-raised: 1;
         --ds-z-dropdown: 10;
-        --ds-z-sticky:   20;
-        --ds-z-overlay:  30;
-        --ds-z-modal:    40;
-        --ds-z-toast:    50;
-
+        --ds-z-sticky: 20;
+        --ds-z-overlay: 30;
+        --ds-z-modal: 40;
+        --ds-z-toast: 50;
 
         /* ── 3f. Ratio system ──────────────────────────────────
            The ratio drives both the space and text scales, making
@@ -191,8 +181,8 @@
         ─────────────────────────────────────────────────────── */
 
         /* Viewport range for ratio interpolation */
-        --ds-ratio-fluid-from: 20rem;   /* 320px  — ratio-min applies */
-        --ds-ratio-fluid-to:   80rem;   /* 1280px — ratio-max applies */
+        --ds-ratio-fluid-from: 20rem; /* 320px  — ratio-min applies */
+        --ds-ratio-fluid-to: 80rem; /* 1280px — ratio-max applies */
 
         /* Default range: perfect-fourth → perfect-fifth */
         --ds-ratio-min: 1.3333;
@@ -206,9 +196,9 @@
             var(--ds-ratio-min),
             calc(
                 var(--ds-ratio-min) +
-                (var(--ds-ratio-max) - var(--ds-ratio-min)) *
-                (100vw - var(--ds-ratio-fluid-from)) /
-                (var(--ds-ratio-fluid-to) - var(--ds-ratio-fluid-from))
+                    (var(--ds-ratio-max) - var(--ds-ratio-min)) *
+                    (100vw - var(--ds-ratio-fluid-from)) /
+                    (var(--ds-ratio-fluid-to) - var(--ds-ratio-fluid-from))
             ),
             var(--ds-ratio-max)
         );
@@ -218,16 +208,15 @@
           Updating --ds-ratio anywhere re-resolves these automatically.
         */
         --_ds-r2: calc(var(--ds-ratio) * var(--ds-ratio));
-        --_ds-r3: calc(var(--_ds-r2)   * var(--ds-ratio));
-        --_ds-r4: calc(var(--_ds-r3)   * var(--ds-ratio));
-        --_ds-r5: calc(var(--_ds-r4)   * var(--ds-ratio));
+        --_ds-r3: calc(var(--_ds-r2) * var(--ds-ratio));
+        --_ds-r4: calc(var(--_ds-r3) * var(--ds-ratio));
+        --_ds-r5: calc(var(--_ds-r4) * var(--ds-ratio));
 
         --_ds-r-1: calc(1 / var(--ds-ratio));
         --_ds-r-2: calc(1 / var(--_ds-r2));
         --_ds-r-3: calc(1 / var(--_ds-r3));
         --_ds-r-4: calc(1 / var(--_ds-r4));
         --_ds-r-5: calc(1 / var(--_ds-r5));
-
 
         /* ── 3g. Space base ────────────────────────────────────
            Fluid by default: clamps between 1rem and 1.5rem across
@@ -250,8 +239,9 @@
           This is what makes the inverse scale useful for touch targets:
           when spacing contracts on small screens, touch targets grow.
         */
-        --ds-space-base-sum: calc(var(--ds-space-base-min) + var(--ds-space-base-max));
-
+        --ds-space-base-sum: calc(
+            var(--ds-space-base-min) + var(--ds-space-base-max)
+        );
 
         /* ── 3h. Space scale (11 steps) ────────────────────────
            Symmetric: 5 steps below m, 5 steps above m.
@@ -263,36 +253,42 @@
              l    ≈ 24px    xl   ≈ 36px    xxl  ≈ 54px
              xxxl ≈ 81px    huge ≈ 122px
         ─────────────────────────────────────────────────────── */
-        --ds-space-0:    0px;
+        --ds-space-0: 0px;
         --ds-space-tiny: calc(var(--ds-space-base) * var(--_ds-r-5));
         --ds-space-xxxs: calc(var(--ds-space-base) * var(--_ds-r-4));
-        --ds-space-xxs:  calc(var(--ds-space-base) * var(--_ds-r-3));
-        --ds-space-xs:   calc(var(--ds-space-base) * var(--_ds-r-2));
-        --ds-space-s:    calc(var(--ds-space-base) * var(--_ds-r-1));
-        --ds-space-m:    var(--ds-space-base);
-        --ds-space-l:    calc(var(--ds-space-base) * var(--ds-ratio));
-        --ds-space-xl:   calc(var(--ds-space-base) * var(--_ds-r2));
-        --ds-space-xxl:  calc(var(--ds-space-base) * var(--_ds-r3));
+        --ds-space-xxs: calc(var(--ds-space-base) * var(--_ds-r-3));
+        --ds-space-xs: calc(var(--ds-space-base) * var(--_ds-r-2));
+        --ds-space-s: calc(var(--ds-space-base) * var(--_ds-r-1));
+        --ds-space-m: var(--ds-space-base);
+        --ds-space-l: calc(var(--ds-space-base) * var(--ds-ratio));
+        --ds-space-xl: calc(var(--ds-space-base) * var(--_ds-r2));
+        --ds-space-xxl: calc(var(--ds-space-base) * var(--_ds-r3));
         --ds-space-xxxl: calc(var(--ds-space-base) * var(--_ds-r4));
         --ds-space-huge: calc(var(--ds-space-base) * var(--_ds-r5));
-
 
         /* ── 3i. Adjacent half-step pairs ──────────────────────
            Midpoints between consecutive scale steps.
            Named "smaller-larger" to read naturally:
              s-m = "between s and m", a touch above s.
         ─────────────────────────────────────────────────────── */
-        --ds-space-tiny-xxxs: calc((var(--ds-space-tiny) + var(--ds-space-xxxs)) / 2);
-        --ds-space-xxxs-xxs:  calc((var(--ds-space-xxxs) + var(--ds-space-xxs))  / 2);
-        --ds-space-xxs-xs:    calc((var(--ds-space-xxs)  + var(--ds-space-xs))   / 2);
-        --ds-space-xs-s:      calc((var(--ds-space-xs)   + var(--ds-space-s))    / 2);
-        --ds-space-s-m:       calc((var(--ds-space-s)    + var(--ds-space-m))    / 2);
-        --ds-space-m-l:       calc((var(--ds-space-m)    + var(--ds-space-l))    / 2);
-        --ds-space-l-xl:      calc((var(--ds-space-l)    + var(--ds-space-xl))   / 2);
-        --ds-space-xl-xxl:    calc((var(--ds-space-xl)   + var(--ds-space-xxl))  / 2);
-        --ds-space-xxl-xxxl:  calc((var(--ds-space-xxl)  + var(--ds-space-xxxl)) / 2);
-        --ds-space-xxxl-huge: calc((var(--ds-space-xxxl) + var(--ds-space-huge)) / 2);
-
+        --ds-space-tiny-xxxs: calc(
+            (var(--ds-space-tiny) + var(--ds-space-xxxs)) / 2
+        );
+        --ds-space-xxxs-xxs: calc(
+            (var(--ds-space-xxxs) + var(--ds-space-xxs)) / 2
+        );
+        --ds-space-xxs-xs: calc((var(--ds-space-xxs) + var(--ds-space-xs)) / 2);
+        --ds-space-xs-s: calc((var(--ds-space-xs) + var(--ds-space-s)) / 2);
+        --ds-space-s-m: calc((var(--ds-space-s) + var(--ds-space-m)) / 2);
+        --ds-space-m-l: calc((var(--ds-space-m) + var(--ds-space-l)) / 2);
+        --ds-space-l-xl: calc((var(--ds-space-l) + var(--ds-space-xl)) / 2);
+        --ds-space-xl-xxl: calc((var(--ds-space-xl) + var(--ds-space-xxl)) / 2);
+        --ds-space-xxl-xxxl: calc(
+            (var(--ds-space-xxl) + var(--ds-space-xxxl)) / 2
+        );
+        --ds-space-xxxl-huge: calc(
+            (var(--ds-space-xxxl) + var(--ds-space-huge)) / 2
+        );
 
         /* ── 3j. Inverse base & scale ──────────────────────────
            The inverse base counter-scales: largest when the forward
@@ -303,20 +299,21 @@
            room automatically via the (pointer: coarse) override below,
            with no manual breakpoints in module code.
         ─────────────────────────────────────────────────────── */
-        --ds-space-base-inv: calc(var(--ds-space-base-sum) - var(--ds-space-base));
+        --ds-space-base-inv: calc(
+            var(--ds-space-base-sum) - var(--ds-space-base)
+        );
 
         --ds-space-tiny-inv: calc(var(--ds-space-base-inv) * var(--_ds-r-5));
         --ds-space-xxxs-inv: calc(var(--ds-space-base-inv) * var(--_ds-r-4));
-        --ds-space-xxs-inv:  calc(var(--ds-space-base-inv) * var(--_ds-r-3));
-        --ds-space-xs-inv:   calc(var(--ds-space-base-inv) * var(--_ds-r-2));
-        --ds-space-s-inv:    calc(var(--ds-space-base-inv) * var(--_ds-r-1));
-        --ds-space-m-inv:    var(--ds-space-base-inv);
-        --ds-space-l-inv:    calc(var(--ds-space-base-inv) * var(--ds-ratio));
-        --ds-space-xl-inv:   calc(var(--ds-space-base-inv) * var(--_ds-r2));
-        --ds-space-xxl-inv:  calc(var(--ds-space-base-inv) * var(--_ds-r3));
+        --ds-space-xxs-inv: calc(var(--ds-space-base-inv) * var(--_ds-r-3));
+        --ds-space-xs-inv: calc(var(--ds-space-base-inv) * var(--_ds-r-2));
+        --ds-space-s-inv: calc(var(--ds-space-base-inv) * var(--_ds-r-1));
+        --ds-space-m-inv: var(--ds-space-base-inv);
+        --ds-space-l-inv: calc(var(--ds-space-base-inv) * var(--ds-ratio));
+        --ds-space-xl-inv: calc(var(--ds-space-base-inv) * var(--_ds-r2));
+        --ds-space-xxl-inv: calc(var(--ds-space-base-inv) * var(--_ds-r3));
         --ds-space-xxxl-inv: calc(var(--ds-space-base-inv) * var(--_ds-r4));
         --ds-space-huge-inv: calc(var(--ds-space-base-inv) * var(--_ds-r5));
-
 
         /* ── 3k. Inverse adjacent pairs ────────────────────────
            Named "larger-smaller" (reverse of forward pairs) as a
@@ -324,17 +321,36 @@
            --ds-space-m-s is between m-inv and s-inv — it is NOT
            a smaller value than --ds-space-s-m.
         ─────────────────────────────────────────────────────── */
-        --ds-space-xxxs-tiny: calc((var(--ds-space-xxxs-inv) + var(--ds-space-tiny-inv)) / 2);
-        --ds-space-xxs-xxxs:  calc((var(--ds-space-xxs-inv)  + var(--ds-space-xxxs-inv)) / 2);
-        --ds-space-xs-xxs:    calc((var(--ds-space-xs-inv)   + var(--ds-space-xxs-inv))  / 2);
-        --ds-space-s-xs:      calc((var(--ds-space-s-inv)    + var(--ds-space-xs-inv))   / 2);
-        --ds-space-m-s:       calc((var(--ds-space-m-inv)    + var(--ds-space-s-inv))    / 2);
-        --ds-space-l-m:       calc((var(--ds-space-l-inv)    + var(--ds-space-m-inv))    / 2);
-        --ds-space-xl-l:      calc((var(--ds-space-xl-inv)   + var(--ds-space-l-inv))    / 2);
-        --ds-space-xxl-xl:    calc((var(--ds-space-xxl-inv)  + var(--ds-space-xl-inv))   / 2);
-        --ds-space-xxxl-xxl:  calc((var(--ds-space-xxxl-inv) + var(--ds-space-xxl-inv))  / 2);
-        --ds-space-huge-xxxl: calc((var(--ds-space-huge-inv) + var(--ds-space-xxxl-inv)) / 2);
-
+        --ds-space-xxxs-tiny: calc(
+            (var(--ds-space-xxxs-inv) + var(--ds-space-tiny-inv)) / 2
+        );
+        --ds-space-xxs-xxxs: calc(
+            (var(--ds-space-xxs-inv) + var(--ds-space-xxxs-inv)) / 2
+        );
+        --ds-space-xs-xxs: calc(
+            (var(--ds-space-xs-inv) + var(--ds-space-xxs-inv)) / 2
+        );
+        --ds-space-s-xs: calc(
+            (var(--ds-space-s-inv) + var(--ds-space-xs-inv)) / 2
+        );
+        --ds-space-m-s: calc(
+            (var(--ds-space-m-inv) + var(--ds-space-s-inv)) / 2
+        );
+        --ds-space-l-m: calc(
+            (var(--ds-space-l-inv) + var(--ds-space-m-inv)) / 2
+        );
+        --ds-space-xl-l: calc(
+            (var(--ds-space-xl-inv) + var(--ds-space-l-inv)) / 2
+        );
+        --ds-space-xxl-xl: calc(
+            (var(--ds-space-xxl-inv) + var(--ds-space-xl-inv)) / 2
+        );
+        --ds-space-xxxl-xxl: calc(
+            (var(--ds-space-xxxl-inv) + var(--ds-space-xxl-inv)) / 2
+        );
+        --ds-space-huge-xxxl: calc(
+            (var(--ds-space-huge-inv) + var(--ds-space-xxxl-inv)) / 2
+        );
 
         /* ── 3l. Semantic spacing defaults ─────────────────────
            --ds-gap:     default gap for all layout modules
@@ -344,17 +360,16 @@
            Override --ds-gap-ui / --ds-pad-ui on a subtree to escape
            the automatic pointer-awareness for that subtree.
         ─────────────────────────────────────────────────────── */
-        --ds-gap:    var(--ds-space-s-m);
+        --ds-gap: var(--ds-space-s-m);
         --ds-gap-ui: var(--ds-space-s-m);
         --ds-pad-ui: var(--ds-space-s-m);
-
 
         /* ── 3m. Typographic scale ─────────────────────────────
            Driven by --ds-text-ratio, which defaults to --ds-ratio
            (keeping both scales coherent). Override --ds-text-ratio
            on :root or any subtree to decouple the type scale from
            the space scale:
-             :root { --ds-text-ratio: 1.25; }  /* tighter type scale */
+             :root { --ds-text-ratio: 1.25; }  — tighter type scale
 
            --ds-text-base is fixed (not fluid) because browsers already
            handle text scaling for accessibility via zoom — don't
@@ -367,33 +382,32 @@
         ─────────────────────────────────────────────────────── */
         --ds-text-ratio: var(--ds-ratio);
 
-        --_ds-tr2:  calc(var(--ds-text-ratio) * var(--ds-text-ratio));
-        --_ds-tr3:  calc(var(--_ds-tr2)       * var(--ds-text-ratio));
-        --_ds-tr4:  calc(var(--_ds-tr3)       * var(--ds-text-ratio));
-        --_ds-tr5:  calc(var(--_ds-tr4)       * var(--ds-text-ratio));
+        --_ds-tr2: calc(var(--ds-text-ratio) * var(--ds-text-ratio));
+        --_ds-tr3: calc(var(--_ds-tr2) * var(--ds-text-ratio));
+        --_ds-tr4: calc(var(--_ds-tr3) * var(--ds-text-ratio));
+        --_ds-tr5: calc(var(--_ds-tr4) * var(--ds-text-ratio));
         --_ds-tr-1: calc(1 / var(--ds-text-ratio));
         --_ds-tr-2: calc(1 / var(--_ds-tr2));
         --_ds-tr-3: calc(1 / var(--_ds-tr3));
 
         --ds-text-base: 1rem;
 
-        --ds-text-xxs:  calc(var(--ds-text-base) * var(--_ds-tr-3));
-        --ds-text-xs:   calc(var(--ds-text-base) * var(--_ds-tr-2));
-        --ds-text-s:    calc(var(--ds-text-base) * var(--_ds-tr-1));
-        --ds-text-m:    var(--ds-text-base);
-        --ds-text-l:    calc(var(--ds-text-base) * var(--ds-text-ratio));
-        --ds-text-xl:   calc(var(--ds-text-base) * var(--_ds-tr2));
-        --ds-text-xxl:  calc(var(--ds-text-base) * var(--_ds-tr3));
+        --ds-text-xxs: calc(var(--ds-text-base) * var(--_ds-tr-3));
+        --ds-text-xs: calc(var(--ds-text-base) * var(--_ds-tr-2));
+        --ds-text-s: calc(var(--ds-text-base) * var(--_ds-tr-1));
+        --ds-text-m: var(--ds-text-base);
+        --ds-text-l: calc(var(--ds-text-base) * var(--ds-text-ratio));
+        --ds-text-xl: calc(var(--ds-text-base) * var(--_ds-tr2));
+        --ds-text-xxl: calc(var(--ds-text-base) * var(--_ds-tr3));
         --ds-text-xxxl: calc(var(--ds-text-base) * var(--_ds-tr4));
         --ds-text-huge: calc(var(--ds-text-base) * var(--_ds-tr5));
 
         /* Line-height tokens */
-        --ds-leading-tight:  1.2;
-        --ds-leading-snug:   1.35;
+        --ds-leading-tight: 1.2;
+        --ds-leading-snug: 1.35;
         --ds-leading-normal: 1.5;
-        --ds-leading-loose:  1.75;
-        --ds-leading-prose:  1.65;   /* tuned for long-form reading */
-
+        --ds-leading-loose: 1.75;
+        --ds-leading-prose: 1.65; /* tuned for long-form reading */
 
         /* ── 3n. Semantic color slots ───────────────────────────
            These default to CSS system colors, which adapt to light/dark
@@ -406,14 +420,12 @@
            to an empty value, not the fallback. System color defaults
            avoid this footgun.
         ─────────────────────────────────────────────────────── */
-        --ds-color-surface:    Canvas;
+        --ds-color-surface: Canvas;
         --ds-color-on-surface: CanvasText;
-        --ds-color-border:     currentColor;   /* modules add opacity as needed */
-        --ds-color-accent:     Highlight;
-        --ds-color-muted:      GrayText;
-
+        --ds-color-border: currentColor; /* modules add opacity as needed */
+        --ds-color-accent: Highlight;
+        --ds-color-muted: GrayText;
     } /* end :root */
-
 
     /* ── Pointer-aware UI spacing ──────────────────────────────
        Coarse pointers (fingers) need larger touch targets.
@@ -426,7 +438,6 @@
             --ds-pad-ui: var(--ds-space-l-m);
         }
     }
-
 
     /* ── Ratio presets ─────────────────────────────────────────
        Each preset sets min = max = the named ratio, producing a fixed
@@ -446,18 +457,54 @@
        fluid range.
     ──────────────────────────────────────────────────────────── */
 
-    :where(.minor-second)   { --ds-ratio-min: 1.0667; --ds-ratio-max: 1.0667; }  /* 16/15  */
-    :where(.major-second)   { --ds-ratio-min: 1.125;  --ds-ratio-max: 1.125;  }  /* 9/8    */
-    :where(.minor-third)    { --ds-ratio-min: 1.2;    --ds-ratio-max: 1.2;    }  /* 6/5    */
-    :where(.major-third)    { --ds-ratio-min: 1.25;   --ds-ratio-max: 1.25;   }  /* 5/4    */
-    :where(.perfect-fourth) { --ds-ratio-min: 1.3333; --ds-ratio-max: 1.3333; }  /* 4/3    */
-    :where(.tritone)        { --ds-ratio-min: 1.4142; --ds-ratio-max: 1.4142; }  /* √2     */
-    :where(.perfect-fifth)  { --ds-ratio-min: 1.5;    --ds-ratio-max: 1.5;    }  /* 3/2    */
-    :where(.minor-sixth)    { --ds-ratio-min: 1.6;    --ds-ratio-max: 1.6;    }  /* 8/5    */
-    :where(.major-sixth)    { --ds-ratio-min: 1.6667; --ds-ratio-max: 1.6667; }  /* 5/3    */
-    :where(.minor-seventh)  { --ds-ratio-min: 1.7778; --ds-ratio-max: 1.7778; }  /* 16/9   */
-    :where(.major-seventh)  { --ds-ratio-min: 1.875;  --ds-ratio-max: 1.875;  }  /* 15/8   */
-    :where(.octave)         { --ds-ratio-min: 2;      --ds-ratio-max: 2;      }  /* 2/1    */
+    :where(.minor-second) {
+        --ds-ratio-min: 1.0667;
+        --ds-ratio-max: 1.0667;
+    } /* 16/15  */
+    :where(.major-second) {
+        --ds-ratio-min: 1.125;
+        --ds-ratio-max: 1.125;
+    } /* 9/8    */
+    :where(.minor-third) {
+        --ds-ratio-min: 1.2;
+        --ds-ratio-max: 1.2;
+    } /* 6/5    */
+    :where(.major-third) {
+        --ds-ratio-min: 1.25;
+        --ds-ratio-max: 1.25;
+    } /* 5/4    */
+    :where(.perfect-fourth) {
+        --ds-ratio-min: 1.3333;
+        --ds-ratio-max: 1.3333;
+    } /* 4/3    */
+    :where(.tritone) {
+        --ds-ratio-min: 1.4142;
+        --ds-ratio-max: 1.4142;
+    } /* √2     */
+    :where(.perfect-fifth) {
+        --ds-ratio-min: 1.5;
+        --ds-ratio-max: 1.5;
+    } /* 3/2    */
+    :where(.minor-sixth) {
+        --ds-ratio-min: 1.6;
+        --ds-ratio-max: 1.6;
+    } /* 8/5    */
+    :where(.major-sixth) {
+        --ds-ratio-min: 1.6667;
+        --ds-ratio-max: 1.6667;
+    } /* 5/3    */
+    :where(.minor-seventh) {
+        --ds-ratio-min: 1.7778;
+        --ds-ratio-max: 1.7778;
+    } /* 16/9   */
+    :where(.major-seventh) {
+        --ds-ratio-min: 1.875;
+        --ds-ratio-max: 1.875;
+    } /* 15/8   */
+    :where(.octave) {
+        --ds-ratio-min: 2;
+        --ds-ratio-max: 2;
+    } /* 2/1    */
 
     /* ── Metallic ratios ─────────────────────────────────────
        The true metallic means, corrected from the original Starwind:
@@ -469,10 +516,18 @@
        useful for display typographic hierarchies, not spacing. Consider
        setting --ds-text-ratio independently if using these for type.
     ──────────────────────────────────────────────────────────── */
-    :where(.golden) { --ds-ratio-min: 1.618;  --ds-ratio-max: 1.618;  }
-    :where(.silver) { --ds-ratio-min: 2.4142; --ds-ratio-max: 2.4142; }
-    :where(.bronze) { --ds-ratio-min: 3.3028; --ds-ratio-max: 3.3028; }
-
+    :where(.golden) {
+        --ds-ratio-min: 1.618;
+        --ds-ratio-max: 1.618;
+    }
+    :where(.silver) {
+        --ds-ratio-min: 2.4142;
+        --ds-ratio-max: 2.4142;
+    }
+    :where(.bronze) {
+        --ds-ratio-min: 3.3028;
+        --ds-ratio-max: 3.3028;
+    }
 
     /* ── Base presets ──────────────────────────────────────────
        .fluid-base: explicit opt-in / reset to fluid space base.
@@ -489,7 +544,9 @@
             0.85rem + 0.6vw,
             var(--ds-space-base-max)
         );
-        --ds-space-base-sum: calc(var(--ds-space-base-min) + var(--ds-space-base-max));
+        --ds-space-base-sum: calc(
+            var(--ds-space-base-min) + var(--ds-space-base-max)
+        );
     }
 
     :where(.fixed-base) {
@@ -497,21 +554,18 @@
 
         --ds-space-base-min: var(--ds-space-base-fixed);
         --ds-space-base-max: var(--ds-space-base-fixed);
-        --ds-space-base:     var(--ds-space-base-fixed);
+        --ds-space-base: var(--ds-space-base-fixed);
         --ds-space-base-sum: calc(
             var(--ds-space-base-min) + var(--ds-space-base-max)
         );
     }
-
 } /* end @layer ds.tokens */
-
 
 /* ── 4. Layout utilities ─────────────────────────────────────
    General-purpose layout helpers. Individual module styles also
    target this layer, in their own @import'd stylesheet.
 ──────────────────────────────────────────────────────────── */
 @layer ds.layout {
-
     /*
       .container-scale
 
@@ -539,15 +593,14 @@
                 var(--ds-ratio-min),
                 calc(
                     var(--ds-ratio-min) +
-                    (var(--ds-ratio-max) - var(--ds-ratio-min)) *
-                    (100cqi - var(--ds-ratio-fluid-from)) /
-                    (var(--ds-ratio-fluid-to) - var(--ds-ratio-fluid-from))
+                        (var(--ds-ratio-max) - var(--ds-ratio-min)) *
+                        (100cqi - var(--ds-ratio-fluid-from)) /
+                        (var(--ds-ratio-fluid-to) - var(--ds-ratio-fluid-from))
                 ),
                 var(--ds-ratio-max)
             );
         }
     }
-
 
     /*
       Universal View Transitions opt-in.
@@ -568,8 +621,8 @@
          cannot receive view-transition-name. Add [box] when using vt-name
          on presence-layout.
 
-      How to author view transition animations for a named element:
-        /* In your own CSS (not the library): */
+    How to author view transition animations for a named element:
+        ↓ In your own CSS (not the library):
         ::view-transition-old(my-hero) {
             animation: ds-presence-fade-out 220ms var(--ds-presence-ease-out) forwards;
         }
@@ -585,19 +638,16 @@
     :where([vt-name]) {
         view-transition-name: var(--ds-vt-name);
     }
-
 }
-
 
 /* ── 5. Base ─────────────────────────────────────────────────
    Minimal element base styles. Typography defaults belong in
    @design-system/prose. Component defaults in @design-system/ui.
 ──────────────────────────────────────────────────────────── */
 @layer ds.base {
-
     :where(html) {
-        color:        CanvasText;
-        background:   Canvas;
+        color: CanvasText;
+        background: Canvas;
         color-scheme: var(--ds-color-scheme, light dark);
         accent-color: var(--ds-accent, Highlight);
     }
@@ -609,9 +659,7 @@
     :where(input, textarea, [contenteditable="true"]) {
         caret-color: var(--ds-accent, Highlight);
     }
-
 }
-
 
 /* ── 6. Motion ───────────────────────────────────────────────
    Global reduced-motion override. Modules and components that
@@ -620,14 +668,12 @@
    relying solely on this override to suppress them.
 ──────────────────────────────────────────────────────────── */
 @layer ds.motion {
-
     @media (prefers-reduced-motion: reduce) {
         :where(*) {
-            animation-duration:        0.01ms !important;
-            animation-iteration-count: 1      !important;
-            transition-duration:       0.01ms !important;
-            scroll-behavior:           auto   !important;
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
         }
     }
-
 }

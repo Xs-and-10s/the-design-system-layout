@@ -86,43 +86,23 @@
  * @module @design-system/layout/presence
  */
 
-import {
-    defineElement,
-    normalizeRaw,
-    applyVar,
-} from '../core.js';
-
+import { defineElement, normalizeRaw, applyVar } from "../core.js";
 
 /* ── Types ───────────────────────────────────────────────────── */
 
 /** The four visibility states managed by presence-layout. */
-export type PresenceState = 'visible' | 'invisible' | 'hidden' | 'absent';
+export type PresenceState = "visible" | "invisible" | "hidden" | "absent";
 
 /** Event detail for the `ds:presence` custom event. */
 export interface PresenceChangeDetail {
-    /** The current state after the change. */
-    state: PresenceState;
-    /** The previous state. Null on first observation. */
-    previous: PresenceState | null;
+  /** The current state after the change. */
+  state: PresenceState;
+  /** The previous state. Null on first observation. */
+  previous: PresenceState | null;
 }
 
 /** The `ds:presence` event type. */
 export type PresenceChangeEvent = CustomEvent<PresenceChangeDetail>;
-
-/** View Transition API — TypeScript's lib.dom doesn't include it yet. */
-interface ViewTransition {
-    readonly finished: Promise<void>;
-    readonly ready: Promise<void>;
-    readonly updateCallbackDone: Promise<void>;
-    skipTransition(): void;
-}
-
-declare global {
-    interface Document {
-        startViewTransition?(callback: () => void | Promise<void>): ViewTransition;
-    }
-}
-
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 
@@ -132,8 +112,8 @@ declare global {
  * orchestrate the intermediate invisible step.
  */
 function hasEntryAnimation(el: HTMLElement): boolean {
-    const animate = el.getAttribute('animate') ?? '';
-    return animate.split(/\s+/).includes('entry');
+  const animate = el.getAttribute("animate") ?? "";
+  return animate.split(/\s+/).includes("entry");
 }
 
 /**
@@ -142,9 +122,9 @@ function hasEntryAnimation(el: HTMLElement): boolean {
  * (One rAF is enough in most browsers; two is defensive.)
  */
 function nextFrames(): Promise<void> {
-    return new Promise(resolve => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
 }
 
 /**
@@ -160,26 +140,25 @@ function nextFrames(): Promise<void> {
  * Debouncing waits until all properties have genuinely completed.
  */
 function transitionEnd(el: HTMLElement, maxWait = 600): Promise<void> {
-    return new Promise(resolve => {
-        let debounceTimer: ReturnType<typeof setTimeout>;
-        const guard = setTimeout(() => {
-            el.removeEventListener('transitionend', onEnd);
-            resolve();
-        }, maxWait);
+  return new Promise((resolve) => {
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const guard = setTimeout(() => {
+      el.removeEventListener("transitionend", onEnd);
+      resolve();
+    }, maxWait);
 
-        const onEnd = (): void => {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                clearTimeout(guard);
-                el.removeEventListener('transitionend', onEnd);
-                resolve();
-            }, 20);
-        };
+    const onEnd = (): void => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        clearTimeout(guard);
+        el.removeEventListener("transitionend", onEnd);
+        resolve();
+      }, 20);
+    };
 
-        el.addEventListener('transitionend', onEnd);
-    });
+    el.addEventListener("transitionend", onEnd);
+  });
 }
-
 
 /* ── Element ─────────────────────────────────────────────────── */
 
@@ -194,51 +173,48 @@ function transitionEnd(el: HTMLElement, maxWait = 600): Promise<void> {
  * 4. Provides .show() / .hide() / .transitionTo() orchestration methods
  */
 export class PresenceLayoutElement extends HTMLElement {
+  static get observedAttributes(): string[] {
+    return ["data-state", "vt-name"];
+  }
 
-    static get observedAttributes(): string[] {
-        return ['data-state', 'vt-name'];
+  connectedCallback(): void {
+    this.#applyVtName();
+  }
+
+  attributeChangedCallback(
+    name: string,
+    oldValue: string | null,
+    newValue: string | null,
+  ): void {
+    if (name === "data-state") {
+      this.#dispatchPresenceEvent(oldValue, newValue);
+    } else if (name === "vt-name") {
+      this.#applyVtName();
     }
+  }
 
-    connectedCallback(): void {
-        this.#applyVtName();
-    }
-
-    attributeChangedCallback(
-        name: string,
-        oldValue: string | null,
-        newValue: string | null,
-    ): void {
-        if (name === 'data-state') {
-            this.#dispatchPresenceEvent(oldValue, newValue);
-        } else if (name === 'vt-name') {
-            this.#applyVtName();
-        }
-    }
-
-
-    /* ── State getter / setter ───────────────────────────────
+  /* ── State getter / setter ───────────────────────────────
        The setter is DIRECT — no orchestration, no side effects.
        It simply sets data-state, which triggers attributeChangedCallback.
        Use .show(), .hide(), and .transitionTo() for orchestrated
        animated transitions.
     ──────────────────────────────────────────────────────────── */
 
-    /** The current visibility state. Returns 'visible' when data-state is absent. */
-    get state(): PresenceState {
-        return this.#normalizeState(this.getAttribute('data-state'));
-    }
+  /** The current visibility state. Returns 'visible' when data-state is absent. */
+  get state(): PresenceState {
+    return this.#normalizeState(this.getAttribute("data-state"));
+  }
 
-    /**
-     * Sets data-state directly, without orchestration.
-     * The ds:presence event fires via attributeChangedCallback.
-     * For animated 3-step transitions, use .show() / .hide() instead.
-     */
-    set state(value: PresenceState) {
-        this.setAttribute('data-state', value);
-    }
+  /**
+   * Sets data-state directly, without orchestration.
+   * The ds:presence event fires via attributeChangedCallback.
+   * For animated 3-step transitions, use .show() / .hide() instead.
+   */
+  set state(value: PresenceState) {
+    this.setAttribute("data-state", value);
+  }
 
-
-    /* ── Orchestrated transition methods ─────────────────────
+  /* ── Orchestrated transition methods ─────────────────────
        These methods handle the 3-step state machine automatically:
          show:  absent/hidden → invisible → visible
          hide:  visible → invisible → absent
@@ -247,101 +223,100 @@ export class PresenceLayoutElement extends HTMLElement {
        is not opted into, they perform a direct state change.
     ──────────────────────────────────────────────────────────── */
 
-    /**
-     * Animated entry: absent/hidden → invisible → visible.
-     *
-     * Step 1: Set data-state="invisible" (removes display: none,
-     *         element enters layout at opacity 0)
-     * Step 2: After two rAFs (browser paints the invisible state),
-     *         set data-state="visible" (transition fires)
-     *
-     * Without entry animation ([animate~="entry"] absent):
-     *   Sets data-state="visible" directly.
-     *
-     * Returns a Promise that resolves when the transition completes.
-     * Safe to call when already visible — no-op.
-     */
-    async show(): Promise<void> {
-        if (this.state === 'visible') return;
+  /**
+   * Animated entry: absent/hidden → invisible → visible.
+   *
+   * Step 1: Set data-state="invisible" (removes display: none,
+   *         element enters layout at opacity 0)
+   * Step 2: After two rAFs (browser paints the invisible state),
+   *         set data-state="visible" (transition fires)
+   *
+   * Without entry animation ([animate~="entry"] absent):
+   *   Sets data-state="visible" directly.
+   *
+   * Returns a Promise that resolves when the transition completes.
+   * Safe to call when already visible — no-op.
+   */
+  async show(): Promise<void> {
+    if (this.state === "visible") return;
 
-        if (!hasEntryAnimation(this)) {
-            this.state = 'visible';
-            return;
-        }
-
-        // Step 1: remove display:none by moving to invisible
-        if (this.state === 'absent' || this.state === 'hidden') {
-            this.state = 'invisible';
-            // Wait two frames so the browser paints the invisible state
-            // before we trigger the transition to visible
-            await nextFrames();
-        }
-
-        // Step 2: transition to visible
-        this.state = 'visible';
-        await transitionEnd(this);
+    if (!hasEntryAnimation(this)) {
+      this.state = "visible";
+      return;
     }
 
-    /**
-     * Animated exit: visible → invisible → absent.
-     *
-     * Step 1: Set data-state="invisible" (transition fires: fades out)
-     * Step 2: After transitionend, set data-state="absent" (display: none)
-     *
-     * Without entry animation ([animate~="entry"] absent):
-     *   Sets data-state="absent" directly.
-     *
-     * Returns a Promise that resolves when the element is display: none.
-     * Safe to call when already absent — no-op.
-     */
-    async hide(to: 'absent' | 'hidden' = 'absent'): Promise<void> {
-        if (this.state === 'absent' || this.state === 'hidden') return;
-
-        if (!hasEntryAnimation(this)) {
-            this.state = to;
-            return;
-        }
-
-        // Step 1: animate to invisible (scale + fade out)
-        this.state = 'invisible';
-        await transitionEnd(this);
-
-        // Step 2: suppress transitions before applying display: none.
-        //
-        // The element is already visually gone (opacity: 0, scale(0.88)).
-        // Setting data-state="absent" with active transitions can cause a
-        // brief flash: allow-discrete holds display: block for the full
-        // transition duration while the browser re-evaluates property values,
-        // potentially landing on an intermediate or initial-style state.
-        //
-        // Since the element is already invisible, the absent step is pure
-        // DOM bookkeeping — no animation is needed. Slam it immediately.
-        this.style.setProperty('transition', 'none');
-        this.style.setProperty('transition-duration', '0s');
-        // `transition: none` does NOT reset `transition-behavior` in all browsers
-        // — it is not yet universally part of the transition shorthand.
-        // If allow-discrete survives, the browser runs an exit animation for
-        // display: block → none and briefly renders at initial computed values
-        // (opacity:1, transform:none) — the full-size flash.
-        // Setting transition-behavior: normal explicitly overrides the stylesheet
-        // rule as a direct longhand and kills allow-discrete for this step.
-        this.style.setProperty('transition-behavior', 'normal');
-        this.state = to;
-
-        // Use setTimeout (not requestAnimationFrame) for cleanup.
-        // rAF fires BEFORE paint in the browser pipeline (JS → rAF → Style → Paint),
-        // meaning rAF would remove the suppression before display:none is rendered,
-        // potentially allowing a stale transition frame to appear.
-        // setTimeout(fn, 0) fires in the NEXT task, after painting — guaranteed safe.
-        setTimeout(() => {
-            this.style.removeProperty('transition');
-            this.style.removeProperty('transition-duration');
-            this.style.removeProperty('transition-behavior');
-        }, 0);
+    // Step 1: remove display:none by moving to invisible
+    if (this.state === "absent" || this.state === "hidden") {
+      this.state = "invisible";
+      // Wait two frames so the browser paints the invisible state
+      // before we trigger the transition to visible
+      await nextFrames();
     }
 
+    // Step 2: transition to visible
+    this.state = "visible";
+    await transitionEnd(this);
+  }
 
-    /* ── View Transition integration ─────────────────────────
+  /**
+   * Animated exit: visible → invisible → absent.
+   *
+   * Step 1: Set data-state="invisible" (transition fires: fades out)
+   * Step 2: After transitionend, set data-state="absent" (display: none)
+   *
+   * Without entry animation ([animate~="entry"] absent):
+   *   Sets data-state="absent" directly.
+   *
+   * Returns a Promise that resolves when the element is display: none.
+   * Safe to call when already absent — no-op.
+   */
+  async hide(to: "absent" | "hidden" = "absent"): Promise<void> {
+    if (this.state === "absent" || this.state === "hidden") return;
+
+    if (!hasEntryAnimation(this)) {
+      this.state = to;
+      return;
+    }
+
+    // Step 1: animate to invisible (scale + fade out)
+    this.state = "invisible";
+    await transitionEnd(this);
+
+    // Step 2: suppress transitions before applying display: none.
+    //
+    // The element is already visually gone (opacity: 0, scale(0.88)).
+    // Setting data-state="absent" with active transitions can cause a
+    // brief flash: allow-discrete holds display: block for the full
+    // transition duration while the browser re-evaluates property values,
+    // potentially landing on an intermediate or initial-style state.
+    //
+    // Since the element is already invisible, the absent step is pure
+    // DOM bookkeeping — no animation is needed. Slam it immediately.
+    this.style.setProperty("transition", "none");
+    this.style.setProperty("transition-duration", "0s");
+    // `transition: none` does NOT reset `transition-behavior` in all browsers
+    // — it is not yet universally part of the transition shorthand.
+    // If allow-discrete survives, the browser runs an exit animation for
+    // display: block → none and briefly renders at initial computed values
+    // (opacity:1, transform:none) — the full-size flash.
+    // Setting transition-behavior: normal explicitly overrides the stylesheet
+    // rule as a direct longhand and kills allow-discrete for this step.
+    this.style.setProperty("transition-behavior", "normal");
+    this.state = to;
+
+    // Use setTimeout (not requestAnimationFrame) for cleanup.
+    // rAF fires BEFORE paint in the browser pipeline (JS → rAF → Style → Paint),
+    // meaning rAF would remove the suppression before display:none is rendered,
+    // potentially allowing a stale transition frame to appear.
+    // setTimeout(fn, 0) fires in the NEXT task, after painting — guaranteed safe.
+    setTimeout(() => {
+      this.style.removeProperty("transition");
+      this.style.removeProperty("transition-duration");
+      this.style.removeProperty("transition-behavior");
+    }, 0);
+  }
+
+  /* ── View Transition integration ─────────────────────────
        .transitionTo() wraps the orchestrated state change in
        document.startViewTransition() when the API is available.
 
@@ -358,104 +333,95 @@ export class PresenceLayoutElement extends HTMLElement {
        before Baseline 2025).
     ──────────────────────────────────────────────────────────── */
 
-    /**
-     * Transitions to a new state, wrapping in document.startViewTransition()
-     * if the View Transitions API is available.
-     *
-     * For 'visible': uses .show() (3-step orchestration).
-     * For 'absent'/'hidden': uses .hide() (3-step orchestration).
-     * For 'invisible': direct state change (visibility: hidden is instant).
-     *
-     * @param state - Target PresenceState
-     * @param useViewTransition - Force-disable VT even when API is available.
-     *   Defaults to true (use VT when available).
-     *
-     * @example
-     * // Show with view transition if supported
-     * await presenceEl.transitionTo('visible');
-     *
-     * // Show without view transition
-     * await presenceEl.transitionTo('visible', false);
-     */
-    async transitionTo(
-        state: PresenceState,
-        useViewTransition = true,
-    ): Promise<void> {
-        const canVT = useViewTransition && typeof document.startViewTransition === 'function';
+  /**
+   * Transitions to a new state, wrapping in document.startViewTransition()
+   * if the View Transitions API is available.
+   *
+   * For 'visible': uses .show() (3-step orchestration).
+   * For 'absent'/'hidden': uses .hide() (3-step orchestration).
+   * For 'invisible': direct state change (visibility: hidden is instant).
+   *
+   * @param state - Target PresenceState
+   * @param useViewTransition - Force-disable VT even when API is available.
+   *   Defaults to true (use VT when available).
+   *
+   * @example
+   * // Show with view transition if supported
+   * await presenceEl.transitionTo('visible');
+   *
+   * // Show without view transition
+   * await presenceEl.transitionTo('visible', false);
+   */
+  async transitionTo(
+    state: PresenceState,
+    useViewTransition = true,
+  ): Promise<void> {
+    const canVT =
+      useViewTransition && typeof document.startViewTransition === "function";
 
-        if (!canVT) {
-            return this.#directTransition(state);
-        }
-
-        // Wrap the DOM state change in a view transition.
-        // startViewTransition captures the OLD state, then calls the
-        // callback to apply the NEW state, then animates between them.
-        const transition = document.startViewTransition!(
-            () => this.#directTransition(state)
-        );
-
-        await transition.finished;
+    if (!canVT) {
+      return this.#directTransition(state);
     }
 
-    /**
-     * Performs the appropriate state transition without view transition wrapping.
-     */
-    async #directTransition(state: PresenceState): Promise<void> {
-        if (state === 'visible') {
-            return this.show();
-        } else if (state === 'absent' || state === 'hidden') {
-            return this.hide(state);
-        } else {
-            this.state = state;
-        }
+    // Wrap the DOM state change in a view transition.
+    // startViewTransition captures the OLD state, then calls the
+    // callback to apply the NEW state, then animates between them.
+    const transition = document.startViewTransition!(() =>
+      this.#directTransition(state),
+    );
+
+    await transition.finished;
+  }
+
+  /**
+   * Performs the appropriate state transition without view transition wrapping.
+   */
+  async #directTransition(state: PresenceState): Promise<void> {
+    if (state === "visible") {
+      return this.show();
+    } else if (state === "absent" || state === "hidden") {
+      return this.hide(state);
+    } else {
+      this.state = state;
     }
+  }
 
+  /* ── Event dispatch ──────────────────────────────────────── */
 
-    /* ── Event dispatch ──────────────────────────────────────── */
+  #dispatchPresenceEvent(oldRaw: string | null, newRaw: string | null): void {
+    const next = this.#normalizeState(newRaw);
+    const previous = oldRaw === null ? null : this.#normalizeState(oldRaw);
 
-    #dispatchPresenceEvent(
-        oldRaw: string | null,
-        newRaw: string | null,
-    ): void {
-        const next     = this.#normalizeState(newRaw);
-        const previous = oldRaw === null ? null : this.#normalizeState(oldRaw);
+    this.dispatchEvent(
+      new CustomEvent<PresenceChangeDetail>("ds:presence", {
+        bubbles: true,
+        composed: true,
+        detail: { state: next, previous },
+      }),
+    );
+  }
 
-        this.dispatchEvent(
-            new CustomEvent<PresenceChangeDetail>('ds:presence', {
-                bubbles:  true,
-                composed: true,
-                detail: { state: next, previous },
-            })
-        );
+  #normalizeState(raw: string | null): PresenceState {
+    if (raw === "invisible" || raw === "hidden" || raw === "absent") {
+      return raw;
     }
+    return "visible";
+  }
 
-    #normalizeState(raw: string | null): PresenceState {
-        if (
-            raw === 'invisible' ||
-            raw === 'hidden'    ||
-            raw === 'absent'
-        ) {
-            return raw;
-        }
-        return 'visible';
-    }
+  /* ── vt-name bridge ──────────────────────────────────────── */
 
-
-    /* ── vt-name bridge ──────────────────────────────────────── */
-
-    /**
-     * Bridges vt-name → --ds-vt-name for the CSS view-transition-name rule.
-     * (Same mechanism as the factory, reimplemented here for the full class.)
-     *
-     * Note: view-transition-name has no effect on display: contents elements.
-     * Add [box] to presence-layout when using vt-name.
-     */
-    #applyVtName(): void {
-        const raw = this.getAttribute('vt-name');
-        applyVar(this, '--ds-vt-name', normalizeRaw(raw));
-    }
+  /**
+   * Bridges vt-name → --ds-vt-name for the CSS view-transition-name rule.
+   * (Same mechanism as the factory, reimplemented here for the full class.)
+   *
+   * Note: view-transition-name has no effect on display: contents elements.
+   * Add [box] to presence-layout when using vt-name.
+   */
+  #applyVtName(): void {
+    const raw = this.getAttribute("vt-name");
+    applyVar(this, "--ds-vt-name", normalizeRaw(raw));
+  }
 }
-
 
 /* ── Registration ─────────────────────────────────────────────── */
 
@@ -468,5 +434,5 @@ export class PresenceLayoutElement extends HTMLElement {
  * define();
  */
 export function define(): void {
-    defineElement('presence-layout', PresenceLayoutElement);
+  defineElement("presence-layout", PresenceLayoutElement);
 }

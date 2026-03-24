@@ -1,5 +1,5 @@
 /**
- * @design-system/layout — breakpoint-layout + at-breakpoint
+ * @the-design-system/layout — breakpoint-layout + at-breakpoint
  *
  * A viewport-breakpoint conditional rendering primitive.
  * An escape hatch for cases where intrinsic layout, container queries,
@@ -16,294 +16,405 @@
  *   <breakpoint-layout> — transparent container, manages children
  *   <at-breakpoint>     — a conditionally-rendered variant
  *
- * Usage:
- *   <!-- Show different markup at mobile vs desktop -->
+ * ── USAGE: min/max/orientation (full control) ──────────────────────
+ *
  *   <breakpoint-layout>
  *     <at-breakpoint max="47.9375rem">
- *       <mobile-nav>…</mobile-nav>
+ *       mobile content
  *     </at-breakpoint>
  *     <at-breakpoint min="48rem">
- *       <desktop-nav>…</desktop-nav>
+ *       desktop content
  *     </at-breakpoint>
  *   </breakpoint-layout>
  *
- *   <!-- Three ranges with tablet in the middle -->
+ * ── USAGE: range (convenience shorthand) ──────────────────────────
+ *
+ *   Named ranges map to built-in breakpoints:
+ *
  *   <breakpoint-layout>
- *     <at-breakpoint max="29.9375rem">
- *       <compact-layout>…</compact-layout>
+ *     <at-breakpoint range="phone">
+ *       phone content  (0–479px)
  *     </at-breakpoint>
- *     <at-breakpoint min="30rem" max="63.9375rem">
- *       <standard-layout>…</standard-layout>
+ *     <at-breakpoint range="tablet">
+ *       tablet content  (768–1023px)
  *     </at-breakpoint>
- *     <at-breakpoint min="64rem">
- *       <wide-layout>…</wide-layout>
- *     </at-breakpoint>
- *   </breakpoint-layout>
- *
- *   <!-- Orientation: show different content in portrait vs landscape -->
- *   <breakpoint-layout>
- *     <at-breakpoint orientation="portrait">
- *       <portrait-experience>…</portrait-experience>
- *     </at-breakpoint>
- *     <at-breakpoint orientation="landscape">
- *       <landscape-experience>…</landscape-experience>
+ *     <at-breakpoint range="laptop desktop wide">
+ *       large screen content  (1024px+)
  *     </at-breakpoint>
  *   </breakpoint-layout>
  *
- *   <!-- Combining min/max with orientation -->
- *   <breakpoint-layout>
- *     <at-breakpoint max="47.9375rem" orientation="portrait">
- *       mobile portrait
- *     </at-breakpoint>
- *     <at-breakpoint max="47.9375rem" orientation="landscape">
- *       mobile landscape
- *     </at-breakpoint>
- *     <at-breakpoint min="48rem">
- *       desktop (any orientation)
- *     </at-breakpoint>
- *   </breakpoint-layout>
+ *   Numeric ranges (px values, no unit needed):
  *
- *   <!-- Always-visible fallback (no conditions) -->
- *   <breakpoint-layout>
- *     <at-breakpoint min="60rem">
- *       wide-only content
- *     </at-breakpoint>
- *     <at-breakpoint>
- *       always shown (acts as the else branch)
- *     </at-breakpoint>
- *   </breakpoint-layout>
+ *   <at-breakpoint range="480-767">  → min:480px max:767px
+ *   <at-breakpoint range="1920+">    → min:1920px  (no max)
+ *   <at-breakpoint range="0-479">    → max:479px   (no min)
  *
- * NOTE ON LENGTH VALUES:
- * `min` and `max` accept raw CSS lengths: px, rem, em.
- * In media queries, `em` values are relative to the BROWSER DEFAULT
- * font size (16px), not the document root font size. This is the CSS
- * spec behavior for @media queries. 48em = 768px at browser defaults.
+ *   Multi-name shorthand — space-separated names expand to a single
+ *   span covering all listed names:
  *
- * CSS custom properties (var()) are NOT supported in media queries
- * (they are not resolved before the media query is evaluated). Use
- * explicit length values, not design token references.
+ *   <at-breakpoint range="laptop desktop">
+ *   → min:1024px max:1919px  (laptop lower bound to desktop upper bound)
  *
- * @module @design-system/layout/breakpoint
+ * ── BUILT-IN NAMED RANGES ─────────────────────────────────────────
+ *
+ *   Based on 2026 StatCounter device clusters. Boundaries are placed
+ *   at the valleys between device clusters, not at device peaks.
+ *
+ *   Name          Min        Max        What lives here
+ *   ─────────────────────────────────────────────────────
+ *   phone         —          479px      Phones in portrait  (360–430px cluster)
+ *   phone-wide    480px      767px      Large phones landscape, small tablets
+ *   tablet        768px      1023px     Tablets  (iPad portrait at 768px)
+ *   laptop        1024px     1439px     Laptops  (1280–1366px cluster)
+ *   desktop       1440px     1919px     Standard wide desktop
+ *   wide          1920px     —          Full HD and above
+ *
+ * ── CUSTOMIZING NAMED RANGES ──────────────────────────────────────
+ *
+ *   Override the static lookup before calling define():
+ *
+ *   import { AtBreakpointElement, DEFAULT_RANGES } from '…/breakpoint';
+ *   AtBreakpointElement.ranges = {
+ *     ...DEFAULT_RANGES,
+ *     'compact':  { max: '639px' },
+ *     'expanded': { min: '1280px' },
+ *   };
+ *
+ * ── range vs min/max ──────────────────────────────────────────────
+ *
+ *   `range` and `min`/`max` are mutually exclusive. If both are present,
+ *   `min`/`max` take precedence and a console.warn fires in development.
+ *
+ * ── ORIENTATION ───────────────────────────────────────────────────
+ *
+ *   `orientation` can be combined with `range` or `min`/`max`:
+ *
+ *   <at-breakpoint range="phone" orientation="landscape">
+ *
+ * @module @the-design-system/layout/breakpoint
  */
 
-import {
-    defineElement,
-    normalizeRaw,
-} from '../core.js';
-
+import { defineElement, normalizeRaw } from "../core.js";
 
 /* ── Types ───────────────────────────────────────────────────── */
 
 /** Orientation values for the orientation attribute. */
-export type BreakpointOrientation = 'any' | 'portrait' | 'landscape';
+export type BreakpointOrientation = "any" | "portrait" | "landscape";
 
+/**
+ * A resolved min/max pair. Either or both may be absent.
+ * Absent min = starts from 0; absent max = no upper bound.
+ */
+export interface BreakpointRange {
+  min?: string;
+  max?: string;
+}
+
+/* ── Built-in named ranges ───────────────────────────────────── */
+
+/**
+ * Default named breakpoint ranges based on 2026 device cluster analysis.
+ *
+ * Boundaries are placed at the valleys between device clusters:
+ *   - 480px: gap between phone portrait (360–430px) and phone-wide/small-tablet
+ *   - 768px: gap between small tablets and standard tablets (iPad portrait)
+ *   - 1024px: gap between tablet landscape and laptop viewports
+ *   - 1440px: gap between budget/mid laptops and standard wide desktops
+ *   - 1920px: Full HD boundary — 42%+ of desktop traffic at 1920×1080+
+ */
+const DEFAULT_RANGES: Record<string, BreakpointRange> = {
+  // Phones in portrait. Cluster at 360–430px CSS width.
+  // 479px gives 50px headroom above the cluster peak (430px).
+  phone: { max: "479px" },
+
+  // Large phones in landscape + small tablets in portrait.
+  // The range most 2016-era systems ignored. Now covers ~15% of traffic.
+  "phone-wide": { min: "480px", max: "767px" },
+
+  // Tablets. iPad portrait anchors at 768px (18-20% of tablet traffic).
+  // Upper bound at 1023px — 1024px is where iPad landscape begins.
+  tablet: { min: "768px", max: "1023px" },
+
+  // Laptops. iPad landscape (1024), budget laptops (1280), mid laptops (1366).
+  // 1440px is the lower bound of "standard wide" desktop.
+  laptop: { min: "1024px", max: "1439px" },
+
+  // Standard wide desktop. 1440–1919px covers most desktop monitors.
+  // Upper bound at 1919px — 1920px marks Full HD threshold.
+  desktop: { min: "1440px", max: "1919px" },
+
+  // Full HD and above. 1920×1080 is the most common desktop resolution
+  // globally at ~19% (StatCounter Sep 2025). No upper bound.
+  wide: { min: "1920px" },
+};
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 
 /**
- * Builds a CSS media query string from min, max, and orientation values.
+ * Parses a `range` attribute value into a { min?, max? } pair.
  *
- * @example
- * buildMediaQuery('48rem', undefined, 'any')        // '(min-width: 48rem)'
- * buildMediaQuery('30rem', '47.9375rem', 'any')     // '(min-width: 30rem) and (max-width: 47.9375rem)'
- * buildMediaQuery(undefined, undefined, 'portrait') // '(orientation: portrait)'
- * buildMediaQuery(undefined, undefined, 'any')      // 'all' (always matches)
+ * Accepts:
+ *   "phone"              → { max: '479px' }
+ *   "tablet"             → { min: '768px', max: '1023px' }
+ *   "laptop desktop"     → { min: '1024px', max: '1919px' }  (merged span)
+ *   "480-767"            → { min: '480px', max: '767px' }
+ *   "1920+"              → { min: '1920px' }
+ *   "0-479"              → { max: '479px' }
+ *
+ * Returns null if the value cannot be parsed or a name is unknown.
  */
-function buildMediaQuery(
-    min:         string | null,
-    max:         string | null,
-    orientation: string | null,
-): string {
-    const parts: string[] = [];
+function parseRange(
+  value: string,
+  lookup: Record<string, BreakpointRange>,
+): BreakpointRange | null {
+  const v = value.trim();
+  if (!v) return null;
 
-    const minV = min?.trim();
-    const maxV = max?.trim();
-    const oriV = orientation?.trim();
+  // ── Numeric open-ended: "1920+" ───────────────────────────
+  const numericOpen = /^(\d+)\+$/.exec(v);
+  if (numericOpen) {
+    const lo = parseInt(numericOpen[1]!, 10);
+    return lo === 0 ? {} : { min: `${lo}px` };
+  }
 
-    if (minV) parts.push(`(min-width: ${minV})`);
-    if (maxV) parts.push(`(max-width: ${maxV})`);
-    if (oriV && oriV !== 'any') parts.push(`(orientation: ${oriV})`);
+  // ── Numeric range: "480-767" or "0-479" ───────────────────
+  const numericRange = /^(\d+)-(\d+)$/.exec(v);
+  if (numericRange) {
+    const lo = parseInt(numericRange[1]!, 10);
+    const hi = parseInt(numericRange[2]!, 10);
+    const result: BreakpointRange = {};
+    if (lo > 0) result.min = `${lo}px`;
+    result.max = `${hi}px`;
+    return result;
+  }
 
-    return parts.length > 0 ? parts.join(' and ') : 'all';
+  // ── Named (single or space-separated multi-name) ──────────
+  const names = v.split(/\s+/).filter(Boolean);
+
+  if (names.length === 1) {
+    const entry = lookup[names[0]!];
+    return entry ?? null;
+  }
+
+  // Multi-name: merge into a spanning range.
+  //   "laptop desktop" → min:1024px max:1919px (lowest min, highest max)
+  // If any name has no upper bound, the merged result has no upper bound.
+  let lowestMin: number | null = null;
+  let highestMax: number | null = null;
+  let openEnded = false;
+
+  for (const name of names) {
+    const entry = lookup[name];
+    if (!entry) return null; // unknown name — bail
+
+    if (entry.min !== undefined) {
+      const px = parseFloat(entry.min);
+      if (lowestMin === null || px < lowestMin) lowestMin = px;
+    }
+
+    if (entry.max !== undefined) {
+      const px = parseFloat(entry.max);
+      if (highestMax === null || px > highestMax) highestMax = px;
+    } else {
+      openEnded = true;
+    }
+  }
+
+  const merged: BreakpointRange = {};
+  if (lowestMin !== null && lowestMin > 0) merged.min = `${lowestMin}px`;
+  if (!openEnded && highestMax !== null) merged.max = `${highestMax}px`;
+  return merged;
 }
 
+/**
+ * Builds a CSS media query string from min, max, and orientation values.
+ */
+function buildMediaQuery(
+  min: string | undefined,
+  max: string | undefined,
+  orientation: string | null,
+): string {
+  const parts: string[] = [];
+  if (min) parts.push(`(min-width: ${min})`);
+  if (max) parts.push(`(max-width: ${max})`);
+  const oriV = orientation?.trim();
+  if (oriV && oriV !== "any") parts.push(`(orientation: ${oriV})`);
+  return parts.length > 0 ? parts.join(" and ") : "all";
+}
 
 /* ── at-breakpoint element ───────────────────────────────────── */
 
 /**
  * A conditionally rendered child of `<breakpoint-layout>`.
  *
- * Shown when its `min`, `max`, and `orientation` conditions are all met.
- * Hidden otherwise (display: none).
- *
- * Can also be used standalone (without a breakpoint-layout parent)
- * when you just want a single element that appears/disappears at a
- * viewport condition without an explicit alternative. However, the
- * progressive enhancement fallback (`breakpoint-layout:not(:defined)`)
- * only works when inside a breakpoint-layout container.
+ * Shown when its conditions (`range`, or `min`/`max`, and `orientation`)
+ * are met. Hidden otherwise (display: none).
  */
 export class AtBreakpointElement extends HTMLElement {
+  /**
+   * Named range lookup table used by the `range` attribute.
+   * Override this static property before calling `define()` to
+   * customize or extend the built-in ranges.
+   */
+  static ranges: Record<string, BreakpointRange> = { ...DEFAULT_RANGES };
 
-    static get observedAttributes(): string[] {
-        return ['min', 'max', 'orientation'];
-    }
+  static get observedAttributes(): string[] {
+    return ["min", "max", "range", "orientation"];
+  }
 
-    /** The active MediaQueryList, cleaned up on attribute change. */
-    #mql: MediaQueryList | null = null;
+  #mql: MediaQueryList | null = null;
+  #listener: ((e: MediaQueryListEvent) => void) | null = null;
 
-    /** The bound listener, stored for cleanup. */
-    #listener: ((e: MediaQueryListEvent) => void) | null = null;
+  connectedCallback(): void {
+    this.#bind();
+  }
+  disconnectedCallback(): void {
+    this.#unbind();
+  }
+  attributeChangedCallback(): void {
+    this.#bind();
+  }
 
-    connectedCallback(): void {
-        this.#bind();
-    }
+  /**
+   * Resolves effective min/max from `range`, `min`, and `max` attributes.
+   * Explicit `min`/`max` always win over `range`.
+   */
+  #resolveMinMax(): { min: string | undefined; max: string | undefined } {
+    const rawMin = normalizeRaw(this.getAttribute("min")) || undefined;
+    const rawMax = normalizeRaw(this.getAttribute("max")) || undefined;
+    const rawRange = normalizeRaw(this.getAttribute("range")) || undefined;
 
-    disconnectedCallback(): void {
-        this.#unbind();
-    }
+    if (!rawRange) return { min: rawMin, max: rawMax };
 
-    attributeChangedCallback(): void {
-        this.#bind();
-    }
-
-    /**
-     * Evaluates the current media query and shows or hides this element.
-     * Also sets up a reactive listener so the element responds to viewport changes.
-     */
-    #bind(): void {
-        this.#unbind();
-
-        const min = normalizeRaw(this.getAttribute('min'));
-        const max = normalizeRaw(this.getAttribute('max'));
-        const ori = normalizeRaw(this.getAttribute('orientation'));
-
-        const query = buildMediaQuery(
-            min || null,
-            max || null,
-            ori || null,
+    if (rawMin !== undefined || rawMax !== undefined) {
+      if (
+        typeof process === "undefined" ||
+        process.env?.["NODE_ENV"] !== "production"
+      ) {
+        console.warn(
+          `<at-breakpoint>: \`range\` and \`min\`/\`max\` are mutually exclusive. ` +
+            `\`min\`/\`max\` take precedence. Remove \`range="${rawRange}"\` ` +
+            `or the explicit \`min\`/\`max\` attributes.`,
+          this,
         );
-
-        const mql = window.matchMedia(query);
-        this.#mql = mql;
-
-        // Apply immediately
-        this.#applyMatch(mql.matches);
-
-        // React to changes
-        const listener = (e: MediaQueryListEvent): void => {
-            this.#applyMatch(e.matches);
-        };
-        this.#listener = listener;
-
-        // Use addEventListener for modern browsers (addListener is deprecated)
-        if (mql.addEventListener) {
-            mql.addEventListener('change', listener);
-        } else {
-            // Safari <14 fallback
-            (mql as MediaQueryList & { addListener: (fn: unknown) => void })
-                .addListener(listener);
-        }
+      }
+      return { min: rawMin, max: rawMax };
     }
 
-    /**
-     * Removes the MediaQueryList listener to prevent memory leaks.
-     */
-    #unbind(): void {
-        if (this.#mql && this.#listener) {
-            if (this.#mql.removeEventListener) {
-                this.#mql.removeEventListener('change', this.#listener);
-            } else {
-                (this.#mql as MediaQueryList & { removeListener: (fn: unknown) => void })
-                    .removeListener(this.#listener);
-            }
-        }
-        this.#mql = null;
-        this.#listener = null;
+    const parsed = parseRange(rawRange, AtBreakpointElement.ranges);
+    if (parsed === null) {
+      if (
+        typeof process === "undefined" ||
+        process.env?.["NODE_ENV"] !== "production"
+      ) {
+        console.warn(
+          `<at-breakpoint>: unknown range value "${rawRange}". ` +
+            `Valid named ranges: ${Object.keys(AtBreakpointElement.ranges).join(", ")}. ` +
+            `Or use a numeric range like "480-767" or "1920+".`,
+          this,
+        );
+      }
+      return { min: undefined, max: undefined }; // fall back to always-visible
     }
 
-    /**
-     * Shows or hides the element based on whether the media query matches.
-     *
-     * display: none is used (not visibility: hidden) so that:
-     *   - Hidden content is removed from the accessibility tree
-     *   - Images inside hidden variants do not load
-     *   - Tab order skips hidden content
-     */
-    #applyMatch(matches: boolean): void {
-        if (matches) {
-            this.style.removeProperty('display');
-            // If the CSS default is `display: none` (from the stylesheet),
-            // removing the inline display property restores that default.
-            // We need to explicitly set `display: block` (or the appropriate
-            // display value) to override the stylesheet's `display: none`.
-            // We use `revert` if supported, falling back to `block`.
-            if (this.style.display === 'none' || this.style.display === '') {
-                this.style.display = 'block';
-            }
-        } else {
-            this.style.display = 'none';
-        }
-    }
+    return { min: parsed.min, max: parsed.max };
+  }
 
-    /**
-     * Whether this element is currently visible (its media query matches).
-     */
-    get isActive(): boolean {
-        return this.#mql?.matches ?? false;
+  #bind(): void {
+    this.#unbind();
+
+    const { min, max } = this.#resolveMinMax();
+    const ori = normalizeRaw(this.getAttribute("orientation"));
+    const query = buildMediaQuery(min, max, ori || null);
+    const mql = window.matchMedia(query);
+
+    this.#mql = mql;
+    this.#applyMatch(mql.matches);
+
+    const listener = (e: MediaQueryListEvent): void =>
+      this.#applyMatch(e.matches);
+    this.#listener = listener;
+
+    if (mql.addEventListener) {
+      mql.addEventListener("change", listener);
+    } else {
+      (
+        mql as MediaQueryList & { addListener: (fn: unknown) => void }
+      ).addListener(listener);
     }
+  }
+
+  #unbind(): void {
+    if (this.#mql && this.#listener) {
+      if (this.#mql.removeEventListener) {
+        this.#mql.removeEventListener("change", this.#listener);
+      } else {
+        (
+          this.#mql as MediaQueryList & {
+            removeListener: (fn: unknown) => void;
+          }
+        ).removeListener(this.#listener);
+      }
+    }
+    this.#mql = null;
+    this.#listener = null;
+  }
+
+  #applyMatch(matches: boolean): void {
+    this.style.display = matches ? "block" : "none";
+  }
+
+  /** Whether this element is currently visible. */
+  get isActive(): boolean {
+    return this.#mql?.matches ?? false;
+  }
+
+  /**
+   * The resolved media query string currently being evaluated.
+   * Useful for debugging: `el.mediaQuery` in devtools.
+   */
+  get mediaQuery(): string {
+    return this.#mql?.media ?? "";
+  }
 }
-
 
 /* ── breakpoint-layout element ───────────────────────────────── */
 
 /**
  * Transparent container for at-breakpoint children.
- *
- * Uses `display: contents` — it has no box of its own. Children
- * participate directly in the parent layout context.
- *
- * The container itself is intentionally minimal. Its primary function
- * is semantic: grouping at-breakpoint variants and providing the
- * progressive enhancement CSS hook via `breakpoint-layout:not(:defined)`.
- *
- * The container does not enforce "only one child active at a time."
- * If multiple children have overlapping min/max ranges and are both
- * shown simultaneously, that is the author's responsibility to prevent.
+ * `display: contents` — no box of its own.
  */
 export class BreakpointLayoutElement extends HTMLElement {
+  get variants(): AtBreakpointElement[] {
+    return Array.from(this.querySelectorAll(":scope > at-breakpoint")).filter(
+      (el): el is AtBreakpointElement => el instanceof AtBreakpointElement,
+    );
+  }
 
-    /**
-     * Returns all direct `at-breakpoint` children.
-     */
-    get variants(): AtBreakpointElement[] {
-        return Array.from(this.querySelectorAll(':scope > at-breakpoint'))
-            .filter((el): el is AtBreakpointElement => el instanceof AtBreakpointElement);
-    }
-
-    /**
-     * Returns the currently active (visible) at-breakpoint child(ren).
-     */
-    get activeVariants(): AtBreakpointElement[] {
-        return this.variants.filter(v => v.isActive);
-    }
-
+  get activeVariants(): AtBreakpointElement[] {
+    return this.variants.filter((v) => v.isActive);
+  }
 }
 
+/* ── Exports ─────────────────────────────────────────────────── */
+
+/**
+ * The built-in named range definitions.
+ * Import to inspect or extend defaults.
+ */
+export { DEFAULT_RANGES };
 
 /* ── Registration ─────────────────────────────────────────────── */
 
 /**
- * Registers both `<breakpoint-layout>` and `<at-breakpoint>` custom elements.
- * Safe to call multiple times — skips registration if already defined.
- *
- * Both elements are registered together because at-breakpoint is designed
- * to be used as a child of breakpoint-layout.
+ * Registers `<breakpoint-layout>` and `<at-breakpoint>`.
+ * Safe to call multiple times.
  *
  * @example
- * import { define } from '@design-system/layout/breakpoint';
+ * import { define } from '@the-design-system/layout/breakpoint';
  * define();
  */
 export function define(): void {
-    defineElement('breakpoint-layout', BreakpointLayoutElement);
-    defineElement('at-breakpoint',     AtBreakpointElement);
+  defineElement("breakpoint-layout", BreakpointLayoutElement);
+  defineElement("at-breakpoint", AtBreakpointElement);
 }

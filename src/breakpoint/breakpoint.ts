@@ -287,33 +287,23 @@ export class AtBreakpointElement extends HTMLElement {
     if (!rawRange) return { min: rawMin, max: rawMax };
 
     if (rawMin !== undefined || rawMax !== undefined) {
-      if (
-        typeof process === "undefined" ||
-        process.env?.["NODE_ENV"] !== "production"
-      ) {
-        console.warn(
-          `<at-breakpoint>: \`range\` and \`min\`/\`max\` are mutually exclusive. ` +
-            `\`min\`/\`max\` take precedence. Remove \`range="${rawRange}"\` ` +
-            `or the explicit \`min\`/\`max\` attributes.`,
-          this,
-        );
-      }
+      console.warn(
+        `<at-breakpoint>: \`range\` and \`min\`/\`max\` are mutually exclusive. ` +
+          `\`min\`/\`max\` take precedence. Remove \`range="${rawRange}"\` ` +
+          `or the explicit \`min\`/\`max\` attributes.`,
+        this,
+      );
       return { min: rawMin, max: rawMax };
     }
 
     const parsed = parseRange(rawRange, AtBreakpointElement.ranges);
     if (parsed === null) {
-      if (
-        typeof process === "undefined" ||
-        process.env?.["NODE_ENV"] !== "production"
-      ) {
-        console.warn(
-          `<at-breakpoint>: unknown range value "${rawRange}". ` +
-            `Valid named ranges: ${Object.keys(AtBreakpointElement.ranges).join(", ")}. ` +
-            `Or use a numeric range like "480-767" or "1920+".`,
-          this,
-        );
-      }
+      console.warn(
+        `<at-breakpoint>: unknown range value "${rawRange}". ` +
+          `Valid named ranges: ${Object.keys(AtBreakpointElement.ranges).join(", ")}. ` +
+          `Or use a numeric range like "480-767" or "1920+".`,
+        this,
+      );
       return { min: undefined, max: undefined }; // fall back to always-visible
     }
 

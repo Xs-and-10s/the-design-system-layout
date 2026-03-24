@@ -345,10 +345,12 @@
                 }
                 :where(sandwich-layout) {
                     display: grid;
-                    grid-template-rows: var(--ds-sandwich-size-bs, auto) var(
+                    grid-template-rows:
+                        var(--ds-sandwich-size-bs, auto) var(
                             --ds-sandwich-size-ml,
                             1fr
-                        ) var(--ds-sandwich-size-be, auto);
+                        )
+                        var(--ds-sandwich-size-be, auto);
                     --_sm: 100vh;
                     min-block-size: var(--ds-sandwich-min, var(--_sm));
                 }
@@ -368,10 +370,12 @@
                 }
                 :where(bookend-layout) {
                     display: grid;
-                    grid-template-columns: var(--ds-bookend-size-is, auto) var(
+                    grid-template-columns:
+                        var(--ds-bookend-size-is, auto) var(
                             --ds-bookend-size-ml,
                             1fr
-                        ) var(--ds-bookend-size-ie, auto);
+                        )
+                        var(--ds-bookend-size-ie, auto);
                 }
                 :where(bookend-layout > *) {
                     min-inline-size: 0;
@@ -1510,14 +1514,12 @@
                     >
                     <nav>
                         <cluster-layout data-layout="cluster-layout" gap="m">
-                            <a href="/pages/index.html">Home</a>
-                            <a
-                                href="/pages/layout-primitives.html"
-                                class="active"
+                            <a href="index.html">Home</a>
+                            <a href="layout-primitives.html" class="active"
                                 >Primitives</a
                             >
-                            <a href="/pages/patterns.html">Patterns</a>
-                            <a href="/pages/gallery.html">Gallery</a>
+                            <a href="patterns.html">Patterns</a>
+                            <a href="gallery.html">Gallery</a>
                         </cluster-layout>
                     </nav>
                 </repel-layout>

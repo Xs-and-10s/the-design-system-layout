@@ -1,673 +1,1992 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prism — Generative Art Studio</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,700;0,800;0,900;1,900&family=Space+Mono:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
-<style>
-@layer ds.reset,ds.tokens,ds.base,ds.layout,ds.motion,ds.app;
-
-@layer ds.reset{:where(*,*::before,*::after){box-sizing:border-box;}:where(body){margin:0;}:where(h1,h2,h3,h4){margin:0;}:where(p){margin:0;}:where(a){text-decoration:none;color:inherit;}:where(button){cursor:pointer;border:none;background:none;color:inherit;}:where(:focus-visible){outline:2px solid #8b5cf6;outline-offset:2px;}:where(:focus:not(:focus-visible)){outline:none;}}
-
-@layer ds.tokens{
-  :root{
-    --ds-ratio:1.5;--_r2:calc(var(--ds-ratio)*var(--ds-ratio));--_r3:calc(var(--_r2)*var(--ds-ratio));--_r4:calc(var(--_r3)*var(--ds-ratio));--_r-1:calc(1/var(--ds-ratio));--_r-2:calc(1/var(--_r2));
-    --ds-space-base:clamp(.85rem,.8rem+.25vw,1rem);
-    --ds-space-xxs:calc(var(--ds-space-base)*var(--_r-2));
-    --ds-space-xs:calc(var(--ds-space-base)*var(--_r-1));
-    --ds-space-s:calc(var(--ds-space-base)*.75);
-    --ds-space-m:var(--ds-space-base);
-    --ds-space-l:calc(var(--ds-space-base)*var(--ds-ratio));
-    --ds-space-xl:calc(var(--ds-space-base)*var(--_r2));
-    --ds-space-xxl:calc(var(--ds-space-base)*var(--_r3));
-    --ds-space-xxxl:calc(var(--ds-space-base)*var(--_r4));
-    --ds-space-s-m:calc((var(--ds-space-s)+var(--ds-space-m))/2);
-    --ds-space-m-l:calc((var(--ds-space-m)+var(--ds-space-l))/2);
-    --ds-gap:var(--ds-space-m);
-    /* Brand: void-black + electric gradient */
-    --c-bg:#030305;
-    --c-surface:rgba(255,255,255,.03);
-    --c-border:rgba(255,255,255,.07);
-    --c-fg:#f0f0ff;
-    --c-fg-dim:rgba(240,240,255,.5);
-    --c-fg-faint:rgba(240,240,255,.2);
-    --c-purple:#8b5cf6;
-    --c-pink:#ec4899;
-    --c-cyan:#06b6d4;
-    --c-grad:linear-gradient(135deg,#8b5cf6,#ec4899,#06b6d4);
-    --c-grad-text:linear-gradient(90deg,#8b5cf6 0%,#ec4899 50%,#06b6d4 100%);
-    --c-purple-glow:rgba(139,92,246,.2);
-    --c-pink-glow:rgba(236,72,153,.2);
-    --c-cyan-glow:rgba(6,182,212,.2);
-  }
-}
-
-@layer ds.base{
-  html{color-scheme:dark;background:var(--c-bg);color:var(--c-fg);font-family:'Space Mono',monospace;font-size:var(--ds-space-m);}
-  body{overflow-x:hidden;}
-  ::-webkit-scrollbar{width:3px;}
-  ::-webkit-scrollbar-track{background:transparent;}
-  ::-webkit-scrollbar-thumb{background:rgba(139,92,246,.4);border-radius:2px;}
-  ::selection{background:rgba(139,92,246,.4);color:#fff;}
-}
-
-@layer ds.layout{
-  :where(stacked-layout){display:flex;flex-direction:column;gap:var(--ds-stacked-gap,var(--ds-gap));align-items:var(--ds-stacked-align,stretch);}
-  :where(stacked-layout>*){min-inline-size:0;}
-  :where(cluster-layout){display:flex;flex-wrap:wrap;gap:var(--ds-cluster-gap,var(--ds-gap));align-items:var(--ds-cluster-align,center);justify-content:var(--ds-cluster-justify,flex-start);}
-  :where(repel-layout){display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:var(--ds-repel-align,center);gap:var(--ds-repel-gap,var(--ds-gap));}
-  :where(repel-layout>*){min-inline-size:0;}
-  :where(repel-layout[wrap]){flex-wrap:wrap;}
-  :where(columns-layout){display:grid;grid-template-columns:var(--ds-columns-cols,repeat(3,1fr));grid-template-rows:var(--ds-columns-rows,auto);row-gap:var(--ds-columns-gap-block,var(--ds-columns-gap,var(--ds-gap)));column-gap:var(--ds-columns-gap-inline,var(--ds-columns-gap,var(--ds-gap)));align-items:var(--ds-columns-align,stretch);}
-  :where(columns-layout>*){min-inline-size:0;min-block-size:0;}
-  :where(fluid-grid-layout){display:grid;row-gap:var(--ds-fluid-grid-gap-block,var(--ds-fluid-grid-gap,var(--ds-gap)));column-gap:var(--ds-fluid-grid-gap-inline,var(--ds-fluid-grid-gap,var(--ds-gap)));--_fg:var(--ds-fluid-grid-columns,auto-fit);grid-template-columns:repeat(var(--_fg),minmax(min(100%,var(--ds-fluid-grid-min,16rem)),var(--ds-fluid-grid-max,1fr)));}
-  :where(fluid-grid-layout>*){min-inline-size:0;}
-  :where(masonry-layout){display:block;column-width:var(--ds-masonry-min,16rem);column-count:var(--ds-masonry-columns,auto);column-gap:var(--ds-masonry-gap-inline,var(--ds-masonry-gap,var(--ds-gap)));}
-  :where(masonry-layout>*){display:inline-block;inline-size:100%;break-inside:avoid;margin-block:0;margin-block-end:var(--ds-masonry-gap-block,var(--ds-masonry-gap,var(--ds-gap)));}
-  :where(region-layout){display:block;--ds-region-pad-inline:var(--ds-space-xl);padding-block:var(--ds-region-pad-block,var(--ds-space-xxl));padding-inline:var(--ds-region-pad-inline);background:var(--ds-region-bg,transparent);}
-  :where(centered-layout){display:block;box-sizing:content-box;max-inline-size:var(--ds-centered-max,65ch);margin-inline:auto;padding-inline:var(--ds-centered-gutter,0px);}
-  :where(z-axis-layout){display:grid;grid-template:1fr/1fr;align-items:var(--ds-z-axis-align,center);justify-items:var(--ds-z-axis-justify,center);}
-  :where(z-axis-layout>*){grid-area:1/1;min-inline-size:0;min-block-size:0;}
-  :where(overlay-layout){position:absolute;inset:var(--ds-overlay-inset,0);display:grid;align-items:var(--ds-overlay-align,center);justify-items:var(--ds-overlay-justify,center);}
-  :where(overlay-layout[no-events]){pointer-events:none;}
-  :where(aspect-ratio-layout){display:block;position:relative;aspect-ratio:var(--ds-aspect-ratio,16/9);overflow:clip;}
-  :where(aspect-ratio-layout>*){position:absolute;inset:0;}
-  :where(quadrilateral-layout){display:block;padding-block-start:var(--ds-quad-pbs,var(--ds-quad-pad-block,var(--ds-quad-pad,0)));padding-block-end:var(--ds-quad-pbe,var(--ds-quad-pad-block,var(--ds-quad-pad,0)));padding-inline-start:var(--ds-quad-pis,var(--ds-quad-pad-inline,var(--ds-quad-pad,0)));padding-inline-end:var(--ds-quad-pie,var(--ds-quad-pad-inline,var(--ds-quad-pad,0)));border-block-start:var(--ds-quad-border-bs,var(--ds-quad-border-block,var(--ds-quad-border,0)));border-block-end:var(--ds-quad-border-be,var(--ds-quad-border-block,var(--ds-quad-border,0)));border-inline-start:var(--ds-quad-border-is,var(--ds-quad-border-inline,var(--ds-quad-border,0)));border-inline-end:var(--ds-quad-border-ie,var(--ds-quad-border-inline,var(--ds-quad-border,0)));border-start-start-radius:var(--ds-quad-radius-ss,var(--ds-quad-radius,0));border-start-end-radius:var(--ds-quad-radius-se,var(--ds-quad-radius,0));border-end-start-radius:var(--ds-quad-radius-es,var(--ds-quad-radius,0));border-end-end-radius:var(--ds-quad-radius-ee,var(--ds-quad-radius,0));background:var(--ds-quad-bg,transparent);color:var(--ds-quad-fg,inherit);box-shadow:var(--ds-quad-shadow,none);}
-  :where(quadrilateral-layout){transform-origin:var(--ds-quad-origin,50% 50%);}
-  :where(quadrilateral-layout[skew-x],:where(quadrilateral-layout[skew-y])){transform:skewX(var(--ds-quad-skew-x,0deg)) skewY(var(--ds-quad-skew-y,0deg));}
-  :where(quadrilateral-layout[rotate]){rotate:var(--ds-quad-rotate);}
-  :where(quadrilateral-layout[scale]){scale:var(--ds-quad-scale);}
-  :where(quadrilateral-layout[translate]){translate:var(--ds-quad-translate);}
-  :where(quadrilateral-layout[preserve-3d]){transform-style:preserve-3d;}
-}
-
-@layer ds.motion{
-  @keyframes drift-a { 0%,100%{translate:0 0;} 50%{translate:20px -30px;} }
-  @keyframes drift-b { 0%,100%{translate:0 0;} 33%{translate:-30px 20px;} 66%{translate:20px -15px;} }
-  @keyframes drift-c { 0%,100%{translate:0 0;rotate:0deg;} 50%{translate:10px 20px;rotate:15deg;} }
-  @keyframes scan    { 0%{opacity:0;translate:0 -100%} 100%{opacity:.4;translate:0 100%} }
-  @keyframes pulse   { 0%,100%{opacity:.6} 50%{opacity:1} }
-  @keyframes float-in{ from{opacity:0;translate:0 20px;} to{opacity:1;translate:0 0;} }
-  @media(prefers-reduced-motion:reduce){:where(*){animation:none!important;transition-duration:.01ms!important;}}
-}
-
-@layer ds.app{
-  /* Typography */
-  .display-hero { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-style:italic; line-height:.86; letter-spacing:-.03em; font-size:clamp(5rem,16vw,14rem); }
-  .display-xl   { font-family:'Barlow Condensed',sans-serif; font-weight:900; line-height:.9; letter-spacing:-.02em; font-size:clamp(3rem,8vw,7rem); }
-  .display-l    { font-family:'Barlow Condensed',sans-serif; font-weight:800; line-height:.95; letter-spacing:-.015em; font-size:clamp(2rem,5vw,4rem); }
-  .display-m    { font-family:'Barlow Condensed',sans-serif; font-weight:700; line-height:1; letter-spacing:-.01em; font-size:clamp(1.3rem,3vw,2.2rem); }
-  .label        { font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--c-fg-dim); }
-  .body-text    { font-family:'Space Mono',monospace; font-size:.75rem; color:var(--c-fg-dim); line-height:1.8; }
-  .gradient-text{ background:var(--c-grad-text); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-  .gradient-border{ border:1px solid transparent; background:linear-gradient(var(--c-bg),var(--c-bg)) padding-box, var(--c-grad) border-box; }
-
-  /* Nav */
-  .site-nav { position:fixed; inset-block-start:0; inset-inline:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:var(--ds-space-m) var(--ds-space-xl); background:rgba(3,3,5,.6); backdrop-filter:blur(20px); border-block-end:1px solid var(--c-border); }
-  .nav-logo { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:1.4rem; letter-spacing:.06em; background:var(--c-grad-text); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-  .nav-link { font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--c-fg-dim); transition:color .15s; }
-  .nav-link:hover { color:var(--c-fg); }
-
-  /* Work card */
-  .work-card { position:relative; overflow:hidden; cursor:pointer; }
-  .work-card:hover .work-overlay { opacity:1; }
-  .work-card:hover .work-img { scale:1.06; }
-  .work-img { transition:scale .6s cubic-bezier(.16,1,.3,1); }
-  .work-overlay { position:absolute; inset:0; background:rgba(3,3,5,.7); opacity:0; transition:opacity .3s; display:flex; align-items:flex-end; padding:var(--ds-space-m); }
-}
-
-@layer ds.prose {
-
-
-
-
-
-    :where(prose-layout) {
-        display: block;
-        max-inline-size: var(--ds-prose-measure, 65ch);
-        line-height: var(--ds-prose-leading, 1.65);
-        overflow-wrap: break-word;
-        hyphens: auto;
-
-
-        --ds-prose-flow:          var(--ds-space-s-m, 1rem);
-        --ds-prose-flow-heading:  var(--ds-space-m-l, 1.5rem);
-        --ds-prose-li-gap:        var(--ds-space-xs-s, 0.5rem);
-        --ds-prose-list-indent:   1.25em;
-        --ds-prose-rule-gap:      var(--ds-space-m-l, 1.5rem);
-    }
-
-
-    @media (pointer: coarse) {
-        :where(prose-layout) {
-            --ds-prose-li-gap: var(--ds-space-s-m, 1rem);
-        }
-    }
-
-
-
-    :where(prose-layout[compact]) {
-        --ds-prose-flow:         var(--ds-space-xs-s, 0.5rem);
-        --ds-prose-flow-heading: var(--ds-space-s-m, 1rem);
-        --ds-prose-li-gap:       var(--ds-space-xxs, 0.35rem);
-        --ds-prose-rule-gap:     var(--ds-space-s-m, 1rem);
-    }
-
-
-
-    :where(prose-layout) > :where(* + *) {
-        margin-block-start: var(--ds-prose-flow);
-    }
-
-
-    :where(prose-layout) > :where(h1, h2, h3, h4, h5, h6) {
-        margin-block-start: var(--ds-prose-flow-heading);
-    }
-
-
-
-    :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
-        line-height: var(--ds-prose-heading-leading, 1.2);
-        text-wrap: balance;
-    }
-
-
-
-
-    :where(prose-layout) :where(p) {
-        margin: 0;
-    }
-
-
-
-    :where(prose-layout) :where(ul, ol) {
-        padding-inline-start: var(--ds-prose-list-indent);
-    }
-
-    :where(prose-layout) :where(li) {
-        margin: 0;
-    }
-
-    :where(prose-layout) :where(li + li) {
-        margin-block-start: var(--ds-prose-li-gap);
-    }
-
-
-    :where(prose-layout) :where(li > :where(ul, ol)) {
-        margin-block-start: var(--ds-prose-li-gap);
-    }
-
-
-
-    :where(prose-layout) :where(dt) {
-        font-weight: var(--ds-prose-dt-weight, 600);
-    }
-
-    :where(prose-layout) :where(dd) {
-        margin-inline-start: 0;
-        margin-block-start: var(--ds-prose-li-gap);
-    }
-
-    :where(prose-layout) :where(dd + dt) {
-        margin-block-start: var(--ds-prose-flow);
-    }
-
-
-
-    :where(prose-layout) :where(a) {
-        text-decoration-thickness: from-font;
-        text-underline-offset: 0.15em;
-    }
-
-
-
-    :where(prose-layout) :where(code, kbd, samp) {
-        font-family:
-            ui-monospace, sfmono-regular, menlo, consolas, "Liberation Mono",
-            monospace;
-        font-size: 0.95em;
-    }
-
-
-
-    :where(prose-layout) :where(pre) {
-        overflow: auto;
-        padding: var(--ds-prose-pre-pad, var(--ds-space-s-m, 1rem));
-        border: 1px solid currentColor;
-        border-radius: var(--ds-prose-pre-radius, 0.5rem);
-    }
-
-    :where(prose-layout) :where(pre code) {
-        display: block;
-        white-space: pre;
-
-        font-size: 1em;
-    }
-
-
-
-    :where(prose-layout) :where(blockquote) {
-        margin-inline: 0;
-        padding-inline-start: var(--ds-space-s, 0.75rem);
-        border-inline-start: 0.25rem solid currentColor;
-    }
-
-
-
-    :where(prose-layout) :where(img, video, svg, canvas) {
-        max-inline-size: 100%;
-        block-size: auto;
-    }
-
-    :where(prose-layout) :where(figure) {
-        margin-inline: 0;
-    }
-
-    :where(prose-layout) :where(figcaption) {
-        font-size: 0.9em;
-        line-height: 1.4;
-    }
-
-
-
-    :where(prose-layout) :where(table) {
-        inline-size: 100%;
-        border-collapse: collapse;
-    }
-
-    :where(prose-layout) :where(th, td) {
-        padding: var(--ds-space-xs, 0.5rem);
-        border: 1px solid currentColor;
-        text-align: start;
-        vertical-align: top;
-    }
-
-    :where(prose-layout) :where(th) {
-        font-weight: 600;
-    }
-
-
-
-    :where(prose-layout) :where(hr) {
-        border: 0;
-        border-block-start: 1px solid currentColor;
-        margin-block: var(--ds-prose-rule-gap);
-    }
-
-}
-
-@media print {
-    @layer ds.prose {
-
-        :where(prose-layout) {
-            max-inline-size: none;
-            line-height: 1.45;
-            hyphens: auto;
-        }
-
-        :where(prose-layout) :where(pre) {
-            overflow: visible;
-            white-space: pre-wrap;
-            border: 1px solid currentColor;
-        }
-
-        :where(prose-layout) :where(a) {
-            color: inherit;
-            text-decoration: underline;
-        }
-
-
-        :where(prose-layout) :where(a[href]:not([href^="#"]):not([href^="javascript"]))::after {
-            content: " (" attr(href) ")";
-            font-size: 0.88em;
-            word-break: break-all;
-            opacity: 0.6;
-        }
-
-
-        :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
-            break-after: avoid-page;
-        }
-
-
-        :where(prose-layout) :where(blockquote, figure, table, pre) {
-            break-inside: avoid-page;
-        }
-
-
-        :where(prose-layout) :where(p, li) {
-            orphans: 3;
-            widows: 3;
-        }
-
-    }
-}
-</style>
-</head>
-<body>
-
-<!-- Fixed nav -->
-<nav class="site-nav">
-  <span class="nav-logo">PRISM</span>
-  <cluster-layout data-layout="cluster-layout" gap="xl" style="--ds-cluster-gap:var(--ds-space-xl)">
-    <a class="nav-link" href="#">Work</a>
-    <a class="nav-link" href="#">Process</a>
-    <a class="nav-link" href="#">About</a>
-    <a class="nav-link" href="#">Contact</a>
-  </cluster-layout>
-</nav>
-
-
-<!-- ═══ HERO ═══════════════════════════════════════════════════════════ -->
-<section style="min-block-size:100dvh;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden;padding-block-start:80px">
-
-  <!-- Ambient BG: rotating gradient quads -->
-  <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">
-    <!-- Large skewed bands in the background -->
-    <quadrilateral-layout data-layout="quadrilateral-layout"
-      skew-x="-12deg"
-      bg="linear-gradient(90deg,transparent,rgba(139,92,246,.12),transparent)"
-      style="position:absolute;inset-block:-50%;inset-inline:-20%;animation:drift-a 18s ease-in-out infinite">
-    </quadrilateral-layout>
-    <quadrilateral-layout data-layout="quadrilateral-layout"
-      skew-x="8deg"
-      bg="linear-gradient(90deg,transparent,rgba(236,72,153,.09),transparent)"
-      style="position:absolute;inset-block:-50%;inset-inline:-20%;animation:drift-b 24s ease-in-out infinite">
-    </quadrilateral-layout>
-    <quadrilateral-layout data-layout="quadrilateral-layout"
-      skew-x="-6deg"
-      bg="linear-gradient(90deg,transparent,rgba(6,182,212,.08),transparent)"
-      style="position:absolute;inset-block:-50%;inset-inline:-20%;animation:drift-b 20s ease-in-out infinite reverse">
-    </quadrilateral-layout>
-
-    <!-- Rotating accent blocks -->
-    <quadrilateral-layout data-layout="quadrilateral-layout"
-      rotate="35deg"
-      bg="rgba(139,92,246,.15)"
-      shadow="0 0 80px 20px rgba(139,92,246,.2)"
-      style="position:absolute;inset-block-start:10%;inset-inline-end:8%;width:160px;height:160px;border-radius:4px;animation:drift-c 15s ease-in-out infinite">
-    </quadrilateral-layout>
-    <quadrilateral-layout data-layout="quadrilateral-layout"
-      rotate="20deg"
-      bg="rgba(236,72,153,.12)"
-      shadow="0 0 60px 12px rgba(236,72,153,.15)"
-      style="position:absolute;inset-block-start:40%;inset-inline-end:20%;width:80px;height:80px;border-radius:3px;animation:drift-a 12s ease-in-out infinite reverse">
-    </quadrilateral-layout>
-    <quadrilateral-layout data-layout="quadrilateral-layout"
-      rotate="-15deg"
-      bg="rgba(6,182,212,.1)"
-      style="position:absolute;inset-block-start:60%;inset-inline-start:6%;width:120px;height:120px;border-radius:3px;animation:drift-b 18s ease-in-out infinite">
-    </quadrilateral-layout>
-
-    <!-- Scanline effect -->
-    <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,.015) 3px,rgba(255,255,255,.015) 4px);pointer-events:none"></div>
-  </div>
-
-  <!-- Hero text -->
-  <region-layout data-layout="region-layout" style="--ds-region-pad-block:0;--ds-region-pad-inline:var(--ds-space-xl);padding-block-end:var(--ds-space-xxl);position:relative;z-index:10">
-    <stacked-layout data-layout="stacked-layout" gap="l" style="animation:float-in .8s cubic-bezier(.16,1,.3,1) both">
-      <span class="label" style="animation:float-in .8s .1s cubic-bezier(.16,1,.3,1) both">Generative Art Studio · Est. 2020</span>
-      <div>
-        <div class="display-hero gradient-text">MAKE</div>
-        <div class="display-hero" style="color:var(--c-fg)">SOME</div>
-        <div class="display-hero" style="-webkit-text-stroke:2px rgba(255,255,255,.25);color:transparent">THING</div>
-        <div class="display-hero gradient-text">REAL</div>
-      </div>
-      <repel-layout data-layout="repel-layout" wrap gap="xl">
-        <prose-layout data-layout="prose-layout" measure="44ch" leading="1.8" style="font-family:'Space Mono',monospace;font-size:.75rem;color:var(--c-fg-dim);animation:float-in .8s .2s cubic-bezier(.16,1,.3,1) both">
-          <p>Code and canvas. Algorithms and aesthetics. I build generative systems that produce work that could not exist any other way.</p>
-        </prose-layout>
-        <a class="gradient-border" href="#work" style="display:inline-flex;align-items:center;gap:var(--ds-space-m);padding:var(--ds-space-s) var(--ds-space-l);font-family:'Barlow Condensed';font-size:1rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;animation:float-in .8s .3s cubic-bezier(.16,1,.3,1) both">
-          View work <span style="color:var(--c-purple)">↓</span>
-        </a>
-      </repel-layout>
-    </stacked-layout>
-  </region-layout>
-
-  <!-- Gradient horizon line -->
-  <div style="position:relative;z-index:10;block-size:1px;background:linear-gradient(90deg,transparent,var(--c-purple),var(--c-pink),var(--c-cyan),transparent)"></div>
-</section>
-
-
-<!-- ═══ WORK GRID ═══════════════════════════════════════════════════════ -->
-<section id="work" style="padding-block:var(--ds-space-xxl);padding-inline:var(--ds-space-xl)">
-  <stacked-layout data-layout="stacked-layout" gap="xxl">
-
-    <repel-layout data-layout="repel-layout" wrap>
-      <div class="display-xl">Selected Work</div>
-      <span class="label" style="align-self:flex-end">2020 — 2026</span>
-    </repel-layout>
-
-    <masonry-layout data-layout="masonry-layout" style="--ds-masonry-min:260px;--ds-masonry-gap:var(--ds-space-m);--ds-masonry-gap-block:var(--ds-space-m)">
-
-      <!-- VOID -->
-      <div class="work-card" style="border-radius:4px;overflow:hidden;margin-block-end:var(--ds-space-m)">
-        <div class="work-img" style="block-size:320px;background:radial-gradient(ellipse at 30% 50%,rgba(139,92,246,.6),rgba(3,3,5,.9));display:grid;place-items:center;position:relative;overflow:hidden">
-          <quadrilateral-layout data-layout="quadrilateral-layout"
-            rotate="45deg" skew-x="10deg"
-            bg="rgba(139,92,246,.2)"
-            style="position:absolute;inset-block:20%;inset-inline:15%;border-radius:2px">
-          </quadrilateral-layout>
-          <div style="position:relative;text-align:center">
-            <div class="display-xl gradient-text" style="font-size:5rem">VOID</div>
-          </div>
-        </div>
-        <div class="work-overlay">
-          <stacked-layout data-layout="stacked-layout" gap="xs" style="--ds-stacked-align:stretch">
-            <span class="label" style="color:var(--c-purple)">Interactive Installation · 2024</span>
-            <div class="display-m">VOID — Infinite generative space</div>
-          </stacked-layout>
-        </div>
-      </div>
-
-      <!-- LATTICE -->
-      <div class="work-card" style="border-radius:4px;overflow:hidden;margin-block-end:var(--ds-space-m)">
-        <div class="work-img" style="block-size:200px;position:relative;overflow:hidden;background:#030305">
-          <!-- Rotating quadrilateral grid effect -->
-          <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:2px;padding:2px">
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="12deg" origin="center" bg="rgba(6,182,212,.3)" style="border-radius:2px;animation:pulse 3s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="-8deg" origin="center" bg="rgba(139,92,246,.3)" style="border-radius:2px;animation:pulse 3s .5s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="20deg" origin="center" bg="rgba(236,72,153,.3)" style="border-radius:2px;animation:pulse 3s 1s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="-15deg" origin="center" bg="rgba(6,182,212,.2)" style="border-radius:2px;animation:pulse 3s 1.5s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="5deg" origin="center" bg="rgba(236,72,153,.25)" style="border-radius:2px;animation:pulse 3s 2s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="-25deg" origin="center" bg="rgba(139,92,246,.35)" style="border-radius:2px;animation:pulse 3s 0.3s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="18deg" origin="center" bg="rgba(6,182,212,.25)" style="border-radius:2px;animation:pulse 3s 0.8s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="-10deg" origin="center" bg="rgba(236,72,153,.3)" style="border-radius:2px;animation:pulse 3s 1.3s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="30deg" origin="center" bg="rgba(139,92,246,.2)" style="border-radius:2px;animation:pulse 3s 1.8s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="-5deg" origin="center" bg="rgba(6,182,212,.35)" style="border-radius:2px;animation:pulse 3s 0.6s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="22deg" origin="center" bg="rgba(236,72,153,.2)" style="border-radius:2px;animation:pulse 3s 1.1s ease-in-out infinite"></quadrilateral-layout>
-            <quadrilateral-layout data-layout="quadrilateral-layout" rotate="-18deg" origin="center" bg="rgba(139,92,246,.3)" style="border-radius:2px;animation:pulse 3s 1.6s ease-in-out infinite"></quadrilateral-layout>
-          </div>
-        </div>
-        <div class="work-overlay">
-          <stacked-layout data-layout="stacked-layout" gap="xs">
-            <span class="label" style="color:var(--c-cyan)">Algorithmic Composition · 2023</span>
-            <div class="display-m">LATTICE — Rotating tile system</div>
-          </stacked-layout>
-        </div>
-      </div>
-
-      <!-- CASCADE -->
-      <div class="work-card" style="border-radius:4px;overflow:hidden;margin-block-end:var(--ds-space-m)">
-        <div class="work-img" style="block-size:260px;background:linear-gradient(180deg,rgba(6,182,212,.3),rgba(139,92,246,.2),rgba(236,72,153,.3));display:flex;flex-direction:column;justify-content:flex-end;padding:var(--ds-space-m);position:relative;overflow:hidden">
-          <!-- Skewed cascade bands -->
-          <quadrilateral-layout data-layout="quadrilateral-layout" skew-x="-15deg" bg="rgba(6,182,212,.15)" style="position:absolute;block-size:30%;inset-block-start:10%;inset-inline:-20%"></quadrilateral-layout>
-          <quadrilateral-layout data-layout="quadrilateral-layout" skew-x="-15deg" bg="rgba(139,92,246,.12)" style="position:absolute;block-size:30%;inset-block-start:35%;inset-inline:-20%"></quadrilateral-layout>
-          <quadrilateral-layout data-layout="quadrilateral-layout" skew-x="-15deg" bg="rgba(236,72,153,.1)" style="position:absolute;block-size:30%;inset-block-start:60%;inset-inline:-20%"></quadrilateral-layout>
-        </div>
-        <div class="work-overlay">
-          <stacked-layout data-layout="stacked-layout" gap="xs">
-            <span class="label" style="color:var(--c-pink)">Watercolor Simulation · 2023</span>
-            <div class="display-m">CASCADE — Flow field studies</div>
-          </stacked-layout>
-        </div>
-      </div>
-
-      <!-- SPECTRUM -->
-      <div class="work-card" style="border-radius:4px;overflow:hidden;margin-block-end:var(--ds-space-m)">
-        <div class="work-img" style="block-size:200px;background:conic-gradient(from 0deg at 50% 50%,#8b5cf6,#ec4899,#06b6d4,#8b5cf6);position:relative;overflow:hidden">
-          <div style="position:absolute;inset:0;background:rgba(3,3,5,.5)"></div>
-          <div style="position:absolute;inset:0;display:grid;place-items:center">
-            <div class="display-xl" style="font-size:3.5rem;letter-spacing:.1em">SPECTRUM</div>
-          </div>
-        </div>
-        <div class="work-overlay">
-          <stacked-layout data-layout="stacked-layout" gap="xs">
-            <span class="label" style="color:var(--c-purple)">Color Theory · 2022</span>
-            <div class="display-m">SPECTRUM — Chromatic studies</div>
-          </stacked-layout>
-        </div>
-      </div>
-
-      <!-- ECHO -->
-      <div class="work-card" style="border-radius:4px;overflow:hidden;margin-block-end:var(--ds-space-m)">
-        <div class="work-img" style="block-size:280px;background:#030305;display:grid;place-items:center;position:relative;overflow:hidden">
-          <!-- Concentric rotating quads for echo effect -->
-          <quadrilateral-layout data-layout="quadrilateral-layout" rotate="0deg" origin="center" border="1px solid rgba(139,92,246,.6)" style="position:absolute;width:80%;height:80%;animation:drift-c 8s linear infinite"></quadrilateral-layout>
-          <quadrilateral-layout data-layout="quadrilateral-layout" rotate="0deg" origin="center" border="1px solid rgba(236,72,153,.4)" style="position:absolute;width:60%;height:60%;animation:drift-c 8s 1s linear infinite"></quadrilateral-layout>
-          <quadrilateral-layout data-layout="quadrilateral-layout" rotate="0deg" origin="center" border="1px solid rgba(6,182,212,.3)" style="position:absolute;width:40%;height:40%;animation:drift-c 8s 2s linear infinite"></quadrilateral-layout>
-          <quadrilateral-layout data-layout="quadrilateral-layout" rotate="0deg" origin="center" border="1px solid rgba(139,92,246,.2)" style="position:absolute;width:20%;height:20%;animation:drift-c 8s 3s linear infinite"></quadrilateral-layout>
-        </div>
-        <div class="work-overlay">
-          <stacked-layout data-layout="stacked-layout" gap="xs">
-            <span class="label" style="color:var(--c-cyan)">Recursive Pattern · 2022</span>
-            <div class="display-m">ECHO — Self-similar structures</div>
-          </stacked-layout>
-        </div>
-      </div>
-
-    </masonry-layout>
-  </stacked-layout>
-</section>
-
-
-<!-- ═══ STATEMENT ═══════════════════════════════════════════════════════ -->
-<section style="padding-block:var(--ds-space-xxxl);overflow:hidden;position:relative">
-  <!-- Bold oblique bands -->
-  <quadrilateral-layout data-layout="quadrilateral-layout"
-    skew-x="-6deg"
-    bg="linear-gradient(135deg,rgba(139,92,246,.15),rgba(236,72,153,.1),rgba(6,182,212,.08))"
-    style="position:absolute;inset-block:-100%;inset-inline:-10%;z-index:0">
-  </quadrilateral-layout>
-
-  <centered-layout data-layout="centered-layout" style="--ds-centered-max:50ch;--ds-centered-gutter:var(--ds-space-xl);position:relative;z-index:1;text-align:center">
-    <stacked-layout data-layout="stacked-layout" gap="l" style="--ds-stacked-align:center">
-      <span class="label">Statement</span>
-      <div class="display-xl gradient-text" style="line-height:.92">
-        Every pixel is a decision.
-      </div>
-      <div class="display-xl" style="line-height:.92">
-        Every decision
-      </div>
-      <div class="display-xl gradient-text" style="line-height:.92">
-        is a possibility.
-      </div>
-      <div style="width:60px;height:2px;background:linear-gradient(90deg,var(--c-purple),var(--c-pink),var(--c-cyan))"></div>
-      <prose-layout data-layout="prose-layout" measure="40ch" leading="1.8" style="font-family:'Space Mono',monospace;font-size:.75rem;color:var(--c-fg-dim)">
-        <p>I work at the intersection of code and canvas — building systems that generate infinite variations of a single aesthetic idea.</p>
-      </prose-layout>
-    </stacked-layout>
-  </centered-layout>
-</section>
-
-
-<!-- ═══ ABOUT + CONTACT ═══════════════════════════════════════════════════ -->
-<section style="padding-block:var(--ds-space-xxl);padding-inline:var(--ds-space-xl);border-block-start:1px solid var(--c-border)">
-  <columns-layout data-layout="columns-layout" style="--ds-columns-cols:1fr 1fr;--ds-columns-gap:var(--ds-space-xxl);align-items:start">
-
-    <stacked-layout data-layout="stacked-layout" gap="l">
-      <div class="display-l">About</div>
-      <prose-layout data-layout="prose-layout" measure="none" leading="1.8" style="font-family:'Space Mono',monospace;font-size:.75rem;color:var(--c-fg-dim)">
-        <p>I am a creative technologist working at the edges of computation and visual art. Trained as an engineer, drawn to aesthetics. Every project is a question about what machines can make when given the right constraints.</p>
-        <p>Available for commissions, residencies, and collaborations. Particularly interested in large-scale installation work and experimental interfaces.</p>
-      </prose-layout>
-      <cluster-layout data-layout="cluster-layout" gap="m" style="--ds-cluster-gap:var(--ds-space-m)">
-        <span class="label" style="border:1px solid var(--c-purple);padding:var(--ds-space-xxs) var(--ds-space-m);color:var(--c-purple)">Commissions open</span>
-        <span class="label" style="color:var(--c-fg-dim)">Berlin-based</span>
-      </cluster-layout>
-    </stacked-layout>
-
-    <stacked-layout data-layout="stacked-layout" gap="l">
-      <div class="display-l">Get in touch</div>
-
-      <!-- Contact form feel -->
-      <stacked-layout data-layout="stacked-layout" gap="m">
-        <div>
-          <div class="label" style="margin-block-end:var(--ds-space-xs)">Your name</div>
-          <input type="text" placeholder="Name" style="width:100%;background:var(--c-surface);border:1px solid var(--c-border);border-radius:2px;padding:var(--ds-space-s) var(--ds-space-m);font-family:'Space Mono';font-size:.75rem;color:var(--c-fg-dim);outline:none;transition:border-color .15s" onfocus="this.style.borderColor='rgba(139,92,246,.6)'" onblur="this.style.borderColor=''">
-        </div>
-        <div>
-          <div class="label" style="margin-block-end:var(--ds-space-xs)">Project description</div>
-          <textarea rows="3" placeholder="Tell me about the project..." style="width:100%;background:var(--c-surface);border:1px solid var(--c-border);border-radius:2px;padding:var(--ds-space-s) var(--ds-space-m);font-family:'Space Mono';font-size:.75rem;color:var(--c-fg-dim);outline:none;resize:vertical;transition:border-color .15s" onfocus="this.style.borderColor='rgba(139,92,246,.6)'" onblur="this.style.borderColor=''"></textarea>
-        </div>
-        <button style="background:var(--c-grad);padding:var(--ds-space-s) var(--ds-space-xl);font-family:'Barlow Condensed';font-size:1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:2px;color:#fff;align-self:flex-start;transition:opacity .15s" onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity=''">
-          Send message
-        </button>
-      </stacked-layout>
-    </stacked-layout>
-  </columns-layout>
-</section>
-
-
-<!-- Footer -->
-<footer style="padding:var(--ds-space-l) var(--ds-space-xl);border-block-start:1px solid var(--c-border)">
-  <repel-layout data-layout="repel-layout" wrap>
-    <span class="nav-logo" style="font-size:1rem">PRISM</span>
-    <span class="label">© 2026 — Making things exist between code and art</span>
-    <cluster-layout data-layout="cluster-layout" gap="l">
-      <a class="label" href="#">Instagram</a>
-      <a class="label" href="#">GitHub</a>
-      <a class="label" href="#">Are.na</a>
-    </cluster-layout>
-  </repel-layout>
-</footer>
-
-<script>
-function aV(e,n,v){v===''||v==null?e.style.removeProperty(n):e.style.setProperty(n,v);}
-function aP(e,n,v){v===''||v==null?e.style.removeProperty(n):e.style.setProperty(n,v);}
-const ST=new Set(['tiny','xxxs','xxs','xs','s','m','l','xl','xxl','xxxl','huge','xs-s','s-m','m-l','l-xl','xl-xxl']);
-function ns(v){const s=String(v||'').trim();if(!s)return'';if(s==='0')return'0';if(ST.has(s))return`var(--ds-space-${s})`;return s;}
-function nr(v){return String(v||'').trim();}
-function el(map){const e=Object.entries(map);return class extends HTMLElement{static get observedAttributes(){return Object.keys(map);}connectedCallback(){this._a();}attributeChangedCallback(){this._a();}_a(){for(const[attr,spec]of e){const raw=this.getAttribute(attr)??'';const val=spec.type==='space'?ns(raw):nr(raw);if(spec.var)aV(this,spec.var,val);if(spec.prop)aP(this,spec.prop,val);}}};}
-function def(t,c){if(!customElements.get(t))customElements.define(t,c);}
-
-def('stacked-layout',el({gap:{type:'space',var:'--ds-stacked-gap'},align:{type:'raw',var:'--ds-stacked-align'}}));
-def('cluster-layout',el({gap:{type:'space',var:'--ds-cluster-gap'},align:{type:'raw',var:'--ds-cluster-align'},justify:{type:'raw',var:'--ds-cluster-justify'}}));
-def('repel-layout',el({gap:{type:'space',var:'--ds-repel-gap'},align:{type:'raw',var:'--ds-repel-align'}}));
-def('columns-layout',el({cols:{type:'raw',var:'--ds-columns-cols'},rows:{type:'raw',var:'--ds-columns-rows'},gap:{type:'space',var:'--ds-columns-gap'},'gap-block':{type:'space',var:'--ds-columns-gap-block'},'gap-inline':{type:'space',var:'--ds-columns-gap-inline'},align:{type:'raw',var:'--ds-columns-align'}}));
-def('fluid-grid-layout',el({min:{type:'space',var:'--ds-fluid-grid-min'},max:{type:'space',var:'--ds-fluid-grid-max'},gap:{type:'space',var:'--ds-fluid-grid-gap'}}));
-def('masonry-layout',el({gap:{type:'space',var:'--ds-masonry-gap'},'gap-block':{type:'space',var:'--ds-masonry-gap-block'},'gap-inline':{type:'space',var:'--ds-masonry-gap-inline'},min:{type:'space',var:'--ds-masonry-min'},columns:{type:'raw',var:'--ds-masonry-columns'}}));
-def('region-layout',el({'pad-block':{type:'space',var:'--ds-region-pad-block'},'pad-inline':{type:'space',var:'--ds-region-pad-inline'},bg:{type:'raw',var:'--ds-region-bg'}}));
-def('centered-layout',el({max:{type:'space',var:'--ds-centered-max'},gutter:{type:'space',var:'--ds-centered-gutter'}}));
-def('z-axis-layout',el({align:{type:'raw',var:'--ds-z-axis-align'},justify:{type:'raw',var:'--ds-z-axis-justify'}}));
-def('overlay-layout',el({inset:{type:'space',var:'--ds-overlay-inset'},align:{type:'raw',var:'--ds-overlay-align'},justify:{type:'raw',var:'--ds-overlay-justify'}}));
-def('aspect-ratio-layout',el({ratio:{type:'raw',var:'--ds-aspect-ratio'},fit:{type:'raw',var:'--ds-aspect-fit'}}));
-
-const _QB=el({'pad':{type:'space',var:'--ds-quad-pad'},'pad-block':{type:'space',var:'--ds-quad-pad-block'},'pad-inline':{type:'space',var:'--ds-quad-pad-inline'},pbs:{type:'space',var:'--ds-quad-pbs'},pbe:{type:'space',var:'--ds-quad-pbe'},pis:{type:'space',var:'--ds-quad-pis'},pie:{type:'space',var:'--ds-quad-pie'},border:{type:'raw',var:'--ds-quad-border'},'border-bs':{type:'raw',var:'--ds-quad-border-bs'},'border-be':{type:'raw',var:'--ds-quad-border-be'},'border-is':{type:'raw',var:'--ds-quad-border-is'},'border-ie':{type:'raw',var:'--ds-quad-border-ie'},radius:{type:'space',var:'--ds-quad-radius'},bg:{type:'raw',var:'--ds-quad-bg'},fg:{type:'raw',var:'--ds-quad-fg'},shadow:{type:'raw',var:'--ds-quad-shadow'},'skew-x':{type:'raw',var:'--ds-quad-skew-x'},'skew-y':{type:'raw',var:'--ds-quad-skew-y'},rotate:{type:'raw',var:'--ds-quad-rotate'},scale:{type:'raw',var:'--ds-quad-scale'},translate:{type:'raw',var:'--ds-quad-translate'},origin:{type:'raw',var:'--ds-quad-origin'},perspective:{type:'raw',prop:'perspective'}});
-class _QE extends _QB{static get observedAttributes(){return[...super.observedAttributes,'preserve-3d','backface','flip-x','flip-y'];}connectedCallback(){super.connectedCallback();this._qt();}attributeChangedCallback(n,o,v){super.attributeChangedCallback(n,o,v);this._qt();}_qt(){const p3d=this.hasAttribute('preserve-3d'),bf=this.hasAttribute('backface'),fx=this.hasAttribute('flip-x'),fy=this.hasAttribute('flip-y');p3d?this.style.setProperty('transform-style','preserve-3d'):this.style.removeProperty('transform-style');bf?this.style.setProperty('backface-visibility','hidden'):this.style.removeProperty('backface-visibility');if(fx||fy)this.style.setProperty('scale',`${fx?-1:1} ${fy?-1:1}`);}}
-def('quadrilateral-layout',_QE);
-
-// prose-layout — flow rhythm for mixed HTML content
-const _PLBase = el({
-  measure:{type:'raw',var:'--ds-prose-measure'},
-  leading:{type:'raw',var:'--ds-prose-leading'},
-  flow:{type:'space',var:'--ds-prose-flow'},
-  'flow-heading':{type:'space',var:'--ds-prose-flow-heading'},
-  'li-gap':{type:'space',var:'--ds-prose-li-gap'},
-  'list-indent':{type:'raw',var:'--ds-prose-list-indent'},
-  'rule-gap':{type:'space',var:'--ds-prose-rule-gap'},
-  'pre-pad':{type:'space',var:'--ds-prose-pre-pad'},
-  'pre-radius':{type:'space',var:'--ds-prose-pre-radius'},
-  'heading-leading':{type:'raw',var:'--ds-prose-heading-leading'},
-  'dt-weight':{type:'raw',var:'--ds-prose-dt-weight'}
-});
-class _PLEl extends _PLBase {
-  static get observedAttributes(){return[...super.observedAttributes,'compact'];}
-}
-def('prose-layout',_PLEl);
-</script>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Prism — Generative Art Studio</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,700;0,800;0,900;1,900&family=Space+Mono:ital,wght@0,400;1,400&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            @layer ds.reset,ds.tokens,ds.base,ds.layout,ds.motion,ds.app;
+
+            @layer ds.reset {
+                :where(*, *::before, *::after) {
+                    box-sizing: border-box;
+                }
+                :where(body) {
+                    margin: 0;
+                }
+                :where(h1, h2, h3, h4) {
+                    margin: 0;
+                }
+                :where(p) {
+                    margin: 0;
+                }
+                :where(a) {
+                    text-decoration: none;
+                    color: inherit;
+                }
+                :where(button) {
+                    cursor: pointer;
+                    border: none;
+                    background: none;
+                    color: inherit;
+                }
+                :where(:focus-visible) {
+                    outline: 2px solid #8b5cf6;
+                    outline-offset: 2px;
+                }
+                :where(:focus:not(:focus-visible)) {
+                    outline: none;
+                }
+            }
+
+            @layer ds.tokens {
+                :root {
+                    --ds-ratio: 1.5;
+                    --_r2: calc(var(--ds-ratio) * var(--ds-ratio));
+                    --_r3: calc(var(--_r2) * var(--ds-ratio));
+                    --_r4: calc(var(--_r3) * var(--ds-ratio));
+                    --_r-1: calc(1/var(--ds-ratio));
+                    --_r-2: calc(1/var(--_r2));
+                    --ds-space-base: clamp(0.85rem, 0.8rem+0.25vw, 1rem);
+                    --ds-space-xxs: calc(var(--ds-space-base) * var(--_r-2));
+                    --ds-space-xs: calc(var(--ds-space-base) * var(--_r-1));
+                    --ds-space-s: calc(var(--ds-space-base) * 0.75);
+                    --ds-space-m: var(--ds-space-base);
+                    --ds-space-l: calc(var(--ds-space-base) * var(--ds-ratio));
+                    --ds-space-xl: calc(var(--ds-space-base) * var(--_r2));
+                    --ds-space-xxl: calc(var(--ds-space-base) * var(--_r3));
+                    --ds-space-xxxl: calc(var(--ds-space-base) * var(--_r4));
+                    --ds-space-s-m: calc(
+                        (var(--ds-space-s)+var(--ds-space-m)) / 2
+                    );
+                    --ds-space-m-l: calc(
+                        (var(--ds-space-m)+var(--ds-space-l)) / 2
+                    );
+                    --ds-gap: var(--ds-space-m);
+                    /* Brand: void-black + electric gradient */
+                    --c-bg: #030305;
+                    --c-surface: rgba(255, 255, 255, 0.03);
+                    --c-border: rgba(255, 255, 255, 0.07);
+                    --c-fg: #f0f0ff;
+                    --c-fg-dim: rgba(240, 240, 255, 0.5);
+                    --c-fg-faint: rgba(240, 240, 255, 0.2);
+                    --c-purple: #8b5cf6;
+                    --c-pink: #ec4899;
+                    --c-cyan: #06b6d4;
+                    --c-grad: linear-gradient(
+                        135deg,
+                        #8b5cf6,
+                        #ec4899,
+                        #06b6d4
+                    );
+                    --c-grad-text: linear-gradient(
+                        90deg,
+                        #8b5cf6 0%,
+                        #ec4899 50%,
+                        #06b6d4 100%
+                    );
+                    --c-purple-glow: rgba(139, 92, 246, 0.2);
+                    --c-pink-glow: rgba(236, 72, 153, 0.2);
+                    --c-cyan-glow: rgba(6, 182, 212, 0.2);
+                }
+            }
+
+            @layer ds.base {
+                html {
+                    color-scheme: dark;
+                    background: var(--c-bg);
+                    color: var(--c-fg);
+                    font-family: "Space Mono", monospace;
+                    font-size: var(--ds-space-m);
+                }
+                body {
+                    overflow-x: hidden;
+                }
+                ::-webkit-scrollbar {
+                    width: 3px;
+                }
+                ::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                ::-webkit-scrollbar-thumb {
+                    background: rgba(139, 92, 246, 0.4);
+                    border-radius: 2px;
+                }
+                ::selection {
+                    background: rgba(139, 92, 246, 0.4);
+                    color: #fff;
+                }
+            }
+
+            @layer ds.layout {
+                :where(stacked-layout) {
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--ds-stacked-gap, var(--ds-gap));
+                    align-items: var(--ds-stacked-align, stretch);
+                }
+                :where(stacked-layout > *) {
+                    min-inline-size: 0;
+                }
+                :where(cluster-layout) {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: var(--ds-cluster-gap, var(--ds-gap));
+                    align-items: var(--ds-cluster-align, center);
+                    justify-content: var(--ds-cluster-justify, flex-start);
+                }
+                :where(repel-layout) {
+                    display: flex;
+                    flex-wrap: nowrap;
+                    justify-content: space-between;
+                    align-items: var(--ds-repel-align, center);
+                    gap: var(--ds-repel-gap, var(--ds-gap));
+                }
+                :where(repel-layout > *) {
+                    min-inline-size: 0;
+                }
+                :where(repel-layout[wrap]) {
+                    flex-wrap: wrap;
+                }
+                :where(columns-layout) {
+                    display: grid;
+                    grid-template-columns: var(
+                        --ds-columns-cols,
+                        repeat(3, 1fr)
+                    );
+                    grid-template-rows: var(--ds-columns-rows, auto);
+                    row-gap: var(
+                        --ds-columns-gap-block,
+                        var(--ds-columns-gap, var(--ds-gap))
+                    );
+                    column-gap: var(
+                        --ds-columns-gap-inline,
+                        var(--ds-columns-gap, var(--ds-gap))
+                    );
+                    align-items: var(--ds-columns-align, stretch);
+                }
+                :where(columns-layout > *) {
+                    min-inline-size: 0;
+                    min-block-size: 0;
+                }
+                :where(fluid-grid-layout) {
+                    display: grid;
+                    row-gap: var(
+                        --ds-fluid-grid-gap-block,
+                        var(--ds-fluid-grid-gap, var(--ds-gap))
+                    );
+                    column-gap: var(
+                        --ds-fluid-grid-gap-inline,
+                        var(--ds-fluid-grid-gap, var(--ds-gap))
+                    );
+                    --_fg: var(--ds-fluid-grid-columns, auto-fit);
+                    grid-template-columns: repeat(
+                        var(--_fg),
+                        minmax(
+                            min(100%, var(--ds-fluid-grid-min, 16rem)),
+                            var(--ds-fluid-grid-max, 1fr)
+                        )
+                    );
+                }
+                :where(fluid-grid-layout > *) {
+                    min-inline-size: 0;
+                }
+                :where(masonry-layout) {
+                    display: block;
+                    column-width: var(--ds-masonry-min, 16rem);
+                    column-count: var(--ds-masonry-columns, auto);
+                    column-gap: var(
+                        --ds-masonry-gap-inline,
+                        var(--ds-masonry-gap, var(--ds-gap))
+                    );
+                }
+                :where(masonry-layout > *) {
+                    display: inline-block;
+                    inline-size: 100%;
+                    break-inside: avoid;
+                    margin-block: 0;
+                    margin-block-end: var(
+                        --ds-masonry-gap-block,
+                        var(--ds-masonry-gap, var(--ds-gap))
+                    );
+                }
+                :where(region-layout) {
+                    display: block;
+                    --ds-region-pad-inline: var(--ds-space-xl);
+                    padding-block: var(
+                        --ds-region-pad-block,
+                        var(--ds-space-xxl)
+                    );
+                    padding-inline: var(--ds-region-pad-inline);
+                    background: var(--ds-region-bg, transparent);
+                }
+                :where(centered-layout) {
+                    display: block;
+                    box-sizing: content-box;
+                    max-inline-size: var(--ds-centered-max, 65ch);
+                    margin-inline: auto;
+                    padding-inline: var(--ds-centered-gutter, 0px);
+                }
+                :where(z-axis-layout) {
+                    display: grid;
+                    grid-template: 1fr/1fr;
+                    align-items: var(--ds-z-axis-align, center);
+                    justify-items: var(--ds-z-axis-justify, center);
+                }
+                :where(z-axis-layout > *) {
+                    grid-area: 1/1;
+                    min-inline-size: 0;
+                    min-block-size: 0;
+                }
+                :where(overlay-layout) {
+                    position: absolute;
+                    inset: var(--ds-overlay-inset, 0);
+                    display: grid;
+                    align-items: var(--ds-overlay-align, center);
+                    justify-items: var(--ds-overlay-justify, center);
+                }
+                :where(overlay-layout[no-events]) {
+                    pointer-events: none;
+                }
+                :where(aspect-ratio-layout) {
+                    display: block;
+                    position: relative;
+                    aspect-ratio: var(--ds-aspect-ratio, 16/9);
+                    overflow: clip;
+                }
+                :where(aspect-ratio-layout > *) {
+                    position: absolute;
+                    inset: 0;
+                }
+                :where(quadrilateral-layout) {
+                    display: block;
+                    padding-block-start: var(
+                        --ds-quad-pbs,
+                        var(--ds-quad-pad-block, var(--ds-quad-pad, 0))
+                    );
+                    padding-block-end: var(
+                        --ds-quad-pbe,
+                        var(--ds-quad-pad-block, var(--ds-quad-pad, 0))
+                    );
+                    padding-inline-start: var(
+                        --ds-quad-pis,
+                        var(--ds-quad-pad-inline, var(--ds-quad-pad, 0))
+                    );
+                    padding-inline-end: var(
+                        --ds-quad-pie,
+                        var(--ds-quad-pad-inline, var(--ds-quad-pad, 0))
+                    );
+                    border-block-start: var(
+                        --ds-quad-border-bs,
+                        var(--ds-quad-border-block, var(--ds-quad-border, 0))
+                    );
+                    border-block-end: var(
+                        --ds-quad-border-be,
+                        var(--ds-quad-border-block, var(--ds-quad-border, 0))
+                    );
+                    border-inline-start: var(
+                        --ds-quad-border-is,
+                        var(--ds-quad-border-inline, var(--ds-quad-border, 0))
+                    );
+                    border-inline-end: var(
+                        --ds-quad-border-ie,
+                        var(--ds-quad-border-inline, var(--ds-quad-border, 0))
+                    );
+                    border-start-start-radius: var(
+                        --ds-quad-radius-ss,
+                        var(--ds-quad-radius, 0)
+                    );
+                    border-start-end-radius: var(
+                        --ds-quad-radius-se,
+                        var(--ds-quad-radius, 0)
+                    );
+                    border-end-start-radius: var(
+                        --ds-quad-radius-es,
+                        var(--ds-quad-radius, 0)
+                    );
+                    border-end-end-radius: var(
+                        --ds-quad-radius-ee,
+                        var(--ds-quad-radius, 0)
+                    );
+                    background: var(--ds-quad-bg, transparent);
+                    color: var(--ds-quad-fg, inherit);
+                    box-shadow: var(--ds-quad-shadow, none);
+                }
+                :where(quadrilateral-layout) {
+                    transform-origin: var(--ds-quad-origin, 50% 50%);
+                }
+                :where(
+                    quadrilateral-layout[skew-x],
+                    :where(quadrilateral-layout[skew-y])
+                ) {
+                    transform: skewX(var(--ds-quad-skew-x, 0deg))
+                        skewY(var(--ds-quad-skew-y, 0deg));
+                }
+                :where(quadrilateral-layout[rotate]) {
+                    rotate: var(--ds-quad-rotate);
+                }
+                :where(quadrilateral-layout[scale]) {
+                    scale: var(--ds-quad-scale);
+                }
+                :where(quadrilateral-layout[translate]) {
+                    translate: var(--ds-quad-translate);
+                }
+                :where(quadrilateral-layout[preserve-3d]) {
+                    transform-style: preserve-3d;
+                }
+            }
+
+            @layer ds.motion {
+                @keyframes drift-a {
+                    0%,
+                    100% {
+                        translate: 0 0;
+                    }
+                    50% {
+                        translate: 20px -30px;
+                    }
+                }
+                @keyframes drift-b {
+                    0%,
+                    100% {
+                        translate: 0 0;
+                    }
+                    33% {
+                        translate: -30px 20px;
+                    }
+                    66% {
+                        translate: 20px -15px;
+                    }
+                }
+                @keyframes drift-c {
+                    0%,
+                    100% {
+                        translate: 0 0;
+                        rotate: 0deg;
+                    }
+                    50% {
+                        translate: 10px 20px;
+                        rotate: 15deg;
+                    }
+                }
+                @keyframes scan {
+                    0% {
+                        opacity: 0;
+                        translate: 0 -100%;
+                    }
+                    100% {
+                        opacity: 0.4;
+                        translate: 0 100%;
+                    }
+                }
+                @keyframes pulse {
+                    0%,
+                    100% {
+                        opacity: 0.6;
+                    }
+                    50% {
+                        opacity: 1;
+                    }
+                }
+                @keyframes float-in {
+                    from {
+                        opacity: 0;
+                        translate: 0 20px;
+                    }
+                    to {
+                        opacity: 1;
+                        translate: 0 0;
+                    }
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    :where(*) {
+                        animation: none !important;
+                        transition-duration: 0.01ms !important;
+                    }
+                }
+            }
+
+            @layer ds.app {
+                /* Typography */
+                .display-hero {
+                    font-family: "Barlow Condensed", sans-serif;
+                    font-weight: 900;
+                    font-style: italic;
+                    line-height: 0.86;
+                    letter-spacing: -0.03em;
+                    font-size: clamp(5rem, 16vw, 14rem);
+                }
+                .display-xl {
+                    font-family: "Barlow Condensed", sans-serif;
+                    font-weight: 900;
+                    line-height: 0.9;
+                    letter-spacing: -0.02em;
+                    font-size: clamp(3rem, 8vw, 7rem);
+                }
+                .display-l {
+                    font-family: "Barlow Condensed", sans-serif;
+                    font-weight: 800;
+                    line-height: 0.95;
+                    letter-spacing: -0.015em;
+                    font-size: clamp(2rem, 5vw, 4rem);
+                }
+                .display-m {
+                    font-family: "Barlow Condensed", sans-serif;
+                    font-weight: 700;
+                    line-height: 1;
+                    letter-spacing: -0.01em;
+                    font-size: clamp(1.3rem, 3vw, 2.2rem);
+                }
+                .label {
+                    font-family: "Space Mono", monospace;
+                    font-size: 0.6rem;
+                    letter-spacing: 0.18em;
+                    text-transform: uppercase;
+                    color: var(--c-fg-dim);
+                }
+                .body-text {
+                    font-family: "Space Mono", monospace;
+                    font-size: 0.75rem;
+                    color: var(--c-fg-dim);
+                    line-height: 1.8;
+                }
+                .gradient-text {
+                    background: var(--c-grad-text);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                }
+                .gradient-border {
+                    border: 1px solid transparent;
+                    background:
+                        linear-gradient(var(--c-bg), var(--c-bg)) padding-box,
+                        var(--c-grad) border-box;
+                }
+
+                /* Nav */
+                .site-nav {
+                    position: fixed;
+                    inset-block-start: 0;
+                    inset-inline: 0;
+                    z-index: 100;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: var(--ds-space-m) var(--ds-space-xl);
+                    background: rgba(3, 3, 5, 0.6);
+                    backdrop-filter: blur(20px);
+                    border-block-end: 1px solid var(--c-border);
+                }
+                .nav-logo {
+                    font-family: "Barlow Condensed", sans-serif;
+                    font-weight: 900;
+                    font-size: 1.4rem;
+                    letter-spacing: 0.06em;
+                    background: var(--c-grad-text);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                }
+                .nav-link {
+                    font-size: 0.6rem;
+                    letter-spacing: 0.18em;
+                    text-transform: uppercase;
+                    color: var(--c-fg-dim);
+                    transition: color 0.15s;
+                }
+                .nav-link:hover {
+                    color: var(--c-fg);
+                }
+
+                /* Work card */
+                .work-card {
+                    position: relative;
+                    overflow: hidden;
+                    cursor: pointer;
+                }
+                .work-card:hover .work-overlay {
+                    opacity: 1;
+                }
+                .work-card:hover .work-img {
+                    scale: 1.06;
+                }
+                .work-img {
+                    transition: scale 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+                }
+                .work-overlay {
+                    position: absolute;
+                    inset: 0;
+                    background: rgba(3, 3, 5, 0.7);
+                    opacity: 0;
+                    transition: opacity 0.3s;
+                    display: flex;
+                    align-items: flex-end;
+                    padding: var(--ds-space-m);
+                }
+            }
+
+            @layer ds.prose {
+                :where(prose-layout) {
+                    display: block;
+                    max-inline-size: var(--ds-prose-measure, 65ch);
+                    line-height: var(--ds-prose-leading, 1.65);
+                    overflow-wrap: break-word;
+                    hyphens: auto;
+
+                    --ds-prose-flow: var(--ds-space-s-m, 1rem);
+                    --ds-prose-flow-heading: var(--ds-space-m-l, 1.5rem);
+                    --ds-prose-li-gap: var(--ds-space-xs-s, 0.5rem);
+                    --ds-prose-list-indent: 1.25em;
+                    --ds-prose-rule-gap: var(--ds-space-m-l, 1.5rem);
+                }
+
+                @media (pointer: coarse) {
+                    :where(prose-layout) {
+                        --ds-prose-li-gap: var(--ds-space-s-m, 1rem);
+                    }
+                }
+
+                :where(prose-layout[compact]) {
+                    --ds-prose-flow: var(--ds-space-xs-s, 0.5rem);
+                    --ds-prose-flow-heading: var(--ds-space-s-m, 1rem);
+                    --ds-prose-li-gap: var(--ds-space-xxs, 0.35rem);
+                    --ds-prose-rule-gap: var(--ds-space-s-m, 1rem);
+                }
+
+                :where(prose-layout) > :where(* + *) {
+                    margin-block-start: var(--ds-prose-flow);
+                }
+
+                :where(prose-layout) > :where(h1, h2, h3, h4, h5, h6) {
+                    margin-block-start: var(--ds-prose-flow-heading);
+                }
+
+                :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
+                    line-height: var(--ds-prose-heading-leading, 1.2);
+                    text-wrap: balance;
+                }
+
+                :where(prose-layout) :where(p) {
+                    margin: 0;
+                }
+
+                :where(prose-layout) :where(ul, ol) {
+                    padding-inline-start: var(--ds-prose-list-indent);
+                }
+
+                :where(prose-layout) :where(li) {
+                    margin: 0;
+                }
+
+                :where(prose-layout) :where(li + li) {
+                    margin-block-start: var(--ds-prose-li-gap);
+                }
+
+                :where(prose-layout) :where(li > :where(ul, ol)) {
+                    margin-block-start: var(--ds-prose-li-gap);
+                }
+
+                :where(prose-layout) :where(dt) {
+                    font-weight: var(--ds-prose-dt-weight, 600);
+                }
+
+                :where(prose-layout) :where(dd) {
+                    margin-inline-start: 0;
+                    margin-block-start: var(--ds-prose-li-gap);
+                }
+
+                :where(prose-layout) :where(dd + dt) {
+                    margin-block-start: var(--ds-prose-flow);
+                }
+
+                :where(prose-layout) :where(a) {
+                    text-decoration-thickness: from-font;
+                    text-underline-offset: 0.15em;
+                }
+
+                :where(prose-layout) :where(code, kbd, samp) {
+                    font-family:
+                        ui-monospace, sfmono-regular, menlo, consolas,
+                        "Liberation Mono", monospace;
+                    font-size: 0.95em;
+                }
+
+                :where(prose-layout) :where(pre) {
+                    overflow: auto;
+                    padding: var(--ds-prose-pre-pad, var(--ds-space-s-m, 1rem));
+                    border: 1px solid currentColor;
+                    border-radius: var(--ds-prose-pre-radius, 0.5rem);
+                }
+
+                :where(prose-layout) :where(pre code) {
+                    display: block;
+                    white-space: pre;
+
+                    font-size: 1em;
+                }
+
+                :where(prose-layout) :where(blockquote) {
+                    margin-inline: 0;
+                    padding-inline-start: var(--ds-space-s, 0.75rem);
+                    border-inline-start: 0.25rem solid currentColor;
+                }
+
+                :where(prose-layout) :where(img, video, svg, canvas) {
+                    max-inline-size: 100%;
+                    block-size: auto;
+                }
+
+                :where(prose-layout) :where(figure) {
+                    margin-inline: 0;
+                }
+
+                :where(prose-layout) :where(figcaption) {
+                    font-size: 0.9em;
+                    line-height: 1.4;
+                }
+
+                :where(prose-layout) :where(table) {
+                    inline-size: 100%;
+                    border-collapse: collapse;
+                }
+
+                :where(prose-layout) :where(th, td) {
+                    padding: var(--ds-space-xs, 0.5rem);
+                    border: 1px solid currentColor;
+                    text-align: start;
+                    vertical-align: top;
+                }
+
+                :where(prose-layout) :where(th) {
+                    font-weight: 600;
+                }
+
+                :where(prose-layout) :where(hr) {
+                    border: 0;
+                    border-block-start: 1px solid currentColor;
+                    margin-block: var(--ds-prose-rule-gap);
+                }
+            }
+
+            @media print {
+                @layer ds.prose {
+                    :where(prose-layout) {
+                        max-inline-size: none;
+                        line-height: 1.45;
+                        hyphens: auto;
+                    }
+
+                    :where(prose-layout) :where(pre) {
+                        overflow: visible;
+                        white-space: pre-wrap;
+                        border: 1px solid currentColor;
+                    }
+
+                    :where(prose-layout) :where(a) {
+                        color: inherit;
+                        text-decoration: underline;
+                    }
+
+                    :where(prose-layout)
+                        :where(
+                            a[href]:not([href^="#"]):not([href^="javascript"])
+                        )::after {
+                        content: " (" attr(href) ")";
+                        font-size: 0.88em;
+                        word-break: break-all;
+                        opacity: 0.6;
+                    }
+
+                    :where(prose-layout) :where(h1, h2, h3, h4, h5, h6) {
+                        break-after: avoid-page;
+                    }
+
+                    :where(prose-layout)
+                        :where(blockquote, figure, table, pre) {
+                        break-inside: avoid-page;
+                    }
+
+                    :where(prose-layout) :where(p, li) {
+                        orphans: 3;
+                        widows: 3;
+                    }
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Fixed nav -->
+        <nav class="site-nav">
+            <span class="nav-logo">PRISM</span>
+            <cluster-layout
+                data-layout="cluster-layout"
+                gap="xl"
+                style="--ds-cluster-gap: var(--ds-space-xl)"
+            >
+                <a class="nav-link" href="#">Work</a>
+                <a class="nav-link" href="#">Process</a>
+                <a class="nav-link" href="#">About</a>
+                <a class="nav-link" href="#">Contact</a>
+            </cluster-layout>
+        </nav>
+
+        <!-- ═══ HERO ═══════════════════════════════════════════════════════════ -->
+        <section
+            style="
+                min-block-size: 100dvh;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+                position: relative;
+                overflow: hidden;
+                padding-block-start: 80px;
+            "
+        >
+            <!-- Ambient BG: rotating gradient quads -->
+            <div
+                style="
+                    position: absolute;
+                    inset: 0;
+                    pointer-events: none;
+                    overflow: hidden;
+                "
+            >
+                <!-- Large skewed bands in the background -->
+                <quadrilateral-layout
+                    data-layout="quadrilateral-layout"
+                    skew-x="-12deg"
+                    bg="linear-gradient(90deg,transparent,rgba(139,92,246,.12),transparent)"
+                    style="
+                        position: absolute;
+                        inset-block: -50%;
+                        inset-inline: -20%;
+                        animation: drift-a 18s ease-in-out infinite;
+                    "
+                >
+                </quadrilateral-layout>
+                <quadrilateral-layout
+                    data-layout="quadrilateral-layout"
+                    skew-x="8deg"
+                    bg="linear-gradient(90deg,transparent,rgba(236,72,153,.09),transparent)"
+                    style="
+                        position: absolute;
+                        inset-block: -50%;
+                        inset-inline: -20%;
+                        animation: drift-b 24s ease-in-out infinite;
+                    "
+                >
+                </quadrilateral-layout>
+                <quadrilateral-layout
+                    data-layout="quadrilateral-layout"
+                    skew-x="-6deg"
+                    bg="linear-gradient(90deg,transparent,rgba(6,182,212,.08),transparent)"
+                    style="
+                        position: absolute;
+                        inset-block: -50%;
+                        inset-inline: -20%;
+                        animation: drift-b 20s ease-in-out infinite reverse;
+                    "
+                >
+                </quadrilateral-layout>
+
+                <!-- Rotating accent blocks -->
+                <quadrilateral-layout
+                    data-layout="quadrilateral-layout"
+                    rotate="35deg"
+                    bg="rgba(139,92,246,.15)"
+                    shadow="0 0 80px 20px rgba(139,92,246,.2)"
+                    style="
+                        position: absolute;
+                        inset-block-start: 10%;
+                        inset-inline-end: 8%;
+                        width: 160px;
+                        height: 160px;
+                        border-radius: 4px;
+                        animation: drift-c 15s ease-in-out infinite;
+                    "
+                >
+                </quadrilateral-layout>
+                <quadrilateral-layout
+                    data-layout="quadrilateral-layout"
+                    rotate="20deg"
+                    bg="rgba(236,72,153,.12)"
+                    shadow="0 0 60px 12px rgba(236,72,153,.15)"
+                    style="
+                        position: absolute;
+                        inset-block-start: 40%;
+                        inset-inline-end: 20%;
+                        width: 80px;
+                        height: 80px;
+                        border-radius: 3px;
+                        animation: drift-a 12s ease-in-out infinite reverse;
+                    "
+                >
+                </quadrilateral-layout>
+                <quadrilateral-layout
+                    data-layout="quadrilateral-layout"
+                    rotate="-15deg"
+                    bg="rgba(6,182,212,.1)"
+                    style="
+                        position: absolute;
+                        inset-block-start: 60%;
+                        inset-inline-start: 6%;
+                        width: 120px;
+                        height: 120px;
+                        border-radius: 3px;
+                        animation: drift-b 18s ease-in-out infinite;
+                    "
+                >
+                </quadrilateral-layout>
+
+                <!-- Scanline effect -->
+                <div
+                    style="
+                        position: absolute;
+                        inset: 0;
+                        background: repeating-linear-gradient(
+                            0deg,
+                            transparent,
+                            transparent 3px,
+                            rgba(255, 255, 255, 0.015) 3px,
+                            rgba(255, 255, 255, 0.015) 4px
+                        );
+                        pointer-events: none;
+                    "
+                ></div>
+            </div>
+
+            <!-- Hero text -->
+            <region-layout
+                data-layout="region-layout"
+                style="
+                    --ds-region-pad-block: 0;
+                    --ds-region-pad-inline: var(--ds-space-xl);
+                    padding-block-end: var(--ds-space-xxl);
+                    position: relative;
+                    z-index: 10;
+                "
+            >
+                <stacked-layout
+                    data-layout="stacked-layout"
+                    gap="l"
+                    style="
+                        animation: float-in 0.8s cubic-bezier(0.16, 1, 0.3, 1)
+                            both;
+                    "
+                >
+                    <span
+                        class="label"
+                        style="
+                            animation: float-in 0.8s 0.1s
+                                cubic-bezier(0.16, 1, 0.3, 1) both;
+                        "
+                        >Generative Art Studio · Est. 2020</span
+                    >
+                    <div>
+                        <div class="display-hero gradient-text">MAKE</div>
+                        <div class="display-hero" style="color: var(--c-fg)">
+                            SOME
+                        </div>
+                        <div
+                            class="display-hero"
+                            style="
+                                -webkit-text-stroke: 2px
+                                    rgba(255, 255, 255, 0.25);
+                                color: transparent;
+                            "
+                        >
+                            THING
+                        </div>
+                        <div class="display-hero gradient-text">REAL</div>
+                    </div>
+                    <repel-layout data-layout="repel-layout" wrap gap="xl">
+                        <prose-layout
+                            data-layout="prose-layout"
+                            measure="44ch"
+                            leading="1.8"
+                            style="
+                                font-family: &quot;Space Mono&quot;, monospace;
+                                font-size: 0.75rem;
+                                color: var(--c-fg-dim);
+                                animation: float-in 0.8s 0.2s
+                                    cubic-bezier(0.16, 1, 0.3, 1) both;
+                            "
+                        >
+                            <p>
+                                Code and canvas. Algorithms and aesthetics. I
+                                build generative systems that produce work that
+                                could not exist any other way.
+                            </p>
+                        </prose-layout>
+                        <a
+                            class="gradient-border"
+                            href="#work"
+                            style="
+                                display: inline-flex;
+                                align-items: center;
+                                gap: var(--ds-space-m);
+                                padding: var(--ds-space-s) var(--ds-space-l);
+                                font-family: &quot;Barlow Condensed&quot;;
+                                font-size: 1rem;
+                                font-weight: 700;
+                                letter-spacing: 0.08em;
+                                text-transform: uppercase;
+                                animation: float-in 0.8s 0.3s
+                                    cubic-bezier(0.16, 1, 0.3, 1) both;
+                            "
+                        >
+                            View work
+                            <span style="color: var(--c-purple)">↓</span>
+                        </a>
+                    </repel-layout>
+                </stacked-layout>
+            </region-layout>
+
+            <!-- Gradient horizon line -->
+            <div
+                style="
+                    position: relative;
+                    z-index: 10;
+                    block-size: 1px;
+                    background: linear-gradient(
+                        90deg,
+                        transparent,
+                        var(--c-purple),
+                        var(--c-pink),
+                        var(--c-cyan),
+                        transparent
+                    );
+                "
+            ></div>
+        </section>
+
+        <!-- ═══ WORK GRID ═══════════════════════════════════════════════════════ -->
+        <section
+            id="work"
+            style="
+                padding-block: var(--ds-space-xxl);
+                padding-inline: var(--ds-space-xl);
+            "
+        >
+            <stacked-layout data-layout="stacked-layout" gap="xxl">
+                <repel-layout data-layout="repel-layout" wrap>
+                    <div class="display-xl">Selected Work</div>
+                    <span class="label" style="align-self: flex-end"
+                        >2020 — 2026</span
+                    >
+                </repel-layout>
+
+                <masonry-layout
+                    data-layout="masonry-layout"
+                    style="
+                        --ds-masonry-min: 260px;
+                        --ds-masonry-gap: var(--ds-space-m);
+                        --ds-masonry-gap-block: var(--ds-space-m);
+                    "
+                >
+                    <!-- VOID -->
+                    <div
+                        class="work-card"
+                        style="
+                            border-radius: 4px;
+                            overflow: hidden;
+                            margin-block-end: var(--ds-space-m);
+                        "
+                    >
+                        <div
+                            class="work-img"
+                            style="
+                                block-size: 320px;
+                                background: radial-gradient(
+                                    ellipse at 30% 50%,
+                                    rgba(139, 92, 246, 0.6),
+                                    rgba(3, 3, 5, 0.9)
+                                );
+                                display: grid;
+                                place-items: center;
+                                position: relative;
+                                overflow: hidden;
+                            "
+                        >
+                            <quadrilateral-layout
+                                data-layout="quadrilateral-layout"
+                                rotate="45deg"
+                                skew-x="10deg"
+                                bg="rgba(139,92,246,.2)"
+                                style="
+                                    position: absolute;
+                                    inset-block: 20%;
+                                    inset-inline: 15%;
+                                    border-radius: 2px;
+                                "
+                            >
+                            </quadrilateral-layout>
+                            <div style="position: relative; text-align: center">
+                                <div
+                                    class="display-xl gradient-text"
+                                    style="font-size: 5rem"
+                                >
+                                    VOID
+                                </div>
+                            </div>
+                        </div>
+                        <div class="work-overlay">
+                            <stacked-layout
+                                data-layout="stacked-layout"
+                                gap="xs"
+                                style="--ds-stacked-align: stretch"
+                            >
+                                <span
+                                    class="label"
+                                    style="color: var(--c-purple)"
+                                    >Interactive Installation · 2024</span
+                                >
+                                <div class="display-m">
+                                    VOID — Infinite generative space
+                                </div>
+                            </stacked-layout>
+                        </div>
+                    </div>
+
+                    <!-- LATTICE -->
+                    <div
+                        class="work-card"
+                        style="
+                            border-radius: 4px;
+                            overflow: hidden;
+                            margin-block-end: var(--ds-space-m);
+                        "
+                    >
+                        <div
+                            class="work-img"
+                            style="
+                                block-size: 200px;
+                                position: relative;
+                                overflow: hidden;
+                                background: #030305;
+                            "
+                        >
+                            <!-- Rotating quadrilateral grid effect -->
+                            <div
+                                style="
+                                    position: absolute;
+                                    inset: 0;
+                                    display: grid;
+                                    grid-template-columns: repeat(4, 1fr);
+                                    grid-template-rows: repeat(3, 1fr);
+                                    gap: 2px;
+                                    padding: 2px;
+                                "
+                            >
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="12deg"
+                                    origin="center"
+                                    bg="rgba(6,182,212,.3)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s ease-in-out infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="-8deg"
+                                    origin="center"
+                                    bg="rgba(139,92,246,.3)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 0.5s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="20deg"
+                                    origin="center"
+                                    bg="rgba(236,72,153,.3)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 1s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="-15deg"
+                                    origin="center"
+                                    bg="rgba(6,182,212,.2)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 1.5s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="5deg"
+                                    origin="center"
+                                    bg="rgba(236,72,153,.25)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 2s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="-25deg"
+                                    origin="center"
+                                    bg="rgba(139,92,246,.35)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 0.3s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="18deg"
+                                    origin="center"
+                                    bg="rgba(6,182,212,.25)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 0.8s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="-10deg"
+                                    origin="center"
+                                    bg="rgba(236,72,153,.3)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 1.3s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="30deg"
+                                    origin="center"
+                                    bg="rgba(139,92,246,.2)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 1.8s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="-5deg"
+                                    origin="center"
+                                    bg="rgba(6,182,212,.35)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 0.6s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="22deg"
+                                    origin="center"
+                                    bg="rgba(236,72,153,.2)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 1.1s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                                <quadrilateral-layout
+                                    data-layout="quadrilateral-layout"
+                                    rotate="-18deg"
+                                    origin="center"
+                                    bg="rgba(139,92,246,.3)"
+                                    style="
+                                        border-radius: 2px;
+                                        animation: pulse 3s 1.6s ease-in-out
+                                            infinite;
+                                    "
+                                ></quadrilateral-layout>
+                            </div>
+                        </div>
+                        <div class="work-overlay">
+                            <stacked-layout
+                                data-layout="stacked-layout"
+                                gap="xs"
+                            >
+                                <span class="label" style="color: var(--c-cyan)"
+                                    >Algorithmic Composition · 2023</span
+                                >
+                                <div class="display-m">
+                                    LATTICE — Rotating tile system
+                                </div>
+                            </stacked-layout>
+                        </div>
+                    </div>
+
+                    <!-- CASCADE -->
+                    <div
+                        class="work-card"
+                        style="
+                            border-radius: 4px;
+                            overflow: hidden;
+                            margin-block-end: var(--ds-space-m);
+                        "
+                    >
+                        <div
+                            class="work-img"
+                            style="
+                                block-size: 260px;
+                                background: linear-gradient(
+                                    180deg,
+                                    rgba(6, 182, 212, 0.3),
+                                    rgba(139, 92, 246, 0.2),
+                                    rgba(236, 72, 153, 0.3)
+                                );
+                                display: flex;
+                                flex-direction: column;
+                                justify-content: flex-end;
+                                padding: var(--ds-space-m);
+                                position: relative;
+                                overflow: hidden;
+                            "
+                        >
+                            <!-- Skewed cascade bands -->
+                            <quadrilateral-layout
+                                data-layout="quadrilateral-layout"
+                                skew-x="-15deg"
+                                bg="rgba(6,182,212,.15)"
+                                style="
+                                    position: absolute;
+                                    block-size: 30%;
+                                    inset-block-start: 10%;
+                                    inset-inline: -20%;
+                                "
+                            ></quadrilateral-layout>
+                            <quadrilateral-layout
+                                data-layout="quadrilateral-layout"
+                                skew-x="-15deg"
+                                bg="rgba(139,92,246,.12)"
+                                style="
+                                    position: absolute;
+                                    block-size: 30%;
+                                    inset-block-start: 35%;
+                                    inset-inline: -20%;
+                                "
+                            ></quadrilateral-layout>
+                            <quadrilateral-layout
+                                data-layout="quadrilateral-layout"
+                                skew-x="-15deg"
+                                bg="rgba(236,72,153,.1)"
+                                style="
+                                    position: absolute;
+                                    block-size: 30%;
+                                    inset-block-start: 60%;
+                                    inset-inline: -20%;
+                                "
+                            ></quadrilateral-layout>
+                        </div>
+                        <div class="work-overlay">
+                            <stacked-layout
+                                data-layout="stacked-layout"
+                                gap="xs"
+                            >
+                                <span class="label" style="color: var(--c-pink)"
+                                    >Watercolor Simulation · 2023</span
+                                >
+                                <div class="display-m">
+                                    CASCADE — Flow field studies
+                                </div>
+                            </stacked-layout>
+                        </div>
+                    </div>
+
+                    <!-- SPECTRUM -->
+                    <div
+                        class="work-card"
+                        style="
+                            border-radius: 4px;
+                            overflow: hidden;
+                            margin-block-end: var(--ds-space-m);
+                        "
+                    >
+                        <div
+                            class="work-img"
+                            style="
+                                block-size: 200px;
+                                background: conic-gradient(
+                                    from 0deg at 50% 50%,
+                                    #8b5cf6,
+                                    #ec4899,
+                                    #06b6d4,
+                                    #8b5cf6
+                                );
+                                position: relative;
+                                overflow: hidden;
+                            "
+                        >
+                            <div
+                                style="
+                                    position: absolute;
+                                    inset: 0;
+                                    background: rgba(3, 3, 5, 0.5);
+                                "
+                            ></div>
+                            <div
+                                style="
+                                    position: absolute;
+                                    inset: 0;
+                                    display: grid;
+                                    place-items: center;
+                                "
+                            >
+                                <div
+                                    class="display-xl"
+                                    style="
+                                        font-size: 3.5rem;
+                                        letter-spacing: 0.1em;
+                                    "
+                                >
+                                    SPECTRUM
+                                </div>
+                            </div>
+                        </div>
+                        <div class="work-overlay">
+                            <stacked-layout
+                                data-layout="stacked-layout"
+                                gap="xs"
+                            >
+                                <span
+                                    class="label"
+                                    style="color: var(--c-purple)"
+                                    >Color Theory · 2022</span
+                                >
+                                <div class="display-m">
+                                    SPECTRUM — Chromatic studies
+                                </div>
+                            </stacked-layout>
+                        </div>
+                    </div>
+
+                    <!-- ECHO -->
+                    <div
+                        class="work-card"
+                        style="
+                            border-radius: 4px;
+                            overflow: hidden;
+                            margin-block-end: var(--ds-space-m);
+                        "
+                    >
+                        <div
+                            class="work-img"
+                            style="
+                                block-size: 280px;
+                                background: #030305;
+                                display: grid;
+                                place-items: center;
+                                position: relative;
+                                overflow: hidden;
+                            "
+                        >
+                            <!-- Concentric rotating quads for echo effect -->
+                            <quadrilateral-layout
+                                data-layout="quadrilateral-layout"
+                                rotate="0deg"
+                                origin="center"
+                                border="1px solid rgba(139,92,246,.6)"
+                                style="
+                                    position: absolute;
+                                    width: 80%;
+                                    height: 80%;
+                                    animation: drift-c 8s linear infinite;
+                                "
+                            ></quadrilateral-layout>
+                            <quadrilateral-layout
+                                data-layout="quadrilateral-layout"
+                                rotate="0deg"
+                                origin="center"
+                                border="1px solid rgba(236,72,153,.4)"
+                                style="
+                                    position: absolute;
+                                    width: 60%;
+                                    height: 60%;
+                                    animation: drift-c 8s 1s linear infinite;
+                                "
+                            ></quadrilateral-layout>
+                            <quadrilateral-layout
+                                data-layout="quadrilateral-layout"
+                                rotate="0deg"
+                                origin="center"
+                                border="1px solid rgba(6,182,212,.3)"
+                                style="
+                                    position: absolute;
+                                    width: 40%;
+                                    height: 40%;
+                                    animation: drift-c 8s 2s linear infinite;
+                                "
+                            ></quadrilateral-layout>
+                            <quadrilateral-layout
+                                data-layout="quadrilateral-layout"
+                                rotate="0deg"
+                                origin="center"
+                                border="1px solid rgba(139,92,246,.2)"
+                                style="
+                                    position: absolute;
+                                    width: 20%;
+                                    height: 20%;
+                                    animation: drift-c 8s 3s linear infinite;
+                                "
+                            ></quadrilateral-layout>
+                        </div>
+                        <div class="work-overlay">
+                            <stacked-layout
+                                data-layout="stacked-layout"
+                                gap="xs"
+                            >
+                                <span class="label" style="color: var(--c-cyan)"
+                                    >Recursive Pattern · 2022</span
+                                >
+                                <div class="display-m">
+                                    ECHO — Self-similar structures
+                                </div>
+                            </stacked-layout>
+                        </div>
+                    </div>
+                </masonry-layout>
+            </stacked-layout>
+        </section>
+
+        <!-- ═══ STATEMENT ═══════════════════════════════════════════════════════ -->
+        <section
+            style="
+                padding-block: var(--ds-space-xxxl);
+                overflow: hidden;
+                position: relative;
+            "
+        >
+            <!-- Bold oblique bands -->
+            <quadrilateral-layout
+                data-layout="quadrilateral-layout"
+                skew-x="-6deg"
+                bg="linear-gradient(135deg,rgba(139,92,246,.15),rgba(236,72,153,.1),rgba(6,182,212,.08))"
+                style="
+                    position: absolute;
+                    inset-block: -100%;
+                    inset-inline: -10%;
+                    z-index: 0;
+                "
+            >
+            </quadrilateral-layout>
+
+            <centered-layout
+                data-layout="centered-layout"
+                style="
+                    --ds-centered-max: 50ch;
+                    --ds-centered-gutter: var(--ds-space-xl);
+                    position: relative;
+                    z-index: 1;
+                    text-align: center;
+                "
+            >
+                <stacked-layout
+                    data-layout="stacked-layout"
+                    gap="l"
+                    style="--ds-stacked-align: center"
+                >
+                    <span class="label">Statement</span>
+                    <div
+                        class="display-xl gradient-text"
+                        style="line-height: 0.92"
+                    >
+                        Every pixel is a decision.
+                    </div>
+                    <div class="display-xl" style="line-height: 0.92">
+                        Every decision
+                    </div>
+                    <div
+                        class="display-xl gradient-text"
+                        style="line-height: 0.92"
+                    >
+                        is a possibility.
+                    </div>
+                    <div
+                        style="
+                            width: 60px;
+                            height: 2px;
+                            background: linear-gradient(
+                                90deg,
+                                var(--c-purple),
+                                var(--c-pink),
+                                var(--c-cyan)
+                            );
+                        "
+                    ></div>
+                    <prose-layout
+                        data-layout="prose-layout"
+                        measure="40ch"
+                        leading="1.8"
+                        style="
+                            font-family: &quot;Space Mono&quot;, monospace;
+                            font-size: 0.75rem;
+                            color: var(--c-fg-dim);
+                        "
+                    >
+                        <p>
+                            I work at the intersection of code and canvas —
+                            building systems that generate infinite variations
+                            of a single aesthetic idea.
+                        </p>
+                    </prose-layout>
+                </stacked-layout>
+            </centered-layout>
+        </section>
+
+        <!-- ═══ ABOUT + CONTACT ═══════════════════════════════════════════════════ -->
+        <section
+            style="
+                padding-block: var(--ds-space-xxl);
+                padding-inline: var(--ds-space-xl);
+                border-block-start: 1px solid var(--c-border);
+            "
+        >
+            <columns-layout
+                data-layout="columns-layout"
+                style="
+                    --ds-columns-cols: 1fr 1fr;
+                    --ds-columns-gap: var(--ds-space-xxl);
+                    align-items: start;
+                "
+            >
+                <stacked-layout data-layout="stacked-layout" gap="l">
+                    <div class="display-l">About</div>
+                    <prose-layout
+                        data-layout="prose-layout"
+                        measure="none"
+                        leading="1.8"
+                        style="
+                            font-family: &quot;Space Mono&quot;, monospace;
+                            font-size: 0.75rem;
+                            color: var(--c-fg-dim);
+                        "
+                    >
+                        <p>
+                            I am a creative technologist working at the edges of
+                            computation and visual art. Trained as an engineer,
+                            drawn to aesthetics. Every project is a question
+                            about what machines can make when given the right
+                            constraints.
+                        </p>
+                        <p>
+                            Available for commissions, residencies, and
+                            collaborations. Particularly interested in
+                            large-scale installation work and experimental
+                            interfaces.
+                        </p>
+                    </prose-layout>
+                    <cluster-layout
+                        data-layout="cluster-layout"
+                        gap="m"
+                        style="--ds-cluster-gap: var(--ds-space-m)"
+                    >
+                        <span
+                            class="label"
+                            style="
+                                border: 1px solid var(--c-purple);
+                                padding: var(--ds-space-xxs) var(--ds-space-m);
+                                color: var(--c-purple);
+                            "
+                            >Commissions open</span
+                        >
+                        <span class="label" style="color: var(--c-fg-dim)"
+                            >Berlin-based</span
+                        >
+                    </cluster-layout>
+                </stacked-layout>
+
+                <stacked-layout data-layout="stacked-layout" gap="l">
+                    <div class="display-l">Get in touch</div>
+
+                    <!-- Contact form feel -->
+                    <stacked-layout data-layout="stacked-layout" gap="m">
+                        <div>
+                            <div
+                                class="label"
+                                style="margin-block-end: var(--ds-space-xs)"
+                            >
+                                Your name
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Name"
+                                style="
+                                    width: 100%;
+                                    background: var(--c-surface);
+                                    border: 1px solid var(--c-border);
+                                    border-radius: 2px;
+                                    padding: var(--ds-space-s) var(--ds-space-m);
+                                    font-family: &quot;Space Mono&quot;;
+                                    font-size: 0.75rem;
+                                    color: var(--c-fg-dim);
+                                    outline: none;
+                                    transition: border-color 0.15s;
+                                "
+                                onfocus="
+                                    this.style.borderColor =
+                                        'rgba(139,92,246,.6)'
+                                "
+                                onblur="this.style.borderColor = ''"
+                            />
+                        </div>
+                        <div>
+                            <div
+                                class="label"
+                                style="margin-block-end: var(--ds-space-xs)"
+                            >
+                                Project description
+                            </div>
+                            <textarea
+                                rows="3"
+                                placeholder="Tell me about the project..."
+                                style="
+                                    width: 100%;
+                                    background: var(--c-surface);
+                                    border: 1px solid var(--c-border);
+                                    border-radius: 2px;
+                                    padding: var(--ds-space-s) var(--ds-space-m);
+                                    font-family: &quot;Space Mono&quot;;
+                                    font-size: 0.75rem;
+                                    color: var(--c-fg-dim);
+                                    outline: none;
+                                    resize: vertical;
+                                    transition: border-color 0.15s;
+                                "
+                                onfocus="
+                                    this.style.borderColor =
+                                        'rgba(139,92,246,.6)'
+                                "
+                                onblur="this.style.borderColor = ''"
+                            ></textarea>
+                        </div>
+                        <button
+                            style="
+                                background: var(--c-grad);
+                                padding: var(--ds-space-s) var(--ds-space-xl);
+                                font-family: &quot;Barlow Condensed&quot;;
+                                font-size: 1rem;
+                                font-weight: 700;
+                                letter-spacing: 0.1em;
+                                text-transform: uppercase;
+                                border-radius: 2px;
+                                color: #fff;
+                                align-self: flex-start;
+                                transition: opacity 0.15s;
+                            "
+                            onmouseenter="this.style.opacity = '.85'"
+                            onmouseleave="this.style.opacity = ''"
+                        >
+                            Send message
+                        </button>
+                    </stacked-layout>
+                </stacked-layout>
+            </columns-layout>
+        </section>
+
+        <!-- Footer -->
+        <footer
+            style="
+                padding: var(--ds-space-l) var(--ds-space-xl);
+                border-block-start: 1px solid var(--c-border);
+            "
+        >
+            <repel-layout data-layout="repel-layout" wrap>
+                <span class="nav-logo" style="font-size: 1rem">PRISM</span>
+                <span class="label"
+                    >© 2026 — Making things exist between code and art</span
+                >
+                <cluster-layout data-layout="cluster-layout" gap="l">
+                    <a class="label" href="#">Instagram</a>
+                    <a class="label" href="#">GitHub</a>
+                    <a class="label" href="#">Are.na</a>
+                </cluster-layout>
+            </repel-layout>
+        </footer>
+
+        <script>
+            function aV(e, n, v) {
+                v === "" || v == null
+                    ? e.style.removeProperty(n)
+                    : e.style.setProperty(n, v);
+            }
+            function aP(e, n, v) {
+                v === "" || v == null
+                    ? e.style.removeProperty(n)
+                    : e.style.setProperty(n, v);
+            }
+            const ST = new Set([
+                "tiny",
+                "xxxs",
+                "xxs",
+                "xs",
+                "s",
+                "m",
+                "l",
+                "xl",
+                "xxl",
+                "xxxl",
+                "huge",
+                "xs-s",
+                "s-m",
+                "m-l",
+                "l-xl",
+                "xl-xxl",
+            ]);
+            function ns(v) {
+                const s = String(v || "").trim();
+                if (!s) return "";
+                if (s === "0") return "0";
+                if (ST.has(s)) return `var(--ds-space-${s})`;
+                return s;
+            }
+            function nr(v) {
+                return String(v || "").trim();
+            }
+            function el(map) {
+                const e = Object.entries(map);
+                return class extends HTMLElement {
+                    static get observedAttributes() {
+                        return Object.keys(map);
+                    }
+                    connectedCallback() {
+                        this._a();
+                    }
+                    attributeChangedCallback() {
+                        this._a();
+                    }
+                    _a() {
+                        for (const [attr, spec] of e) {
+                            const raw = this.getAttribute(attr) ?? "";
+                            const val =
+                                spec.type === "space" ? ns(raw) : nr(raw);
+                            if (spec.var) aV(this, spec.var, val);
+                            if (spec.prop) aP(this, spec.prop, val);
+                        }
+                    }
+                };
+            }
+            function def(t, c) {
+                if (!customElements.get(t)) customElements.define(t, c);
+            }
+
+            def(
+                "stacked-layout",
+                el({
+                    gap: { type: "space", var: "--ds-stacked-gap" },
+                    align: { type: "raw", var: "--ds-stacked-align" },
+                }),
+            );
+            def(
+                "cluster-layout",
+                el({
+                    gap: { type: "space", var: "--ds-cluster-gap" },
+                    align: { type: "raw", var: "--ds-cluster-align" },
+                    justify: { type: "raw", var: "--ds-cluster-justify" },
+                }),
+            );
+            def(
+                "repel-layout",
+                el({
+                    gap: { type: "space", var: "--ds-repel-gap" },
+                    align: { type: "raw", var: "--ds-repel-align" },
+                }),
+            );
+            def(
+                "columns-layout",
+                el({
+                    cols: { type: "raw", var: "--ds-columns-cols" },
+                    rows: { type: "raw", var: "--ds-columns-rows" },
+                    gap: { type: "space", var: "--ds-columns-gap" },
+                    "gap-block": {
+                        type: "space",
+                        var: "--ds-columns-gap-block",
+                    },
+                    "gap-inline": {
+                        type: "space",
+                        var: "--ds-columns-gap-inline",
+                    },
+                    align: { type: "raw", var: "--ds-columns-align" },
+                }),
+            );
+            def(
+                "fluid-grid-layout",
+                el({
+                    min: { type: "space", var: "--ds-fluid-grid-min" },
+                    max: { type: "space", var: "--ds-fluid-grid-max" },
+                    gap: { type: "space", var: "--ds-fluid-grid-gap" },
+                }),
+            );
+            def(
+                "masonry-layout",
+                el({
+                    gap: { type: "space", var: "--ds-masonry-gap" },
+                    "gap-block": {
+                        type: "space",
+                        var: "--ds-masonry-gap-block",
+                    },
+                    "gap-inline": {
+                        type: "space",
+                        var: "--ds-masonry-gap-inline",
+                    },
+                    min: { type: "space", var: "--ds-masonry-min" },
+                    columns: { type: "raw", var: "--ds-masonry-columns" },
+                }),
+            );
+            def(
+                "region-layout",
+                el({
+                    "pad-block": {
+                        type: "space",
+                        var: "--ds-region-pad-block",
+                    },
+                    "pad-inline": {
+                        type: "space",
+                        var: "--ds-region-pad-inline",
+                    },
+                    bg: { type: "raw", var: "--ds-region-bg" },
+                }),
+            );
+            def(
+                "centered-layout",
+                el({
+                    max: { type: "space", var: "--ds-centered-max" },
+                    gutter: { type: "space", var: "--ds-centered-gutter" },
+                }),
+            );
+            def(
+                "z-axis-layout",
+                el({
+                    align: { type: "raw", var: "--ds-z-axis-align" },
+                    justify: { type: "raw", var: "--ds-z-axis-justify" },
+                }),
+            );
+            def(
+                "overlay-layout",
+                el({
+                    inset: { type: "space", var: "--ds-overlay-inset" },
+                    align: { type: "raw", var: "--ds-overlay-align" },
+                    justify: { type: "raw", var: "--ds-overlay-justify" },
+                }),
+            );
+            def(
+                "aspect-ratio-layout",
+                el({
+                    ratio: { type: "raw", var: "--ds-aspect-ratio" },
+                    fit: { type: "raw", var: "--ds-aspect-fit" },
+                }),
+            );
+
+            const _QB = el({
+                pad: { type: "space", var: "--ds-quad-pad" },
+                "pad-block": { type: "space", var: "--ds-quad-pad-block" },
+                "pad-inline": { type: "space", var: "--ds-quad-pad-inline" },
+                pbs: { type: "space", var: "--ds-quad-pbs" },
+                pbe: { type: "space", var: "--ds-quad-pbe" },
+                pis: { type: "space", var: "--ds-quad-pis" },
+                pie: { type: "space", var: "--ds-quad-pie" },
+                border: { type: "raw", var: "--ds-quad-border" },
+                "border-bs": { type: "raw", var: "--ds-quad-border-bs" },
+                "border-be": { type: "raw", var: "--ds-quad-border-be" },
+                "border-is": { type: "raw", var: "--ds-quad-border-is" },
+                "border-ie": { type: "raw", var: "--ds-quad-border-ie" },
+                radius: { type: "space", var: "--ds-quad-radius" },
+                bg: { type: "raw", var: "--ds-quad-bg" },
+                fg: { type: "raw", var: "--ds-quad-fg" },
+                shadow: { type: "raw", var: "--ds-quad-shadow" },
+                "skew-x": { type: "raw", var: "--ds-quad-skew-x" },
+                "skew-y": { type: "raw", var: "--ds-quad-skew-y" },
+                rotate: { type: "raw", var: "--ds-quad-rotate" },
+                scale: { type: "raw", var: "--ds-quad-scale" },
+                translate: { type: "raw", var: "--ds-quad-translate" },
+                origin: { type: "raw", var: "--ds-quad-origin" },
+                perspective: { type: "raw", prop: "perspective" },
+            });
+            class _QE extends _QB {
+                static get observedAttributes() {
+                    return [
+                        ...super.observedAttributes,
+                        "preserve-3d",
+                        "backface",
+                        "flip-x",
+                        "flip-y",
+                    ];
+                }
+                connectedCallback() {
+                    super.connectedCallback();
+                    this._qt();
+                }
+                attributeChangedCallback(n, o, v) {
+                    super.attributeChangedCallback(n, o, v);
+                    this._qt();
+                }
+                _qt() {
+                    const p3d = this.hasAttribute("preserve-3d"),
+                        bf = this.hasAttribute("backface"),
+                        fx = this.hasAttribute("flip-x"),
+                        fy = this.hasAttribute("flip-y");
+                    p3d
+                        ? this.style.setProperty(
+                              "transform-style",
+                              "preserve-3d",
+                          )
+                        : this.style.removeProperty("transform-style");
+                    bf
+                        ? this.style.setProperty(
+                              "backface-visibility",
+                              "hidden",
+                          )
+                        : this.style.removeProperty("backface-visibility");
+                    if (fx || fy)
+                        this.style.setProperty(
+                            "scale",
+                            `${fx ? -1 : 1} ${fy ? -1 : 1}`,
+                        );
+                }
+            }
+            def("quadrilateral-layout", _QE);
+
+            // prose-layout — flow rhythm for mixed HTML content
+            const _PLBase = el({
+                measure: { type: "raw", var: "--ds-prose-measure" },
+                leading: { type: "raw", var: "--ds-prose-leading" },
+                flow: { type: "space", var: "--ds-prose-flow" },
+                "flow-heading": {
+                    type: "space",
+                    var: "--ds-prose-flow-heading",
+                },
+                "li-gap": { type: "space", var: "--ds-prose-li-gap" },
+                "list-indent": { type: "raw", var: "--ds-prose-list-indent" },
+                "rule-gap": { type: "space", var: "--ds-prose-rule-gap" },
+                "pre-pad": { type: "space", var: "--ds-prose-pre-pad" },
+                "pre-radius": { type: "space", var: "--ds-prose-pre-radius" },
+                "heading-leading": {
+                    type: "raw",
+                    var: "--ds-prose-heading-leading",
+                },
+                "dt-weight": { type: "raw", var: "--ds-prose-dt-weight" },
+            });
+            class _PLEl extends _PLBase {
+                static get observedAttributes() {
+                    return [...super.observedAttributes, "compact"];
+                }
+            }
+            def("prose-layout", _PLEl);
+        </script>
+    </body>
 </html>

@@ -3,7 +3,6 @@
 # Source TypeScript (compiled output isn't needed; we serve poc/ directly)
 node_modules/
 jsr.json
-scripts/
 
 # Dev tools
 .git/
